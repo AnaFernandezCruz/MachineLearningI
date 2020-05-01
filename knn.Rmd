@@ -1,0 +1,77 @@
+---
+title: "K Nearest Neighbors - KNN"
+---
+
+```{r load_libraries, message=FALSE, warning=FALSE, echo=FALSE}
+
+library(class)
+library(caret)
+library(ggplot2)
+
+```
+
+Cargamos los datos de prueba, del dataset IRIS
+
+```{r load_data, message=FALSE, warning=FALSE, echo=TRUE}
+
+df <- iris
+summary(df)
+
+head(df)
+```
+
+Normalizamos las variables
+
+```{r norm_data, message=FALSE, warning=FALSE, echo=FALSE}
+
+ran <- sample(1:nrow(df), 0.9 * nrow(df))
+nor <-function(x) { (x -min(x))/(max(x)-min(x))   }
+df_norm <- as.data.frame(lapply(df[,c(1,2,3,4)], nor))
+
+```
+
+```{r}
+head(df_norm)
+```
+
+Separamos el dataframe en dos partes, una parte para el entrenamiento y otra para el test
+
+```{r split_data, message=FALSE, warning=FALSE, echo=FALSE}
+
+train <- df_norm[ran,]
+test <- df_norm[-ran,]
+
+target_category <- df[ran,5]
+test_category <- df[-ran,5]
+
+```
+
+Ejecutamos el modelo knn con el parametro k = 13, que nos da la siguiente matriz de confusión
+```{r run_model, message=FALSE, warning=FALSE, echo=TRUE}
+pr <- knn(train, test, cl=target_category, k=13)
+```
+
+```{r result, message=FALSE, warning=FALSE, echo=FALSE}
+tab <- table(pr, test_category, dnn=c("Actual", "Predichos"))
+
+confusion_matrix <- as.data.frame(tab)
+
+TClass <- factor(confusion_matrix$Actual)
+PClass <- factor(confusion_matrix$Predichos)
+Y      <- confusion_matrix$Freq
+df <- data.frame(TClass, PClass, Y)
+
+ggplot(data =  df, mapping = aes(x = TClass, y = PClass)) +
+  geom_tile(aes(fill = Y), colour = "white") +
+  geom_text(aes(label = sprintf("%1.0f", Y)), vjust = 1) +
+  scale_fill_gradient(low = "blue", high = "red") +
+  theme_bw() + theme(legend.position = "none")
+
+```
+
+Tenemos un accuracy:
+
+```{r}
+accuracy <- function(x){sum(diag(x)/(sum(rowSums(x)))) * 100}
+accuracy(tab)
+```

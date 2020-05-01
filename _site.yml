@@ -1,0 +1,32 @@
+name: "ml"
+navbar:
+  title: "ML"
+  left:
+    - text: "Home"
+      href: index.html
+    - text: "Clustering"
+      href: index.html
+    - text: "Dimensionalidad"
+      href: index.html
+    - text: "Aprendizaje supervisado"
+      menu:
+        - text: "GLM"
+          href: glm.html
+        - text: "KNN"
+          href: knn.html
+        - text: "Decision Trees"
+          href: decision_trees.html
+        - text: "Random Forest"
+          href: random_forest.html
+        - text: "SVM"
+          href: svm.html
+    - text: "Ajuste Hiperparámtros"
+      href: knn.html
+    - text: "Evaluación modelos"
+      href: knn.html
+    - text: "Otros modelos"
+      href: knn.html
+output:
+  html_document:
+    theme: cosmo
+    highlight: textmate
