@@ -330,48 +330,82 @@ $(document).ready(function () {
 </div>
 
 
-<p>Cargamos los datos de prueba, del dataset IRIS</p>
-<pre class="r"><code>df &lt;- iris
-summary(df)</code></pre>
-<pre><code>##   Sepal.Length    Sepal.Width     Petal.Length    Petal.Width   
-##  Min.   :4.300   Min.   :2.000   Min.   :1.000   Min.   :0.100  
-##  1st Qu.:5.100   1st Qu.:2.800   1st Qu.:1.600   1st Qu.:0.300  
-##  Median :5.800   Median :3.000   Median :4.350   Median :1.300  
-##  Mean   :5.843   Mean   :3.057   Mean   :3.758   Mean   :1.199  
-##  3rd Qu.:6.400   3rd Qu.:3.300   3rd Qu.:5.100   3rd Qu.:1.800  
-##  Max.   :7.900   Max.   :4.400   Max.   :6.900   Max.   :2.500  
-##        Species  
-##  setosa    :50  
-##  versicolor:50  
-##  virginica :50  
-##                 
-##                 
-## </code></pre>
+<p>Cargamos los datos:</p>
+<pre class="r"><code>df_total &lt;- read.csv(file = &#39;dataset/dataset1.csv&#39;)</code></pre>
+<pre class="r"><code>#v = discretize(df_total$SalePrice, breaks = 2, onlycuts =TRUE)
+
+#df_total$GrupoPrecio = cut(df_total$SalePrice, v)
+
+#levels(df_total$GrupoPrecio) = c(&#39;barato&#39;, &#39;caro&#39;)</code></pre>
+<pre class="r"><code>group &lt;- c(&#39;LotArea&#39;,&#39;TotRmsAbvGrd&#39;,&#39;MasVnrArea&#39;,&#39;BsmtFinSF1&#39;,&#39;BsmtUnfSF&#39;,&#39;TotalBsmtSF&#39;,&#39;GrLivArea&#39;,&#39;GarageArea&#39;,&#39;WoodDeckSF&#39;,&#39;GrupoPrecio&#39;)
+#####df &lt;- df_total %&gt;% select(LotArea, BsmtFinSF1, BsmtUnfSF, GrLivArea, KitchenAbvGr, TotalSF, GrupoPrecio)
+df &lt;- df_total %&gt;% select(group)</code></pre>
+<pre class="r"><code>summary(df)</code></pre>
+<pre><code>##     LotArea        TotRmsAbvGrd      MasVnrArea       BsmtFinSF1   
+##  Min.   : 7.294   Min.   : 3.000   Min.   :   0.0   Min.   :0.000  
+##  1st Qu.: 8.914   1st Qu.: 5.000   1st Qu.:   0.0   1st Qu.:0.000  
+##  Median : 9.148   Median : 6.000   Median :   0.0   Median :5.919  
+##  Mean   : 9.084   Mean   : 6.423   Mean   : 100.2   Mean   :4.227  
+##  3rd Qu.: 9.349   3rd Qu.: 7.000   3rd Qu.: 161.0   3rd Qu.:6.600  
+##  Max.   :10.954   Max.   :14.000   Max.   :1600.0   Max.   :7.736  
+##    BsmtUnfSF      TotalBsmtSF     GrLivArea       GarageArea    
+##  Min.   :0.000   Min.   :   0   Min.   :6.256   Min.   :   0.0  
+##  1st Qu.:5.412   1st Qu.: 796   1st Qu.:7.027   1st Qu.: 326.0  
+##  Median :6.165   Median : 990   Median :7.273   Median : 480.0  
+##  Mean   :5.643   Mean   :1048   Mean   :7.258   Mean   : 472.2  
+##  3rd Qu.:6.693   3rd Qu.:1290   3rd Qu.:7.458   3rd Qu.: 576.0  
+##  Max.   :7.757   Max.   :2630   Max.   :8.209   Max.   :1488.0  
+##    WoodDeckSF     GrupoPrecio 
+##  Min.   :  0.00   Barato:862  
+##  1st Qu.:  0.00   Caro  :863  
+##  Median :  0.00   Normal:863  
+##  Mean   : 92.25   NA&#39;s  :  1  
+##  3rd Qu.:168.00               
+##  Max.   :857.00</code></pre>
 <pre class="r"><code>head(df)</code></pre>
-<pre><code>##   Sepal.Length Sepal.Width Petal.Length Petal.Width Species
-## 1          5.1         3.5          1.4         0.2  setosa
-## 2          4.9         3.0          1.4         0.2  setosa
-## 3          4.7         3.2          1.3         0.2  setosa
-## 4          4.6         3.1          1.5         0.2  setosa
-## 5          5.0         3.6          1.4         0.2  setosa
-## 6          5.4         3.9          1.7         0.4  setosa</code></pre>
-<p>Normalizamos las variables</p>
-<pre class="r"><code>head(df_norm)</code></pre>
-<pre><code>##   Sepal.Length Sepal.Width Petal.Length Petal.Width
-## 1   0.22222222   0.6250000   0.06779661  0.04166667
-## 2   0.16666667   0.4166667   0.06779661  0.04166667
-## 3   0.11111111   0.5000000   0.05084746  0.04166667
-## 4   0.08333333   0.4583333   0.08474576  0.04166667
-## 5   0.19444444   0.6666667   0.06779661  0.04166667
-## 6   0.30555556   0.7916667   0.11864407  0.12500000</code></pre>
+<pre><code>##    LotArea TotRmsAbvGrd MasVnrArea BsmtFinSF1 BsmtUnfSF TotalBsmtSF GrLivArea
+## 1 9.042040            8        196   6.561031  5.017280         856  7.444833
+## 2 9.169623            6          0   6.886532  5.652489        1262  7.141245
+## 3 9.328212            6        162   6.188264  6.075346         920  7.488294
+## 4 9.164401            7          0   5.379897  6.293419         756  7.448916
+## 5 9.565284            9        350   6.486161  6.196444        1145  7.695758
+## 6 9.555064            5          0   6.597146  4.174387         796  7.217443
+##   GarageArea WoodDeckSF GrupoPrecio
+## 1        548          0        Caro
+## 2        460        298      Normal
+## 3        608          0        Caro
+## 4        642          0      Barato
+## 5        836        192        Caro
+## 6        480         40      Barato</code></pre>
+<pre class="r"><code>df &lt;- df[!(is.na(df$GrupoPrecio)),]
+
+
+(get_cols_nan(df))</code></pre>
+<pre><code>## character(0)</code></pre>
+<pre class="r"><code>#df &lt;- fillNanWithMean(df)</code></pre>
 <p>Separamos el dataframe en dos partes, una parte para el entrenamiento y otra para el test</p>
 <p>Ejecutamos el modelo knn con el parametro k = 13, que nos da la siguiente matriz de confusión</p>
-<pre class="r"><code>pr &lt;- knn(train, test, cl=target_category, k=13)</code></pre>
-<p><img src="knn_files/figure-html/result-1.png" width="672" /></p>
-<p>Tenemos un accuracy:</p>
-<pre class="r"><code>accuracy &lt;- function(x){sum(diag(x)/(sum(rowSums(x)))) * 100}
-accuracy(tab)</code></pre>
-<pre><code>## [1] 93.33333</code></pre>
+<pre class="r"><code>pr_train &lt;- knn(XTrain, XTrain, cl = YTrain, k=1)
+pr_test &lt;- knn(XTrain, XTest, cl = YTrain, k=1)</code></pre>
+<p>Evaluamos el modelo:</p>
+<pre class="r"><code>tab_train &lt;- table(pr_train, YTrain, dnn = c(&quot;Actual&quot;, &quot;Predichos&quot;))
+tab_test &lt;- table(pr_test, YTest, dnn = c(&quot;Actual&quot;, &quot;Predichos&quot;))
+
+accuracy(tab_train)</code></pre>
+<pre><code>## [1] 99.83435</code></pre>
+<pre class="r"><code>knn_train_error &lt;- calc_error_rate(predicted.value=pr_train, true.value=YTrain)
+(knn_train_error)</code></pre>
+<pre><code>## [1] 0.001656543</code></pre>
+<pre class="r"><code>accuracy(tab_test)</code></pre>
+<pre><code>## [1] 41.95624</code></pre>
+<pre class="r"><code>knn_test_error &lt;- calc_error_rate(predicted.value=pr_test, true.value=YTest)
+(knn_test_error)</code></pre>
+<pre><code>## [1] 0.5804376</code></pre>
+<pre class="r"><code>draw_confusion_matrix(tab_train, &quot;Actual&quot;, &quot;Predichos&quot;)</code></pre>
+<p><img src="knn_files/figure-html/eval_model-1.png" width="672" /></p>
+<pre class="r"><code>draw_confusion_matrix(tab_test, &quot;Actual&quot;, &quot;Predichos&quot;)</code></pre>
+<p><img src="knn_files/figure-html/eval_model-2.png" width="672" /></p>
+<p>```</p>
 
 
 

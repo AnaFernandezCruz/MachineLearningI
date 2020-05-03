@@ -330,7 +330,13 @@ $(document).ready(function () {
 </div>
 
 
+<pre class="r"><code>library(e1071)</code></pre>
+<pre class="r"><code># Se convierte la variable respuesta a factor
+#datos$y &lt;- as.factor(datos$y)
 
+# Para que la función svm() calcule el Support Vector Classifier,
+# se tiene que indicar que la función kernel es lineal.
+#modelo_svm &lt;- svm(formula = y ~ X1 + X2, data = datos, kernel = &quot;linear&quot;, cost = 10, scale = FALSE)</code></pre>
 
 
 
