@@ -1,3 +1,51 @@
 ---
 title: "DECISION TREES"
+output: 
+  html_document:
+    code_folding: hide
 ---
+
+En este punto vamos a aplicar los árboles de decisión a nuestro modelo. Los árboles de decisión se componen del nodo raíz, que es del que partes, y respondiendo preguntas con "si" o "no", nos iremos moviendo por nodos interiores hasta llegar a las hojas o nodos terminales. Nuestro objetivo es tener un árbol de decisión que use el menor número de preguntas posible.
+
+
+```{r message = FALSE}
+library(rpart)
+library(rpart.plot)
+library(rattle)
+
+library(readr)
+dataTrain <- readRDS("datasetTrain.csv")
+
+dataTest <- readRDS("datasetTest.csv")
+
+val <- readRDS("datasetValidation.csv")
+```
+
+```{r fig.width=30, fig.height=10}
+hrdataTREE1 = rpart(GrupoPrecio ~ ., data = dataTrain)
+
+par(mfrow = c(1, 1), xpd = NA) # otherwise on some devices the text is clipped
+fancyRpartPlot(hrdataTREE1, sub = "")
+
+```
+
+
+```{r}
+#PROBAR VAL
+
+tab1 = table(pred = predict(hrdataTREE1, dataTest, type = "class"), obs = dataTest$GrupoPrecio)
+ntest = nrow(dataTest)
+acierto1 = sum(diag(tab1))/ntest
+acierto1
+```
+```{r}
+#PROBAR VAL
+
+tab1 = table(pred = predict(hrdataTREE1, val, type = "class"), obs = val$GrupoPrecio)
+ntest = nrow(val)
+acierto1 = sum(diag(tab1))/ntest
+acierto1
+```
+PROBAR PODA
+
+PDF3: COMPARACION MODELOS

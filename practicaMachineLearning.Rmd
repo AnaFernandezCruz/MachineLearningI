@@ -1,0 +1,926 @@
+---
+title: "Métodos de Análisis de Datos"
+author: "Ana Fernández Cruz, Jesús Gallego Olivas y Miguel Ángel Sánchez Alcázar."
+date: "19 de Diciembre de 2019"
+output: 
+  html_document:
+    code_folding: hide
+---
+
+```{r load_libraries, message=FALSE, warning=FALSE, echo=FALSE}
+
+library(readr)
+library(plyr)
+library(dplyr)
+library(tidyverse)
+library(DataExplorer)
+library(skimr)
+library(pander)
+library(VIM)
+library(ggplot2)
+library(caret)
+library(MASS)
+library(forcats)
+library(ggpubr)
+library(corrr)
+library(moments)
+library('olsrr')
+
+seed <- 456
+
+```
+
+
+```{r load_functions, message=FALSE, warning=FALSE, echo=FALSE}
+
+# Funcion que divide un dataframe en dos grupos, el primero con un % que indiques por la variable per. El resto % en el segundo grupo.
+
+split_dataframe <- function(df, per){
+  set.seed(seed) 
+  split <- sample(nrow(df), nrow(df) * per)
+  return(list(df[split,], df[-split,]))
+}
+
+```
+
+
+Antes de empezar a realizar el estudio debemos unificar los datos. Inicialmente los disponemos en tres archivos csv, 'train.csv', 'test.csv' y 'sample_submission.csv'.
+
+```{r ready_files, message=FALSE, warning=FALSE, echo=FALSE}
+
+# Cargamos los tres archivos
+train_kaggle_ok <- read_csv('./Dataset/train.csv')
+test_kaggle <- read_csv('./Dataset/test.csv')
+test_kaggle_pk <- read_csv('./Dataset/sample_submission.csv')
+
+# Merge el dataset test y sample_submission, ahora tendremos un dataset completo
+test_kaggle_ok <- merge(test_kaggle, test_kaggle_pk, by="Id")
+
+# Unificamos los dos dataset train.csv y test.csv
+full_dataset <- rbind(train_kaggle_ok, test_kaggle_ok)
+
+```
+
+Despues de unirlos bajo un solo dataset, lo separemos de manera aleatoria en dos grupos. El primer grupo sera el 10% del total y lo utilizaremos como validación. Este dataset lo utilizaremos al final del estudio para comprobar como funciona nuestro modelo. El resto de los datos, el 90% faltante, lo utilizaremos para training y testing.
+
+```{r validation_dataset, message=FALSE, warning=FALSE, echo=FALSE}
+
+#Dividimos el dataset 10% - 90%
+list_split <- full_dataset %>% split_dataframe(.1)
+
+validation <- list_split[[1]]  # 10%
+dataset <- list_split[[2]]     # 90%
+
+#Guardamos el dataset de validacion en un archivo csv
+write.csv(validation, './validation.csv', row.names=F)
+  
+```
+
+
+```{r keep_integrity, message=FALSE, warning=FALSE}
+
+cols_remove_nas <-c('Alley','BsmtQual','BsmtCond','BsmtExposure','BsmtFinType1','BsmtFinType2','GarageType','GarageFinish','GarageQual','GarageCond','PoolQC','Fence','MiscFeature','FireplaceQu')
+
+dataset <- mutate_at(dataset, cols_remove_nas, 
+          list(~ifelse(is.na(.), 'NA',.)) )
+
+validation <- mutate_at(validation, cols_remove_nas, 
+          list(~ifelse(is.na(.), 'NA',.)) )
+```
+
+
+```{r train_test, message=FALSE, warning=FALSE}
+
+#esto descomentarlo despues
+
+#Dividimos el dataset 70% - 30%
+#list_split <- dataset %>% split_dataframe(.7)
+
+#train <- list_split[[1]]  # 70%
+#test <- list_split[[2]]     # 30%
+
+```
+
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+
+#pathDatos = './Dataset/'
+#pathLocal = './'
+#fileTrain = paste(pathDatos,"train.csv",sep="", collapse = NULL)
+#fileTest = paste(pathDatos,"test.csv",sep="", collapse = NULL)
+#fileDatosPK = paste(pathDatos,"sample_submission.csv",sep="", collapse = NULL)
+#fileDatosTrainTest = paste(pathLocal,"train_test.csv",sep="", collapse = NULL)
+#fileDatosValidacion = paste(pathLocal,"validacion.csv",sep="", collapse = NULL)
+
+borra_columnas_muchos_faltantes = FALSE
+borra_columnas_incomodas = FALSE
+columnas_borrar_faltantes <- c('FireplaceQu','Fence','Alley','MiscFeature','PoolQC','GarageType','GarageCond','GarageQual','GarageFinish','GarageYrBit','LoftFrontage')
+columnas_borrar_incomodas <- c('BsmtFinType1','LowQualFinSF','MasVnrArea','BsmtHalfBath','EnclosedPorch','KitchenAbvGr','MiscVal','PoolArea','ScreenPorch','Utilities','Condition2','RoofMatl','Heating','Street')
+```
+
+
+```{r}
+
+var_discretas <- c('BsmtFullBath','BsmtHalfBath','FullBath','HalfBath','BedroomAbvGr','KitchenAbvGr','TotRmsAbvGrd','Fireplaces','GarageCars','GarageYrBlt','YearBuilt','YearRemodAdd','YrSold','MoSold')
+
+var_continuas <- c('LotFrontage','LotArea','MasVnrArea','BsmtFinSF1','BsmtFinSF2','BsmtUnfSF','TotalBsmtSF','1stFlrSF','2ndFlrSF','LowQualFinSF','GrLivArea','GarageArea','WoodDeckSF','OpenPorchSF','EnclosedPorch', '3SsnPorch','ScreenPorch','PoolArea','MiscVal','SalePrice')
+
+var_continuas_sin_columnas_imputacion <- c('LotFrontage','LotArea','MasVnrArea','BsmtFinSF1','BsmtFinSF2','BsmtUnfSF','TotalBsmtSF','1stFlrSF','2ndFlrSF','LowQualFinSF','GrLivArea','GarageArea','WoodDeckSF','OpenPorchSF','EnclosedPorch', '3SsnPorch','ScreenPorch','PoolArea','MiscVal','SalePrice')
+
+
+var_ordinales <- c('LotShape','Utilities','LandSlope','OverallQual','OverallCond','ExterQual','ExterCond','BsmtQual','BsmtCond','BsmtExposure','BsmtFinType1','BsmtFinType2','HeatingQC','CentralAir','Electrical','KitchenQual','Functional','FireplaceQu','GarageFinish','GarageQual','GarageCond','PavedDrive','PoolQC','Fence')
+
+var_nominales <- c('MSSubClass','MSZoning','Street','Alley','LandContour','LotConfig','Neighborhood','Condition1','Condition2','BldgType','HouseStyle','RoofStyle','RoofMatl','Exterior1st',
+'Exterior2nd','MasVnrType','Foundation','Heating','GarageType','MiscFeature', 'SaleType','SaleCondition')
+
+var_continuas_discretas = c(var_continuas,var_discretas)
+var_continuas_discretas_sin_imputacion = c(var_continuas_sin_columnas_imputacion,var_discretas)
+
+var_modelo = c()
+var_columnas_eliminadas = c()
+var_transformacion_log = c()
+var_eliminar_correlacion = c()
+var_creadas_transformacion = c()
+
+
+```
+
+
+Como hay muchas variables que no tienen valores faltantes, vamos a crear un dataset únicamente con las columnas que tienen missings para poder analizar mejor los datos. Para ello:
+    
+```{r get_df_missing, messge=FALSE, warning=FALSE}
+
+na_counts <- sapply(dataset, function(x) sum(is.na(x)))
+
+na_counts_sort <- sort(na_counts, decreasing = TRUE)
+
+na_counts_sort <- na_counts_sort[1:20]
+
+(na_counts_sort)
+
+dataset_na <- dataset %>% dplyr::select(LotFrontage, MasVnrArea, BsmtFinSF1, BsmtFinSF2, BsmtUnfSF, TotalBsmtSF, GarageArea, GarageYrBlt, BsmtFullBath, BsmtHalfBath, GarageCars, KitchenQual, Electrical, MasVnrType,  MSZoning, Exterior1st, Exterior2nd, SaleType)
+
+```
+
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+
+var_columnas_eliminadas <- c(var_columnas_eliminadas,'LotFrontage')
+
+dataset <- dplyr::select(dataset, -LotFrontage)
+dataset_na<- dplyr::select(dataset_na, -LotFrontage)
+
+validation<- dplyr::select(validation, -LotFrontage)
+#test_AA <- dplyr::select(test, -LotFrontage)
+
+#train_test<- dplyr::select(train_test, -LotFrontage)
+#full_dataset<- dplyr::select(full_dataset, -LotFrontage)
+```
+
+
+```{r}
+
+colMeans(is.na(dataset_na))
+
+```
+
+
+
+```{r}
+
+#summary_antes_imputar <- summary(train)
+#para las variables cuantitativas con una proporción del faltantes menor que el 3%,
+#imputaremos el valor de la media
+
+cuantitativas <- c('MasVnrArea','GarageCars','GarageArea', 'BsmtFinSF1', 'BsmtFinSF2', 'BsmtUnfSF', 'TotalBsmtSF','BsmtFullBath', 'BsmtHalfBath')
+
+for (i in cuantitativas){
+  list_values <- ifelse(is.na(dataset[[i]]), 
+                       round(mean(dataset[[i]], na.rm=TRUE), 0), dataset[[i]])
+  dataset[[i]] <- list_values
+}
+
+dataset
+#para variables categoricas con una proporción de datos faltantes menor que el 3%
+#vamos a imputar el valor más frecuente.  
+
+categoricas <- c('MasVnrType', 'MSZoning', 'Functional', 'Electrical',
+'KitchenQual', 'SaleType', 'Exterior1st', 'Exterior2nd',  'Utilities')
+for (i in categoricas){
+  y = as.data.frame(table(unlist(dataset[[i]])))
+  sorted_list <-y[with(y, order(-Freq)),]
+  frecuent_value <- sorted_list$Var1[1]
+  list_values <- c()
+  for(j in 1:length(dataset[[i]])) {
+    if(is.na(dataset[[i]][j])) {
+      dataset[[i]][j] = frecuent_value
+      na.rm=TRUE
+      list_values = c(list_values, dataset[[i]][j])
+    }
+    else {
+      list_values = c(list_values, dataset[[i]][j])
+    }
+  }
+  dataset[[i]] <- list_values
+}
+
+#summary_despues_imputar <- summary(train)
+
+```
+
+
+
+```{r}
+
+vecindario_precioGaraje<- dataset %>% dplyr::select(Neighborhood, GarageYrBlt)
+
+vecindario_agrupado <- vecindario_precioGaraje %>% 
+    group_by(Neighborhood) %>% 
+    summarise(mean_data = round(mean(GarageYrBlt,na.rm=TRUE),0))
+summary(vecindario_agrupado)
+
+#En la variable grouped_list tenemos los vecindarios de Boston y la media del año
+#en el que fueron construidos sus garajes. Esos son los valores que usaremos para imputar.
+
+year_corregido<- c()
+
+for(j in 1:length(vecindario_precioGaraje$GarageYrBlt)) {
+  if(is.na(vecindario_precioGaraje$GarageYrBlt[j])) {
+    #Obtenemos el vecindario correspondiente al NA
+    vecindario = vecindario_precioGaraje$Neighborhood[j]
+    #Ahora que conocemos el vecindario, tenemos que saber cual es el año que le corresponde dentro de la lista de vecindarios,          sacamos su numero de fila
+    index_vecindario = which(grepl(vecindario, vecindario_agrupado$Neighborhood))
+    #Entramos en este if porque hay dos vecindarios: Sawyer y SawyerW. Cuando buscamos el de Sawyer nos da el indice de los dos         vecindarios, asi que nos quedamos con el primero.
+    if (length(index_vecindario)>1){
+      index_vecindario = index_vecindario[1]
+    }
+    year_a_imputar = vecindario_agrupado[index_vecindario,2]
+    na.rm=TRUE
+    year_corregido<-c(year_corregido,year_a_imputar)
+  }else {
+    year_corregido<-c(year_corregido,vecindario_precioGaraje$GarageYrBlt[j])
+    next 
+  }
+}
+
+length(year_corregido)
+year_corregido<- unlist(year_corregido)
+length(year_corregido)
+
+#actualizamos la columna en el dataset
+dataset["GarageYrBlt"]<-year_corregido
+```
+
+```{r echo=FALSE,message=FALSE}
+#train$GarageYrBlt
+```
+
+```{r}
+vecindario_agrupado2 <- vecindario_precioGaraje %>% 
+    group_by(Neighborhood) %>% 
+    summarise(mean_data = round(mean(GarageYrBlt,na.rm=TRUE),0))
+
+#summary(vecindario_agrupado2)
+
+```
+
+
+
+```{r}
+
+elementosBajaVarianza <- nearZeroVar(dataset,freqCut = 95/5,uniqueCut = 10)
+
+# funcion para eliminar elementos con baja correlacion
+lmp <- function (modelobject) {
+    if (class(modelobject) != "lm") stop("No es un objeto de tipo regresion lineal 'lm' ")
+    f <- summary(modelobject)$fstatistic
+    p <- pf(f[1],f[2],f[3],lower.tail=F)
+    attributes(p) <- NULL
+    return(p)
+}
+
+# estas columna dan problemas, la varible 3SnnPorch empieza por un número y a la hora de ejecutar el modelo para ver si son significativas en la regresión  
+var_columnas_eliminadas = c(var_columnas_eliminadas,'3SsnPorch')
+
+for(i in colnames(dataset)[elementosBajaVarianza]) {
+  if(i != '3SsnPorch') {
+    modelRegression <- lm(reformulate(termlabels = i, response = 'SalePrice') ,data=dataset)
+    if(lmp(modelRegression) >.05) {
+      var_eliminar_correlacion = c(var_eliminar_correlacion,i)
+    }
+  }
+}
+
+(var_eliminar_correlacion)
+
+```
+
+
+
+```{r}
+
+#dataset %>%  dplyr::select(var_ordinales)  %>% plot_bar()
+
+```
+
+
+```{r}
+var_continuas <- c('LotArea','MasVnrArea','BsmtFinSF1','BsmtFinSF2','BsmtUnfSF','TotalBsmtSF','1stFlrSF','2ndFlrSF','LowQualFinSF','GrLivArea','GarageArea','WoodDeckSF','OpenPorchSF','EnclosedPorch', '3SsnPorch','ScreenPorch','PoolArea','MiscVal','SalePrice')
+
+#dataset %>%  dplyr::select(var_continuas) %>% plot_histogram()
+
+```
+
+
+
+```{r}
+var_continuas_discretas = c(var_continuas,var_discretas)
+library(moments)
+listasVariablesSkewness <-  dataset %>% dplyr::select(var_continuas_discretas) %>% summarize_all(funs(skewness))
+
+variablesSkewnessAlto <- colnames(listasVariablesSkewness %>% select_if(function(x) any(x > 0.8)))  
+#variablesSkewnessAlto <- variablesSkewnessAlto[variablesSkewnessAlto != #"SalePrice"]   
+
+```
+
+
+
+
+```{r}
+
+correlacionesProblematicas <- findCorrelation(cor(na.omit(dataset %>% dplyr::select(var_continuas))),cutoff = 0.8, verbose = FALSE, names = TRUE)
+correlacionesProblematicas
+
+```
+
+
+
+```{r}
+library(EnvStats)
+listaOutliers <- list()
+#listaBoxPlots <- c()
+dataset_var_continuas <- dataset %>% dplyr::select(var_continuas)
+iterator = 1 
+listaPosOutliers <- c()
+for(i in colnames(dataset_var_continuas)) {
+  outlier_values <- boxplot.stats(dataset_var_continuas[[i]])$out
+  boxPlotDibujar <- boxplot(dataset_var_continuas[[i]], main=i, boxwex=0.1)
+  #if(i %in% c('LotArea','1stFlrSF','GrLivArea','PoolArea','TotalBsmtSF')) {
+  #  boxPlotDibujar
+  #}
+  #listaBoxPlots <- c(listaBoxPlots,boxPlotDibujar)
+  outliersRosen <- rosnerTest(dataset_var_continuas[[i]], k = 6, warn = F)
+  listaOutliers[[iterator]] <- outliersRosen
+   iterator<- iterator +1
+    if(i %in% c('LotArea','1stFlrSF','GrLivArea','PoolArea','TotalBsmtSF','SalePrice'))     {
+      listaPosOutliers <- c(listaPosOutliers,outliersRosen$all.stats$Obs.Num)
+    }
+}
+
+listaPosOutliers <- unique(listaPosOutliers)
+
+```
+
+
+```{r}
+var_modelo_with_SalePrice = c(var_modelo,'SalePrice')
+var_columnas_eliminadas = c('TotRmsAbvGrd','GarageYrBlt','GarageCars','TotalBsmtSF','1stFlrSF','2ndFlrSF','BsmtFinSF2','1stFlrSF','2ndFlrSF','FullBath','HalfBath','BsmtFullBath','BsmtHalfBath','OpenPorchSF','3SsnPorch','EnclosedPorch','ScreenPorch','WoodDeckSF','GarageFinish','hasBasement','hasFirePlaces','LotFrontage')
+var_columnas_eliminadas_bajo_p_valor = c('LandSlope')
+var_transformacion_log = c('TotalSF')
+var_eliminar_correlacion = c(var_eliminar_correlacion,c('TotRmsAbvGrd','GarageYrBlt','GarageCars'))
+
+```
+
+
+```{r}
+
+dataset <- dataset %>% dplyr::mutate( TotalSF = TotalBsmtSF + `1stFlrSF` + `2ndFlrSF`  )
+dataset <- dataset %>% dplyr::mutate( Total_Bathrooms = FullBath + 0.5*HalfBath +  BsmtFullBath + 0.5*BsmtHalfBath )
+dataset <- dataset %>% dplyr::mutate( Total_porch_SF = OpenPorchSF +`3SsnPorch` +  EnclosedPorch + ScreenPorch + WoodDeckSF )
+
+
+# esta variable tiene los pies cuadrados "oficiales" del interior de la casa
+validation <- validation %>% dplyr::mutate( TotalSF = TotalBsmtSF + `1stFlrSF` + `2ndFlrSF`  )
+# esta variable tiene los pies cuadrados de los cuartos de baño de la casa
+validation<- validation %>% dplyr::mutate( Total_Bathrooms = FullBath + 0.5*HalfBath +  BsmtFullBath + 0.5*BsmtHalfBath )
+ # esta variable tiene los pies cuadrados del porche
+validation <- validation %>% dplyr::mutate( Total_porch_SF = OpenPorchSF +`3SsnPorch` +  EnclosedPorch + ScreenPorch + WoodDeckSF ) 
+
+
+var_creadas_transformacion = c( 'TotalSF','Total_Bathrooms','Total_porch_SF','hasPool','hasGarage','hasBasement','hasFirePlaces','has2ndFloor')
+
+```
+
+
+```{r}
+# YearBuilt: discretizamos la variable en tramos
+# YearRemodAdd: discretizamos la variable en tramos
+dataset$YearBuilt <- cut(dataset$YearBuilt, 
+                   breaks=c(-Inf, 1930, 1960, 1990,Inf), 
+                   labels=c("1900_1930","1930_1960","1960_1990","1990_"))
+  
+validation$YearBuilt <- cut(validation$YearBuilt, 
+                   breaks=c(-Inf, 1930, 1960, 1990,Inf), 
+                   labels=c("1900_1930","1930_1960","1960_1990","1990_"))   
+
+      
+dataset$YearRemodAdd <- cut(dataset$YearRemodAdd, 
+                   breaks=c(-Inf, 1930, 1960, 1990,Inf), 
+                   labels=c("1900_1930","1930_1960","1960_1990","1990_"))   
+
+validation$YearRemodAdd <- cut(validation$YearRemodAdd, 
+                   breaks=c(-Inf, 1930, 1960, 1990,Inf), 
+                   labels=c("1900_1930","1930_1960","1960_1990","1990_"))   
+
+
+```
+
+
+
+```{r}
+write.csv(dataset, "dataset0.csv")
+write.csv(validation, "validation0.csv")
+
+log_transform<- function(x, na.rm=FALSE) (log(x +1))
+variablesTransformar = variablesSkewnessAlto[!variablesSkewnessAlto %in% var_columnas_eliminadas  & !variablesSkewnessAlto %in% var_eliminar_correlacion ]
+
+
+#variablesTransformar <- c(variablesTransformar,'TotalSF')
+
+for(i in 1:ncol(dataset)){
+ 
+        nombreCol = names(dataset)[i]
+  
+        if(nombreCol == 'MasVnrArea' | nombreCol == 'MiscVal' | nombreCol == 'SaleCondition' ) {
+         
+        } else
+        if (nombreCol %in% variablesTransformar & nombreCol != 'SalePrice'){
+            dataset[,i] <- log(dataset[,i] +1)
+        } else if(nombreCol == 'SalePrice'){
+            dataset[,i] <- log(dataset[,i])
+        }else if(nombreCol == 'TotalSF'){
+            dataset[,i] <- log(dataset[,i])
+        } 
+    
+}
+
+
+
+
+
+for(i in 1:ncol(validation)){
+ 
+        nombreCol = names(validation)[i]
+        if(nombreCol == 'MasVnrArea' | nombreCol == 'MiscVal' | nombreCol == 'SaleCondition' ) {
+         
+        } else
+        if (nombreCol %in% variablesTransformar & nombreCol != 'SalePrice'){
+            validation[,i] <- log(validation[,i] +1)
+        } else if(nombreCol == 'SalePrice'){
+            validation[,i] <- log(validation[,i])
+        }else if(nombreCol == 'TotalSF'){
+            validation[,i] <- log(validation[,i])
+        } 
+    
+}
+
+
+
+```
+
+
+```{r}
+
+#MSSubClass: 
+
+
+dataset <-  dataset %>% dplyr::mutate( hasPool := ifelse(PoolArea > 0, "True", "False"))  
+validation <-  validation %>% dplyr::mutate( hasPool := ifelse(PoolArea > 0, "True", "False"))  
+ 
+
+
+dataset <-  dataset %>% dplyr::mutate( hasBasement := ifelse(TotalBsmtSF > 0, "True", "False")) 
+validation <-  validation %>% dplyr::mutate( hasBasement := ifelse(TotalBsmtSF > 0, "True", "False"))  
+
+
+dataset <-  dataset %>% dplyr::mutate( hasFirePlaces := ifelse(Fireplaces > 0, "True", "False")) 
+validation <-  validation %>% dplyr::mutate( hasFirePlaces := ifelse(Fireplaces > 0, "True", "False")) 
+
+dataset <-  dataset %>% dplyr::mutate( has2ndFloor := ifelse(`2ndFlrSF`  > 0, "True", "False")) 
+validation <-  validation %>% dplyr::mutate( has2ndFloor := ifelse( `2ndFlrSF`  > 0, "True", "False"))    
+
+```
+
+
+```{r}
+
+nombresVariablesFactores  <- c('MiscFeature','Alley','Fence','LotConfig','GarageType','MSZoning','Exterior1st','Exterior2nd','Electrical','SaleType','SaleCondition','Foundation','Heating','RoofStyle',
+'RoofMatl','LandContour','BldgType','HouseStyle','Neighborhood','Condition1','Condition2','MoSold','YrSold','Street','LotShape','Utilities','LandSlope','MasVnrType','BsmtFinType2','CentralAir','Functional','PavedDrive','hasPool','hasBasement','hasFirePlaces')
+
+
+for(i in nombresVariablesFactores){
+        dataset[[i]] <- as.factor(dataset[[i]])
+        validation[[i]] <- as.factor( validation[[i]])
+}
+
+
+dataset$MSSubClass <- as.factor(dataset$MSSubClass)
+dataset$MSSubClass<-revalue(dataset$MSSubClass, c('20'='1_story_1946_', '30'='1_story_1945_', '40'='1_story_unf_attic', '45'='1_5_story_unf', '50'='1_5 story_fin', '60'='2_story_1946_', '70'='2_story_1945_', '75'='2_5_story_all_ages', '80'='split_multi_level', '85'='split_foyer', '90'='duplex_all_style_age', '120'='1_story_PUD_1946_', '150'='1_5_story_PUD_all', '160'='2_story_PUD_1946', '180'='PUD_multilevel', '190'='2_family_conversion'))
+
+validation$MSSubClass <- as.factor(validation$MSSubClass)
+validation$MSSubClass<-revalue(validation$MSSubClass, c('20'='1_story_1946_', '30'='1_story_1945_', '40'='1_story_unf_attic', '45'='1_5_story_unf', '50'='1_5 story_fin', '60'='2_story_1946_', '70'='2_story_1945_', '75'='2_5_story_all_ages', '80'='split_multi_level', '85'='split_foyer', '90'='duplex_all_style_age', '120'='1_story_PUD_1946_', '150'='1_5_story_PUD_all', '160'='2_story_PUD_1946', '180'='PUD_multilevel', '190'='2_family_conversion'))
+```
+
+
+
+```{r}
+
+#OverallQual, OverallCond (dejarlas como estan)
+levesl1_10 <- c("Very Poor","Poor","Fair","Below Average","Average","Above Average","Good","Very Good","Excellent","Very Excellent")
+
+#ExterQual , ExterCond , HeatingQC, KitchenQual,GarageQual,GarageCond
+return_position1_5 <- function(elements) {
+    levesl1_5 <- c('Po','Fa','TA','Gd','Ex')
+    pos <- match(elements,levesl1_5)
+    elem <- which(levesl1_5 %in% elements)
+    return(levesl1_5[elem])
+}
+
+
+#BsmtQual,BsmtCond,FireplaceQu
+return_position1_6 <- function(elements) {
+    levesl1_6 <- c('NA','Po','Fa','TA','Gd','Ex')
+    pos <- match(elements,levesl1_6)
+    elem <- which(levesl1_6 %in% elements)
+    return(levesl1_6[elem])
+}
+
+
+#BsmtExposure
+return_position1_5_B <- function(elements) {
+    levesl1_5_B <- c('NA','No','Mn','Av','Gd')
+    pos <- match(elements,levesl1_5_B)
+    elem <- which(levesl1_5_B %in% elements)
+    return(levesl1_5_B[elem])
+}
+
+
+#BsmtFinType1 , BsmtFinType2
+return_position1_7 <- function(elements) {
+    levesl1_7 <- c('NA','Unf','LwQ','Rec','BLQ','ALQ','GLQ')
+    pos <- match(elements,levesl1_7)
+    elem <- which(levesl1_7 %in% elements)
+    return(levesl1_7[elem])
+}
+
+#CentralAir
+levesl_2 <- c('N','Y')  
+
+#GarageFinish
+return_levels_garage <- function(elements) {
+    levels_garage <-c('NA','Unf','RFn','Fin')
+    pos <- match(elements,levels_garage)
+    elem <- which(levels_garage %in% elements)
+    return(levels_garage[elem])
+}
+
+
+# PoolQC
+return_levesl_poolQC <- function(elements) {
+    levesl_poolQC <- c('NA','Fa','TA','Gd','Ex')
+    pos <- match(elements,levesl_poolQC)
+    elem <- which(levesl_poolQC %in% elements)
+    return(levesl_poolQC[elem])
+}
+
+
+library(forcats)
+
+      #OverallCond
+      dataset <- dataset %>% dplyr::mutate( ExterQual:=fct_relevel(ExterQual,return_position1_5))
+     
+     validation <- validation %>% dplyr::mutate( ExterQual:=fct_relevel(ExterQual,return_position1_5))
+      #ExterCond , 
+      dataset <- dataset %>% dplyr::mutate( ExterCond := fct_relevel(ExterCond,return_position1_5))
+     
+      validation <- validation %>% dplyr::mutate( ExterCond := fct_relevel(ExterCond,return_position1_5))
+      #HeatingQC, 
+      dataset <- dataset %>% dplyr::mutate( HeatingQC := fct_relevel(HeatingQC,return_position1_5))
+      validation <- validation %>% dplyr::mutate( HeatingQC := fct_relevel(HeatingQC,return_position1_5))
+      #KitchenQual,
+      dataset <- dataset %>% dplyr::mutate( KitchenQual := fct_relevel(KitchenQual,return_position1_5))
+      validation <-  validation %>% dplyr::mutate( KitchenQual := fct_relevel(KitchenQual,return_position1_5))
+      #GarageQual,
+      dataset <- dataset %>% dplyr::mutate( GarageQual := fct_relevel(GarageQual,return_position1_5))
+      
+      validation <-  validation %>% dplyr::mutate( GarageQual := fct_relevel(GarageQual,return_position1_5))
+      #GarageCond
+      dataset <- dataset %>% dplyr::mutate( GarageCond := fct_relevel(GarageCond,return_position1_5))
+     validation <-  validation %>% dplyr::mutate( GarageCond := fct_relevel(GarageCond,return_position1_5))
+      #BsmtQual
+      dataset <- dataset %>% dplyr::mutate( BsmtQual := fct_relevel(BsmtQual,return_position1_6))
+      
+      validation <-  validation %>% dplyr::mutate( BsmtQual := fct_relevel(BsmtQual,return_position1_6))
+      #BsmtCond,
+      dataset <- dataset %>% dplyr::mutate( BsmtCond := fct_relevel(BsmtCond,return_position1_6))
+      validation <- validation %>% dplyr::mutate( BsmtCond := fct_relevel(BsmtCond,return_position1_6))
+      #FireplaceQu
+      dataset <- dataset %>% dplyr::mutate(FireplaceQu := fct_relevel(FireplaceQu,return_position1_6))
+     validation <-  validation %>% dplyr::mutate(FireplaceQu := fct_relevel(FireplaceQu,return_position1_6))
+      #BsmtExposure
+      dataset <- dataset %>% dplyr::mutate( BsmtExposure := fct_relevel(BsmtExposure,return_position1_5_B))
+      validation <-  validation %>% dplyr::mutate( BsmtExposure := fct_relevel(BsmtExposure,return_position1_5_B))
+      #BsmtFinType1 
+      dataset <- dataset %>% dplyr::mutate( BsmtFinType1 := fct_relevel(BsmtFinType1,return_position1_7))
+      validation <-  validation %>% dplyr::mutate( BsmtFinType1 := fct_relevel(BsmtFinType1,return_position1_7))
+      
+      #BsmtFinType2
+      dataset <- dataset %>% dplyr::mutate( BsmtFinType1 := fct_relevel(BsmtFinType2,return_position1_7))
+      validation <-  validation %>% dplyr::mutate( BsmtFinType1 := fct_relevel(BsmtFinType2,return_position1_7))
+      
+     #GarageFinish
+      dataset <- dataset %>% dplyr::mutate( GarageFinish := fct_relevel(GarageFinish,return_levels_garage))
+      validation <-  validation %>% dplyr::mutate( GarageFinish := fct_relevel(GarageFinish,return_levels_garage))
+      
+      # PoolQC
+      dataset <- dataset %>% dplyr::mutate( PoolQC := fct_relevel(PoolQC,return_levesl_poolQC))
+      validation <-  validation %>% dplyr::mutate( PoolQC := fct_relevel(PoolQC,return_levesl_poolQC))
+
+
+# para dummify variables si es necesario tenemos esta funcion del paquete dataexplorer
+#train <- dummify(train, maxcat = 50L, select = var_nominales)
+   
+```
+
+```{r}
+dataset <- dataset %>%  dplyr::filter(SalePrice  < 13.2 )
+dataset <- dataset %>%  dplyr::filter(GrLivArea  < 8.4 )
+dataset_sin_na <- dataset %>%  na.omit() %>% dplyr::select(-Id)
+
+listaPosOutliers <- c()
+for(i in colnames(dataset_sin_na)) {
+  if(is.numeric(dataset_sin_na[[i]]) && !is.factor(dataset_sin_na[[i]])  ) {
+      if(i %in% c('LotArea','1stFlrSF','GrLivArea','TotalBsmtSF','SalePrice','Total_porch_SF','TotalSF'))   {
+          outliersRosen <- rosnerTest(dataset_sin_na[[i]], k = 5, warn = F)
+          #print(outliersRosen$all.stats$Obs.Num)
+          listaPosOutliers <- c(listaPosOutliers,outliersRosen$all.stats$Obs.Num)
+      }
+  }
+}
+
+listaPosOutliers <- unique(listaPosOutliers , na.rm=TRUE)
+
+dataset_sin_na_outliers <- dataset_sin_na[-listaPosOutliers,] 
+
+#train_sin_na_outliers <- train_sin_na_outliers[-c(1334),] 
+#dataset_sin_na_outliers <- dataset_sin_na_outliers[-c(358,182),] 
+
+preProcValuesDataset <- preProcess(dataset_sin_na_outliers  %>% dplyr::select(-OverallQual, -OverallCond),method = c("center", "scale"))
+
+validation_sin_na <- validation %>%  na.omit() %>% dplyr::select(-Id)
+preProcValuesValidation <- preProcess(validation_sin_na  %>% dplyr::select(-OverallQual, -OverallCond),method = c("center", "scale"))
+
+library(arules)
+v = discretize(validation_sin_na$SalePrice, breaks = 3, onlycuts = TRUE)
+
+validation_sin_na$GrupoPrecio = cut(validation_sin_na$SalePrice,v)
+levels(validation_sin_na$GrupoPrecio) = c("Barato","Normal","Caro")
+write.csv(validation_sin_na, "validation1.csv")
+
+v = discretize(dataset_sin_na_outliers$SalePrice, breaks = 3, onlycuts = TRUE)
+
+dataset_sin_na_outliers$GrupoPrecio = cut(dataset_sin_na_outliers$SalePrice,v)
+levels(dataset_sin_na_outliers$GrupoPrecio) = c("Barato","Normal","Caro")
+
+write.csv(dataset_sin_na_outliers, "dataset1.csv")
+```
+
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+
+
+
+var_modelo = c( 'GrLivArea','LotArea','Total_Bathrooms','Total_porch_SF','MSZoning','LandContour','LotConfig','Condition1','BldgType','HouseStyle','RoofStyle','MasVnrType','Foundation','SaleType','SaleCondition','YearBuilt','YearRemodAdd','MoSold','YrSold','OverallQual','OverallCond','PavedDrive','Fence','BsmtFinSF1','Functional','ExterQual','BsmtQual','BsmtExposure','BsmtFinType1','BsmtUnfSF','CentralAir','KitchenQual','Fireplaces','FireplaceQu','BedroomAbvGr','KitchenAbvGr','LotShape','GarageArea','GarageCond','Neighborhood','has2ndFloor','Alley','TotalSF','GarageType','Total_porch_SF','MasVnrArea')
+
+var_modelo_with_SalePrice = c(var_modelo,'SalePrice')
+
+```
+
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+
+datasetTransformed <- predict(preProcValuesDataset, dataset_sin_na_outliers)
+validationTransformed <- predict(preProcValuesValidation, validation_sin_na)
+
+write.csv(datasetTransformed, "datasetTransformed.csv")
+write.csv(validationTransformed, "validationTransformed.csv")
+
+```
+
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+library(cluster)
+library(factoextra)
+library(clustertend)
+
+
+columnas_continuas_clustering = c("LotArea","MasVnrArea","BsmtFinSF1","BsmtFinSF2","BsmtUnfSF" ,"TotalBsmtSF","1stFlrSF","2ndFlrSF","LowQualFinSF","GrLivArea", "GarageArea","WoodDeckSF","OpenPorchSF","EnclosedPorch","PoolArea","MiscVal","SalePrice")
+
+dataSetClustering  <-  dataset_sin_na_outliers  %>%  dplyr::select(c(var_modelo,'SalePrice')) 
+dataSetClustering  <-  dataSetClustering %>%  dplyr::select(-c('has2ndFloor'))
+dataSetClusteringContinuous <-  dataset_sin_na_outliers  %>%    dplyr::select(columnas_continuas_clustering) 
+
+set.seed(123)
+res <- get_clust_tendency(scale(dataSetClusteringContinuous), n = nrow(dataSetClustering)-1, graph = FALSE)
+
+
+fviz_nbclust(dataSetClusteringContinuous, FUNcluster = kmeans, method = c("silhouette"), k.max = 20, nboot = 100,)
+
+kmeansContinuousVariable <- eclust(dataSetClusteringContinuous, "kmeans", hc_metric="euclidean", k=3)
+
+
+#fviz_nbclust(dataSetClustering, FUNcluster = cluster::pam, method = c("silhouette"), #k.max = 20, nboot = 100,)
+
+pm <- eclust(dataSetClustering,FUNcluster="pam", k = 3)
+
+res$plot + 
+  scale_fill_gradient(low = "steelblue", high = "white")
+
+```
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+
+gower_dist <- daisy(dataSetClustering,
+                    metric = "gower",
+                    type = list(logratio = 3))
+
+summary(gower_dist)
+
+gower_mat <- as.matrix(gower_dist)
+
+# Output most similar pair
+
+dataSetClustering[
+  which(gower_mat == min(gower_mat[gower_mat != min(gower_mat)]),
+        arr.ind = TRUE)[1, ], ]
+
+dataSetClustering[
+  which(gower_mat == max(gower_mat[gower_mat != max(gower_mat)]),
+        arr.ind = TRUE)[1, ], ]
+
+sil_width <- c(NA)
+
+for(i in 2:10){
+  
+  pam_fit <- pam(gower_dist,
+                 diss = TRUE,
+                 k = i)
+  
+  sil_width[i] <- pam_fit$silinfo$avg.width
+  
+}
+
+# Plot sihouette width (higher is better)
+
+plot(1:10, sil_width,
+     xlab = "Number of clusters",
+     ylab = "Silhouette Width")
+lines(1:10, sil_width)
+
+
+pam_fit <- pam(gower_dist, diss = TRUE, k = 3)
+
+
+```
+
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+
+```
+
+
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+
+
+library(Rtsne)
+
+
+set.seed(123)
+tsne_obj <- Rtsne(gower_dist, is_distance = TRUE)
+
+tsne_data <- tsne_obj$Y %>%
+  data.frame() %>%
+  setNames(c("X", "Y")) %>%
+  mutate(cluster = factor(pam_fit$clustering),
+         name = dataSetClustering$SalePrice)
+
+ggplot(aes(x = X, y = Y), data = tsne_data) +
+  geom_point(aes(color = cluster))
+
+
+
+```
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+
+ggplot(tsne_data, aes(cluster, name, colour = cluster)) + 
+  geom_point()
+
+```
+
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+
+
+preciosCluster1 <- tsne_data %>%
+  filter(X > -40 & X < -10,
+         Y > -20 & Y < 20) %>%
+  left_join(dataSetClustering, by  = c("name" = "SalePrice") ) %>%
+  collect %>%
+  .[["name"]]
+
+
+preciosCluster2 <- tsne_data %>%
+  filter(X > -10 & X < 17,
+         Y > -20 & Y < 20) %>%
+  left_join(dataSetClustering, by  = c("name" = "SalePrice") ) %>%
+  collect %>%
+  .[["name"]]
+
+preciosCluster3 <- tsne_data %>%
+  filter(X > 17 & X < 40,
+         Y > -20 & Y < 20) %>%
+  left_join(dataSetClustering, by  = c("name" = "SalePrice") ) %>%
+  collect %>%
+  .[["name"]]
+
+dataSetClustering_withClusterField <- dataSetClustering %>%
+  mutate(cluster_result = pam_fit$clustering) 
+
+dataSetClustering_withClusterField$cluster_result <- as.factor(dataSetClustering_withClusterField$cluster_result)
+
+pam_results <- dataSetClustering_withClusterField %>%
+  group_by(cluster_result) %>%
+  do(the_summary = summary(.))
+pam_results$the_summary
+
+
+
+
+
+```
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+
+library(party)
+library(rattle)					# Fancy tree plot
+library(rpart.plot)				# Enhanced tree plots
+library(RColorBrewer)				# Color selection for fancy tree plot
+library(party)					# Alternative decision tree algorithm
+library(partykit)				# Convert rpart object to BinaryTree
+library(caret)		
+
+output.tree <- ctree(
+  cluster_result ~ . , 
+  data = dataSetClustering_withClusterField)
+
+tree.1 <- rpart(cluster_result ~ .,data=dataSetClustering_withClusterField)
+
+prp(tree.1) 										
+fancyRpartPlot(tree.1)
+
+plot(output.tree)
+
+```
+
+
+
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+library(fpc)
+
+db <- fpc::dbscan(gower_mat , eps = 0.15, MinPts = 5, scale = TRUE, 
+       method = "dist")
+
+plot(db, gower_mat , main = "DBSCAN", frame = FALSE)
+
+```
+
+
+```{r train_test, message=FALSE, warning=FALSE}
+
+#Dividimos el dataset 70% - 30%
+# se puede utilizar ataset_sin_na_outliers o dataset_sin_na que deberia ser
+# equvalente a dataset
+
+list_split <- dataset_sin_na_outliers %>% split_dataframe(.7)
+
+train <- list_split[[1]]  # 70%
+test <- list_split[[2]]     # 30%
+
+```
+
+
+
+

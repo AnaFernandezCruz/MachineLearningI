@@ -20,7 +20,7 @@ navbar:
           href: random_forest.html
         - text: "SVM"
           href: svm.html
-    - text: "Ajuste Hiperparámtros"
+    - text: "Ajuste Hiperparámetros"
       href: knn.html
     - text: "Evaluación modelos"
       href: knn.html
