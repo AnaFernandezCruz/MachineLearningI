@@ -519,7 +519,7 @@ library(forcats)
 
 ```{r}
 library(arules)
-v = discretize(dataset$SalePrice, breaks = 3, onlycuts = TRUE)
+v = discretize(dataset$SalePrice, method = "interval", breaks = 3, onlycuts = TRUE)
 
 dataset$GrupoPrecio = cut(dataset$SalePrice,v)
 levels(dataset$GrupoPrecio) = c("Barato","Normal","Caro")
@@ -646,7 +646,7 @@ preProcValuesValidation <- preProcess(validation_sin_na  %>% dplyr::select(-Over
 # quitadas del modelo 'MoSold','YrSold', no creo que tenga sentido analizarlas
 # anadida MSSubClass a ver si no da problemas
 
-var_modelo = c( 'GrLivArea','LotArea','Total_Bathrooms','Total_porch_SF','MSZoning','LandContour','LotConfig','Condition1','BldgType','HouseStyle','RoofStyle','MasVnrType','Foundation','SaleType','SaleCondition','YearBuilt','OverallQual','OverallCond','PavedDrive','Fence','BsmtFinSF1','Functional','ExterQual','BsmtQual','BsmtExposure','BsmtFinType1','BsmtUnfSF','CentralAir','KitchenQual','Fireplaces','FireplaceQu','BedroomAbvGr','KitchenAbvGr','LotShape','GarageArea','GarageCond','Neighborhood','has2ndFloor','Alley','TotalSF','GarageType','MasVnrArea','MSSubClass','GrupoPrecio')
+var_modelo = c( 'GrLivArea','LotArea','Total_Bathrooms','Total_porch_SF','MSZoning','LandContour','LotConfig','Condition1','BldgType','HouseStyle','RoofStyle','MasVnrType','Foundation','SaleType','SaleCondition','YearBuilt','OverallQual','OverallCond','PavedDrive','Fence','BsmtFinSF1','Functional','ExterQual','BsmtQual','BsmtExposure','BsmtFinType1','BsmtUnfSF','CentralAir','KitchenQual','Fireplaces','FireplaceQu','BedroomAbvGr','KitchenAbvGr','LotShape','GarageArea','GarageCond','Neighborhood','has2ndFloor','Alley','TotalSF','GarageType','MasVnrArea','MSSubClass','GrupoPrecio', 'SalePrice')
 
 var_modelo_with_SalePrice = c(var_modelo)
 
