@@ -277,9 +277,6 @@ $(document).ready(function () {
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
         <li>
-  <a href="index.html">Home</a>
-</li>
-<li>
   <a href="Cluster.html">Clustering</a>
 </li>
 <li>
@@ -768,10 +765,10 @@ library(forcats)
 <pre><code>## The following objects are masked from &#39;package:base&#39;:
 ## 
 ##     abbreviate, write</code></pre>
-<pre class="r"><code>v = discretize(dataset$SalePrice, method=&quot;interval&quot;, breaks = 3, onlycuts = TRUE)
+<pre class="r"><code>v = discretize(dataset$SalePrice, method = &quot;interval&quot;, breaks = 2, onlycuts = TRUE)
 
 dataset$GrupoPrecio = cut(dataset$SalePrice,v)
-levels(dataset$GrupoPrecio) = c(&quot;Barato&quot;,&quot;Normal&quot;,&quot;Caro&quot;)
+levels(dataset$GrupoPrecio) = c(&quot;Barato&quot;,&quot;Caro&quot;)
 write.csv(dataset, &quot;fulldatasetTransformed.csv&quot;)</code></pre>
 <p>———————- 2. SKEWNESS</p>
 <pre class="r"><code>var_continuas_discretas = c(var_continuas,var_discretas)

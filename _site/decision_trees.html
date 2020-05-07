@@ -276,13 +276,10 @@ $(document).ready(function () {
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
         <li>
-  <a href="index.html">Home</a>
+  <a href="Cluster.html">Clustering</a>
 </li>
 <li>
-  <a href="index.html">Clustering</a>
-</li>
-<li>
-  <a href="index.html">Dimensionalidad</a>
+  <a href="PCA.html">PCA</a>
 </li>
 <li class="dropdown">
   <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
@@ -309,13 +306,7 @@ $(document).ready(function () {
   </ul>
 </li>
 <li>
-  <a href="knn.html">Ajuste Hiperparámetros</a>
-</li>
-<li>
-  <a href="knn.html">Evaluación modelos</a>
-</li>
-<li>
-  <a href="knn.html">Otros modelos</a>
+  <a href="GAM.html">GAM</a>
 </li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
@@ -342,38 +333,261 @@ $(document).ready(function () {
 </div>
 
 
-<p>En este punto vamos a aplicar los árboles de decisión a nuestro modelo. Los árboles de decisión se componen del nodo raíz, que es del que partes, y respondiendo preguntas con “si” o “no”, nos iremos moviendo por nodos interiores hasta llegar a las hojas o nodos terminales. Nuestro objetivo es tener un árbol de decisión que use el menor número de preguntas posible.</p>
+<p>En este punto vamos a aplicar los árboles de decisión a nuestro modelo. Los árboles de decisión se componen del nodo raíz, que es del que partes, y respondiendo preguntas con “si” o “no”, nos iremos moviendo por los nodos interiores hasta llegar a las hojas o nodos terminales. Nuestro objetivo es tener un árbol de decisión que use el menor número de preguntas posible.</p>
+<p>Para empezar, cargamos nuestros datos.</p>
 <pre class="r"><code>library(rpart)
 library(rpart.plot)
 library(rattle)
-
+library(tidyverse)
 library(readr)
-dataTrain &lt;- readRDS(&quot;datasetTrain.csv&quot;)
 
-dataTest &lt;- readRDS(&quot;datasetTest.csv&quot;)
+dataTrain &lt;- readRDS(&quot;datasetTrain.rds&quot;) 
+myvars &lt;- names(dataTrain) %in% c(&quot;SalePrice&quot;)
+dataTrain &lt;- dataTrain[!myvars]
 
-val &lt;- readRDS(&quot;datasetValidation.csv&quot;)</code></pre>
-<pre class="r"><code>hrdataTREE1 = rpart(GrupoPrecio ~ ., data = dataTrain)
+dataTest &lt;- readRDS(&quot;datasetTest.rds&quot;)
+myvars &lt;- names(dataTest) %in% c(&quot;SalePrice&quot;)
+dataTest &lt;- dataTest[!myvars]
+                       
+val &lt;- readRDS(&quot;datasetValidation.rds&quot;)
+myvars &lt;- names(val) %in% c(&quot;SalePrice&quot;)
+val &lt;- val[!myvars]
+
+set.seed(123)</code></pre>
+<p>Definimos el árbol de decisión: para ello, como no conocemos ninguna relación con el resto de variables, no escribiremos ninguna fórmula. El árbol que obtenemos es el siguiente:</p>
+<pre class="r"><code>HouseTREE1 = rpart(GrupoPrecio ~ ., data = dataTrain)
 
 par(mfrow = c(1, 1), xpd = NA) # otherwise on some devices the text is clipped
-fancyRpartPlot(hrdataTREE1, sub = &quot;&quot;)</code></pre>
-<p><img src="decision_trees_files/figure-html/unnamed-chunk-2-1.png" width="2880" /></p>
-<pre class="r"><code>#PROBAR VAL
-
-tab1 = table(pred = predict(hrdataTREE1, dataTest, type = &quot;class&quot;), obs = dataTest$GrupoPrecio)
+fancyRpartPlot(HouseTREE1, sub = &quot;&quot;)</code></pre>
+<p><img src="decision_trees_files/figure-html/unnamed-chunk-2-1.png" width="2880" /> Podemos observar como los tipos de casas se han ido dividiendo según las decisiones tomadas en cada uno de los nodos del árbol. También podemos ver como en los nodos terminales aparece la distribución de la variable GrupoPrecios, así que podemos hacer una estimación del error de clasficación del árbol con las herramientas vistas en clase. Para ello:</p>
+<pre class="r"><code>##CÁLCULO DEL ERROR A LA HORA DE CLASIFICAR:
+table(pred = predict(HouseTREE1, type = &quot;class&quot;), obs = dataTrain$GrupoPrecio)</code></pre>
+<pre><code>##         obs
+## pred     Barato Caro
+##   Barato   1449  100
+##   Caro       40  152</code></pre>
+<pre class="r"><code>n = dim(dataTrain)[1]
+error1 = 100 * sum(predict(HouseTREE1, type = &quot;class&quot;) != dataTrain$GrupoPrecio)/n
+error1</code></pre>
+<pre><code>## [1] 8.041356</code></pre>
+<pre class="r"><code>##RESULTADO EN EL DATASET DE PRUEBA:
+tab1 = table(pred = predict(HouseTREE1, dataTest, type = &quot;class&quot;), obs = dataTest$GrupoPrecio)
 ntest = nrow(dataTest)
 acierto1 = sum(diag(tab1))/ntest
-acierto1</code></pre>
-<pre><code>## [1] 0.9959839</code></pre>
-<pre class="r"><code>#PROBAR VAL
+tab1</code></pre>
+<pre><code>##         obs
+## pred     Barato Caro
+##   Barato    578   78
+##   Caro       45   46</code></pre>
+<pre class="r"><code>acierto1</code></pre>
+<pre><code>## [1] 0.8353414</code></pre>
+<p>Un error de poco más del 3% mientras que obtenemos un accuracy del 92,01% para el dataset de test. Con estos valores podemos entender que nuestro modelo está sobreentrenado y tendremos que realizar una poda del mismo. Antes de ponernos manos a la masa para realizar la poda del árbol, vamos a proceder a alterar los hiperparámetros del árbol de decisión. En este caso vamos a meter las probabilidades a priori en el árbol y ver cómo varía el resultado. Para ello, obtenemos el conteo de cuantos elementos pertenecen a cada clase y junto al total de las observaciones podemos sacar la probabilidad a priori.</p>
+<pre class="r"><code>library(ggplot2)
+ggplot(data.frame(dataTrain), aes(x=dataTrain$GrupoPrecio)) + geom_bar()</code></pre>
+<p><img src="decision_trees_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<pre class="r"><code>as.data.frame(table(dataTrain$GrupoPrecio))</code></pre>
+<pre><code>##     Var1 Freq
+## 1 Barato 1489
+## 2   Caro  252</code></pre>
+<pre class="r"><code>length(dataTrain$GrupoPrecio)</code></pre>
+<pre><code>## [1] 1741</code></pre>
+<p>Teniendo esta información, metemos la probabilidad a priori.</p>
+<pre class="r"><code>##AJUSTE HIPERPARÁMETROS:
+prob1 = 1737 / 1837
+prob2 = 100 / 1837
 
-tab1 = table(pred = predict(hrdataTREE1, val, type = &quot;class&quot;), obs = val$GrupoPrecio)
-ntest = nrow(val)
-acierto1 = sum(diag(tab1))/ntest
-acierto1</code></pre>
-<pre><code>## [1] 0.9962963</code></pre>
-<p>PROBAR PODA</p>
-<p>PDF3: COMPARACION MODELOS</p>
+HouseTREE2 = rpart(GrupoPrecio ~ ., data = dataTrain, parms = list(prior = c(prob1,prob2), split = &quot;information&quot;))
+par(mfrow = c(1, 1), xpd = NA) # otherwise on some devices the text is clipped
+fancyRpartPlot(HouseTREE2, sub = &quot;&quot;)</code></pre>
+<p><img src="decision_trees_files/figure-html/unnamed-chunk-5-1.png" width="2880" /> Los resultados obtenidos son los siguientes:</p>
+<pre class="r"><code>##CÁLCULO DEL ERROR A LA HORA DE CLASIFICAR:
+table(pred = predict(HouseTREE2, type = &quot;class&quot;), obs = dataTrain$GrupoPrecio)</code></pre>
+<pre><code>##         obs
+## pred     Barato Caro
+##   Barato   1480  146
+##   Caro        9  106</code></pre>
+<pre class="r"><code>n = dim(dataTrain)[1]
+error2 = 100 * sum(predict(HouseTREE2, type = &quot;class&quot;) != dataTrain$GrupoPrecio)/n
+error2</code></pre>
+<pre><code>## [1] 8.902929</code></pre>
+<pre class="r"><code>##RESULTADO EN EL DATASET DE PRUEBA:
+tab2 = table(pred = predict(HouseTREE2, dataTest, type = &quot;class&quot;), obs = dataTest$GrupoPrecio)
+ntest = nrow(dataTest)
+acierto2 = sum(diag(tab1))/ntest
+tab2</code></pre>
+<pre><code>##         obs
+## pred     Barato Caro
+##   Barato    607   93
+##   Caro       16   31</code></pre>
+<pre class="r"><code>acierto2</code></pre>
+<pre><code>## [1] 0.8353414</code></pre>
+<p>Para podar el modelo usaremos las herramientas printcp y plotcp. Con estas herramientas podemos tener el número óptimo de podas. La poda la haremos para evitar el overfitting, como en nuestro caso, ya que con un accuracy de un 0.92 podemos asumir que tenemos un problema de overfitting entre el Train y el Test. Lo que buscaremos será quedarnos con el árbol más pequeño con el menor error obtenido haciendo cross validation. Utilizaremos el primer árbol, pues parece que da menos accuracy y puede tener menos overfitting.</p>
+<pre class="r"><code>##PODA:
+printcp(HouseTREE1)</code></pre>
+<pre><code>## 
+## Classification tree:
+## rpart(formula = GrupoPrecio ~ ., data = dataTrain)
+## 
+## Variables actually used in tree construction:
+## [1] BsmtFinSF1     GarageArea     GrLivArea      MasVnrType     MSSubClass    
+## [6] Neighborhood   OpenPorchSF    Total_porch_SF TotalSF       
+## 
+## Root node error: 252/1741 = 0.14474
+## 
+## n= 1741 
+## 
+##         CP nsplit rel error  xerror     xstd
+## 1 0.038889      0   1.00000 1.00000 0.058257
+## 2 0.035714      5   0.80556 1.04762 0.059387
+## 3 0.031746      8   0.69841 1.05159 0.059479
+## 4 0.015873      9   0.66667 0.99603 0.058161
+## 5 0.011905     10   0.65079 1.00000 0.058257
+## 6 0.010000     17   0.55556 1.00000 0.058257</code></pre>
+<pre class="r"><code>plotcp(HouseTREE1)</code></pre>
+<p><img src="decision_trees_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
+<p>Plotcp nos devulve una representación gráfica con un resumen del error obtenido haciendo cross validation. Los valores de CP (Complexity Parameter) se dibujan en el eje x mientras que en la y tenemos el valor de la media geométrica para representar la desviación hasta alcanzar el valor mínimo. En nuestro caso ocurre algo curioso: el error relativo aumenta cuando podamos el árbol. Una manera de comprobarlo es hacer que el árbol podado coja el valor menor para “xerror” y vemos que el árbol obtenido da los mismo resultados que al principio.</p>
+<pre class="r"><code>pruneTREE1 = prune(HouseTREE1,cp = HouseTREE1$cptable[which.min(HouseTREE1$cptable[&quot;xerror&quot;]), &quot;CP&quot;])
+fancyRpartPlot(pruneTREE1, uniform = TRUE, main = &quot;Pruned Classification Tree&quot;, sub = &quot;&quot;)</code></pre>
+<p><img src="decision_trees_files/figure-html/unnamed-chunk-8-1.png" width="2880" /> Si probamos el árbol podado:</p>
+<pre class="r"><code>##CÁLCULO DEL ERROR A LA HORA DE CLASIFICAR:
+table(pred = predict(pruneTREE1, type = &quot;class&quot;), obs = dataTrain$GrupoPrecio)</code></pre>
+<pre><code>##         obs
+## pred     Barato Caro
+##   Barato   1449  100
+##   Caro       40  152</code></pre>
+<pre class="r"><code>n = dim(dataTrain)[1]
+error3 = 100 * sum(predict(pruneTREE1, type = &quot;class&quot;) != dataTrain$GrupoPrecio)/n
+error3</code></pre>
+<pre><code>## [1] 8.041356</code></pre>
+<pre class="r"><code>##RESULTADO EN EL DATASET DE PRUEBA:
+tab3 = table(pred = predict(pruneTREE1, dataTest, type = &quot;class&quot;), obs = dataTest$GrupoPrecio)
+acierto3 = sum(diag(tab2))/ntest
+tab3</code></pre>
+<pre><code>##         obs
+## pred     Barato Caro
+##   Barato    578   78
+##   Caro       45   46</code></pre>
+<pre class="r"><code>acierto3</code></pre>
+<pre><code>## [1] 0.854083</code></pre>
+<p>Comprobamos que, efectivamente, ha cogido el valor mínimo de la gráfica que implica que el árbol se quede como estaba al principio.</p>
+<ul>
+<li>COMPARACIÓN DE MODELOS.</li>
+</ul>
+<p>Para realizar la comparación de los dos (o tres) árboles que hemos creado, acudimos a las estadísticas que hemos obtenido.</p>
+<p>Las estadísticas las sacamos sobre el conjunto de validación. Para el primer árbol:</p>
+<pre class="r"><code>tab4 = table(pred = predict(HouseTREE1, val, type = &quot;class&quot;), obs = val$GrupoPrecio)
+nval = nrow(val)
+acierto4 = sum(diag(tab4))/nval
+
+tab4</code></pre>
+<pre><code>##         obs
+## pred     Barato Caro
+##   Barato    205   36
+##   Caro       15   14</code></pre>
+<pre class="r"><code>acierto4</code></pre>
+<pre><code>## [1] 0.8111111</code></pre>
+<p>Las estadísticas para el segundo árbol donde hemos añadido el hiperparámetro con las probabilidades a priori:</p>
+<pre class="r"><code>tab5 = table(pred = predict(HouseTREE2, val, type = &quot;class&quot;), obs = val$GrupoPrecio)
+nval = nrow(val)
+acierto5 = sum(diag(tab5))/nval
+
+tab5</code></pre>
+<pre><code>##         obs
+## pred     Barato Caro
+##   Barato    211   43
+##   Caro        9    7</code></pre>
+<pre class="r"><code>acierto5</code></pre>
+<pre><code>## [1] 0.8074074</code></pre>
+<p>Las estadísticas con el árbol podado:</p>
+<pre class="r"><code>tab6 = table(pred = predict(pruneTREE1, val, type = &quot;class&quot;), obs = val$GrupoPrecio)
+nval = nrow(val)
+acierto6 = sum(diag(tab6))/nval
+
+tab6</code></pre>
+<pre><code>##         obs
+## pred     Barato Caro
+##   Barato    205   36
+##   Caro       15   14</code></pre>
+<pre class="r"><code>acierto6</code></pre>
+<pre><code>## [1] 0.8111111</code></pre>
+<p>Como vemos, cuando hemos añadido las probabilidades a priori hemos mejorado la predicción en las casas baratas. Vemos que en nuestro caso es un modelo totalmente desbalanceado ya que tenemos una clara predominación de la clase “Barato” y somos muy buenos prediciendo cuando una casa es barata. Es por ello por lo que los resultados son bastante similares, ya que aunque añadamos las probabilidades a priori solo reforzamos ese aspecto del entrenamiento. Como hemos dicho además en la poda, esto solo ha hecho que el modelo se quede como está pues así ya estamos en el punto con el menor error relativo aunque sea un árbol complejo.</p>
+<ul>
+<li>CURVA ROC.</li>
+</ul>
+<pre class="r"><code>library(rpart)
+library(caret)</code></pre>
+<pre><code>## Loading required package: lattice</code></pre>
+<pre><code>## 
+## Attaching package: &#39;caret&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:purrr&#39;:
+## 
+##     lift</code></pre>
+<p>Nos vamos a quedar con el segundo modelo para hacer el estudio de la curva ROC.</p>
+<pre class="r"><code>pred = predict(pruneTREE1, val, type = &quot;class&quot;)
+table = table(pred, obs = val$GrupoPrecio, dnn = c(&quot;Actual&quot;, &quot;Predichos&quot;))
+
+confusionMatrix(table)</code></pre>
+<pre><code>## Confusion Matrix and Statistics
+## 
+##         Predichos
+## Actual   Barato Caro
+##   Barato    205   36
+##   Caro       15   14
+##                                          
+##                Accuracy : 0.8111         
+##                  95% CI : (0.7592, 0.856)
+##     No Information Rate : 0.8148         
+##     P-Value [Acc &gt; NIR] : 0.598884       
+##                                          
+##                   Kappa : 0.2528         
+##                                          
+##  Mcnemar&#39;s Test P-Value : 0.005101       
+##                                          
+##             Sensitivity : 0.9318         
+##             Specificity : 0.2800         
+##          Pos Pred Value : 0.8506         
+##          Neg Pred Value : 0.4828         
+##              Prevalence : 0.8148         
+##          Detection Rate : 0.7593         
+##    Detection Prevalence : 0.8926         
+##       Balanced Accuracy : 0.6059         
+##                                          
+##        &#39;Positive&#39; Class : Barato         
+## </code></pre>
+<pre class="r"><code>draw_confusion_matrix &lt;- function(tab, tab_Actual, tab_Predict){
+  confusion_matrix &lt;- as.data.frame(tab)
+  
+  Actual &lt;- factor(confusion_matrix[[tab_Actual]])
+  Predichos &lt;- factor(confusion_matrix[[tab_Predict]])
+  Y      &lt;- confusion_matrix$Freq
+  df &lt;- data.frame(Actual, Predichos, Y)
+  
+  ggplot(data =  df, mapping = aes(x = Actual, y = Predichos)) +
+    geom_tile(aes(fill = Y), colour = &quot;white&quot;) +
+    geom_text(aes(label = sprintf(&quot;%1.0f&quot;, Y)), vjust = 1) +
+    scale_fill_gradient(low = &quot;blue&quot;, high = &quot;red&quot;) +
+    theme_bw() + theme(legend.position = &quot;none&quot;)
+}
+
+
+draw_confusion_matrix(table, &quot;Actual&quot;, &quot;Predichos&quot;)</code></pre>
+<p><img src="decision_trees_files/figure-html/unnamed-chunk-14-1.png" width="672" /></p>
+<pre class="r"><code>library(pROC)</code></pre>
+<pre><code>## Type &#39;citation(&quot;pROC&quot;)&#39; for a citation.</code></pre>
+<pre><code>## 
+## Attaching package: &#39;pROC&#39;</code></pre>
+<pre><code>## The following objects are masked from &#39;package:stats&#39;:
+## 
+##     cov, smooth, var</code></pre>
+<pre class="r"><code>predRoc &lt;- predict(pruneTREE1, newdata=val, type=&quot;prob&quot;)
+area_curva &lt;- multiclass.roc(val$GrupoPrecio, predRoc,)
+area_curva</code></pre>
+<pre><code>## 
+## Call:
+## multiclass.roc.default(response = val$GrupoPrecio, predictor = predRoc)
+## 
+## Data: multivariate predictor predRoc with 2 levels of val$GrupoPrecio: Barato, Caro.
+## Multi-class area under the curve: 0.8055</code></pre>
 
 
 

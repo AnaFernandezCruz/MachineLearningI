@@ -13,8 +13,8 @@ source("funcs.R")
 
 ```{r load_data, message=FALSE, warning=FALSE, echo=TRUE}
 
-dataTrain <- readRDS("datasetTrain.csv")
-dataTest <- readRDS("datasetTest.csv")
+dataTrain <- readRDS("datasetTrain.rds")
+dataTest <- readRDS("datasetTest.rds")
 
 ```
 

@@ -1,3 +1,202 @@
 ---
 title: "RANDOM FOREST"
 ---
+
+
+En este punto vamos a aplicar los bosques de árboles  a nuestro modelo. Ya conocemos el funcionamiento de los árboles de decisión por lo que nos será fácil entender el sistema de funcionamiento de los bosques: es un conjunto de árboles con distintos parámetros y mediante un sistema de votación de los resultados de los árboles obtendremos el resultado del bosque.
+
+Para empezar, cargamos nuestros datos.
+
+```{r message = FALSE}
+library(rpart)
+library(rpart.plot)
+library(rattle)
+library(tidyverse)
+library(readr)
+
+dataTrain <- readRDS("datasetTrain.rds") 
+myvars <- names(dataTrain) %in% c("SalePrice")
+dataTrain <- dataTrain[!myvars]
+
+dataTest <- readRDS("datasetTest.rds")
+myvars <- names(dataTest) %in% c("SalePrice")
+dataTest <- dataTest[!myvars]
+                       
+val <- readRDS("datasetValidation.rds")
+myvars <- names(val) %in% c("SalePrice")
+val <- val[!myvars]
+set.seed(123)
+```
+
+Para hacer el bosque aleatorio de árboles cargamos la biblioteca de R específica. En este primer bosque no vamos a añadir ningún hiperparámetro.
+```{r}
+#NUESTRO BOSQUE DE ARBOLES
+library(randomForest)
+House.rf=randomForest(GrupoPrecio ~ . , data = dataTrain)
+House.rf
+print(House.rf)
+plot(House.rf)
+```
+
+
+Cuando hacemos el plot del bosque aleatorio de árboles vemos el error para cada clase (las líneas coloreadas, el orden de aparición es en el que aparecen en el print: Barato, Normal y Caro). La línea negra representa el error medio del bosque. Si queremos ver la importancia de las variables del modelo:
+
+```{r}
+importance(House.rf)
+```
+
+Lo que nos indica la columna es que cuanto más grande sea ese factor, más importante es en la decisión final del modelo.
+
+```{r}
+##PROBANDO SOBRE EL TESTDATA:
+predTrain <- predict(House.rf, dataTest, type = "class")
+
+## MATRIZ DE CONFUSION
+table(predTrain, dataTest$GrupoPrecio) 
+
+##ERROR PARA CADA CLASE
+House.rf$confusion[, 'class.error']
+
+# Matriz de confusión -> y ACCURACY DEL MODELO
+(mc <- with(dataTest,table(predTrain, GrupoPrecio)))
+100 * sum(diag(mc)) / sum(mc)
+```
+Vemos que tenemos un error del 0,8% para la clase "Barato", un error del 89% para la clase "Normal" y siempre nos equivocamos a la hora de predecir cuando una casa es cara.
+
+
+Si vamos con una exploración de hiperparámetros más pronfunda usaremos la función trainControl().
+
+-> MTRY:
+
+```{r}
+library(caret)
+library(e1071)
+
+trControl <- trainControl(method = "cv",
+    number = 10,
+    search = "grid")
+
+
+set.seed(1234)
+# Run the model
+rf_default <- train(GrupoPrecio~.,
+                      data = dataTrain,
+                      method = "rf",
+                      metric = "Accuracy",
+                      trControl = trControl)
+# Print the results
+print(rf_default)
+```
+
+El algoritmo usa 500 árboles y prueba con 3 valores de mtry: 2, 90 y 178. Vamos a usar mtry = 2, ya que obtenemos el valor mayor de la accuracy con ese valor para el hiperparámetro.
+
+-> MAXNODE:
+
+```{r}
+store_maxnode <- list()
+tuneGrid <- expand.grid(.mtry = 2)
+for (maxnodes in c(10: 20)) {
+    set.seed(1234)
+    rf_maxnode <- train(GrupoPrecio~.,
+        data = dataTrain,
+        method = "rf",
+        metric = "Accuracy",
+        tuneGrid = tuneGrid,
+        trControl = trControl,
+        importance = TRUE,
+        nodesize = 14,
+        maxnodes = maxnodes,
+        ntree = 300)
+    key <- toString(maxnodes)
+    store_maxnode[[key]] <- rf_maxnode
+}
+results_node <- resamples(store_maxnode)
+summary(results_node)
+
+```
+
+La Accuracy se mantiene constante, asi que usaremos el valor más pequeño:  10.
+
+-> NUMERO DE ARBOLES:
+
+```{r}
+store_maxtrees <- list()
+for (ntree in c(250, 300, 350, 400, 450, 500, 550, 600, 800, 1000, 2000)) {
+    set.seed(5678)
+    rf_maxtrees <- train(GrupoPrecio~.,
+        data = dataTrain,
+        method = "rf",
+        metric = "Accuracy",
+        tuneGrid = tuneGrid,
+        trControl = trControl,
+        importance = TRUE,
+        nodesize = 14,
+        maxnodes = 10,
+        ntree = ntree)
+    key <- toString(ntree)
+    store_maxtrees[[key]] <- rf_maxtrees
+}
+results_tree <- resamples(store_maxtrees)
+summary(results_tree)
+
+```
+
+Con todos estos hiperparámetros obtenidos de pruebas iterativas, pasamos a entrenar el modelo:
+
+```{r}
+library(randomForest)
+fit_rf <- randomForest(GrupoPrecio ~ . , data = dataTrain, mtry=2, maxnodes=10, ntree=250)
+
+```
+
+PROBAMOS EL MODELO:
+```{r}
+##PROBANDO SOBRE EL TESTDATA:
+predTrain_2 <- predict(fit_rf, dataTest, type = "class")
+
+##ERROR PARA CADA CLASE
+fit_rf$confusion[, 'class.error']
+
+# Matriz de confusión -> y ACCURACY DEL MODELO
+(mc <- with(dataTest,table(predTrain_2, GrupoPrecio)))
+
+resultado <- 100 * sum(diag(mc)) / sum(mc)
+
+resultado
+```
+
+Después de ajustar estos hiperparámetros, vemos que el accuracy ha aumentado. 
+
+```{r}
+pred = predict(fit_rf, val, type = "class")
+table = table(pred, obs = val$GrupoPrecio, dnn = c("Actual", "Predichos"))
+
+confusionMatrix(table)
+
+
+draw_confusion_matrix <- function(tab, tab_Actual, tab_Predict){
+  confusion_matrix <- as.data.frame(tab)
+  
+  Actual <- factor(confusion_matrix[[tab_Actual]])
+  Predichos <- factor(confusion_matrix[[tab_Predict]])
+  Y      <- confusion_matrix$Freq
+  df <- data.frame(Actual, Predichos, Y)
+  
+  ggplot(data =  df, mapping = aes(x = Actual, y = Predichos)) +
+    geom_tile(aes(fill = Y), colour = "white") +
+    geom_text(aes(label = sprintf("%1.0f", Y)), vjust = 1) +
+    scale_fill_gradient(low = "blue", high = "red") +
+    theme_bw() + theme(legend.position = "none")
+}
+
+
+draw_confusion_matrix(table, "Actual", "Predichos")
+
+
+library(pROC)
+predRoc <- predict(fit_rf, newdata=val, type="prob")
+area_curva <- multiclass.roc(val$GrupoPrecio, predRoc,)
+area_curva
+```
+
+Vemos que el area bajo la curva en este bosque aleatorio no es muy alta, por lo que podemos decir que no tenemos un modelo muy bueno.

@@ -2,8 +2,8 @@ name: "ml"
 navbar:
   title: "ML"
   left:
-    - text: "Home"
-      href: index.html
+#    - text: "Home"
+#      href: index.html
     - text: "Clustering"
       href: Cluster.html
     - text: "PCA"

@@ -272,13 +272,10 @@ $(document).ready(function () {
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
         <li>
-  <a href="index.html">Home</a>
+  <a href="Cluster.html">Clustering</a>
 </li>
 <li>
-  <a href="index.html">Clustering</a>
-</li>
-<li>
-  <a href="index.html">Dimensionalidad</a>
+  <a href="PCA.html">PCA</a>
 </li>
 <li class="dropdown">
   <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
@@ -305,13 +302,7 @@ $(document).ready(function () {
   </ul>
 </li>
 <li>
-  <a href="knn.html">Ajuste Hiperparámetros</a>
-</li>
-<li>
-  <a href="knn.html">Evaluación modelos</a>
-</li>
-<li>
-  <a href="knn.html">Otros modelos</a>
+  <a href="GAM.html">GAM</a>
 </li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
@@ -345,60 +336,33 @@ library(dplyr)</code></pre>
 <pre><code>## Loading required package: ggplot2</code></pre>
 <pre class="r"><code>library (ROCR)
 library(e1071)
-source(&quot;funcs.R&quot;)
-source(&quot;flow.R&quot;)</code></pre>
-<pre><code>## 1 = 91.16466 2 = 92.36948 3 = 92.23561 4 = 92.50335 5 = 92.23561 6 = 93.44043 7 = 92.50335 8 = 92.90495 9 = 93.30656 10 = 93.44043 11 = 94.10977 12 = 93.84203 13 = 93.9759 14 = 93.9759 15 = 94.10977 16 = 94.10977 17 = 93.84203 18 = 93.84203 19 = 93.9759 20 = 93.9759 21 = 93.9759 22 = 93.84203 23 = 93.9759 24 = 94.10977 25 = 94.10977 26 = 94.10977 27 = 94.10977 28 = 94.10977</code></pre>
-<p><img src="svm_files/figure-html/load_libraries-1.png" width="672" /></p>
-<pre class="r"><code>(cm_knn)</code></pre>
-<pre><code>## Confusion Matrix and Statistics
-## 
-##         Predichos
-## Actual   Barato Normal Caro
-##   Barato    672     33    1
-##   Normal     30      9    1
-##   Caro        1      0    0
-## 
-## Overall Statistics
-##                                         
-##                Accuracy : 0.9116        
-##                  95% CI : (0.889, 0.931)
-##     No Information Rate : 0.9411        
-##     P-Value [Acc &gt; NIR] : 0.9995        
-##                                         
-##                   Kappa : 0.1784        
-##                                         
-##  Mcnemar&#39;s Test P-Value : 0.7667        
-## 
-## Statistics by Class:
-## 
-##                      Class: Barato Class: Normal Class: Caro
-## Sensitivity                 0.9559       0.21429    0.000000
-## Specificity                 0.2273       0.95603    0.998658
-## Pos Pred Value              0.9518       0.22500    0.000000
-## Neg Pred Value              0.2439       0.95332    0.997319
-## Prevalence                  0.9411       0.05622    0.002677
-## Detection Rate              0.8996       0.01205    0.000000
-## Detection Prevalence        0.9451       0.05355    0.001339
-## Balanced Accuracy           0.5916       0.58516    0.499329</code></pre>
-<pre class="r"><code>dataTrain &lt;- readRDS(&quot;datasetTrain.csv&quot;)
-dataTest &lt;- readRDS(&quot;datasetTest.csv&quot;)</code></pre>
+source(&quot;funcs.R&quot;)</code></pre>
+<pre class="r"><code>dataTrain &lt;- readRDS(&quot;datasetTrain.rds&quot;)
+dataTest &lt;- readRDS(&quot;datasetTest.rds&quot;)
+
+dataValidation &lt;- readRDS(&quot;datasetValidation.rds&quot;)</code></pre>
 <pre class="r"><code>dataTrain &lt;- dataTrain %&gt;% dplyr::select(-SalePrice)
 dataTest &lt;- dataTest %&gt;% dplyr::select(-SalePrice)
 
-group &lt;- c(&#39;TotalSF&#39;,&#39;GrLivArea&#39;,&#39;GrupoPrecio&#39;)
+dataValidation &lt;- dataValidation %&gt;% dplyr::select(-SalePrice)
+
+
+group &lt;- c(&#39;TotalSF&#39;,&#39;LotArea&#39;,&#39;GrupoPrecio&#39;)
 
 dataTrain &lt;- dataTrain %&gt;% dplyr::select(group)
-dataTest &lt;- dataTest %&gt;% dplyr::select(group)</code></pre>
+dataTest &lt;- dataTest %&gt;% dplyr::select(group)
+
+dataValidation &lt;- dataValidation %&gt;% dplyr::select(group)</code></pre>
 <pre class="r"><code>XTrain &lt;- dataTrain %&gt;% dplyr::select(-GrupoPrecio)
 YTrain &lt;- dataTrain$GrupoPrecio
 
 XTest &lt;- dataTest %&gt;% dplyr::select(-GrupoPrecio)
 YTest &lt;- dataTest$GrupoPrecio
 
-#XTrain&lt;- as.data.frame(lapply(XTrain, normalize_standar,4,5))
-#XTest&lt;- as.data.frame(lapply(XTest,normalize_standar,3,4))</code></pre>
+XValidation &lt;- dataValidation %&gt;% dplyr::select(-GrupoPrecio)
+YValidation &lt;- dataValidation$GrupoPrecio</code></pre>
 <pre class="r"><code>#model &lt;- svm(formula = GrupoPrecio ~ ., data = dataTrain, kernel = &quot;linear&quot;, cost = 1, scale = TRUE)
-model &lt;- best.tune(method = svm, train.x = GrupoPrecio ~ ., data = dataTrain, ranges = list(cost = c(0.001, 0.01, 0.1, 1, 5, 10, 100)), kernel = &quot;linear&quot;)
+model &lt;- best.tune(method = svm, train.x = GrupoPrecio ~ ., data = dataTrain, ranges = list(cost = c(0.001, 0.01, 0.1, 1, 5, 10, 100)), kernel = &quot;radial&quot;)
 
 plot(model, dataTrain)</code></pre>
 <p><img src="svm_files/figure-html/run_model-1.png" width="672" /></p>
@@ -407,12 +371,13 @@ tab_test &lt;- table(pred, YTest, dnn = c(&quot;Actual&quot;, &quot;Predichos&qu
 
 (tab_test)</code></pre>
 <pre><code>##         Predichos
-## Actual   Barato Normal Caro
-##   Barato    703     42    2
-##   Normal      0      0    0
-##   Caro        0      0    0</code></pre>
+## Actual   Barato Caro
+##   Barato    608  106
+##   Caro       15   18</code></pre>
+<pre class="r"><code>draw_confusion_matrix(tab_test, &quot;Actual&quot;, &quot;Predichos&quot;)</code></pre>
+<p><img src="svm_files/figure-html/evaluate_model-1.png" width="672" /></p>
 <pre class="r"><code>accuracy(tab_test)</code></pre>
-<pre><code>## [1] 94.10977</code></pre>
+<pre><code>## [1] 83.80187</code></pre>
 <pre class="r"><code>knn_test_error &lt;- calc_error_rate(predicted.value=model, true.value=YTest)</code></pre>
 <pre><code>## Warning in `!=.default`(true.value, predicted.value): longitud de objeto mayor
 ## no es múltiplo de la longitud de uno menor</code></pre>
@@ -420,39 +385,79 @@ tab_test &lt;- table(pred, YTest, dnn = c(&quot;Actual&quot;, &quot;Predichos&qu
 ## longitud de uno menor</code></pre>
 <pre class="r"><code>(knn_test_error)</code></pre>
 <pre><code>## [1] 1</code></pre>
-<pre class="r"><code>draw_confusion_matrix(tab_test, &quot;Actual&quot;, &quot;Predichos&quot;)</code></pre>
-<p><img src="svm_files/figure-html/evaluate_model-1.png" width="672" /></p>
-<pre class="r"><code>confusionMatrix(tab_test)</code></pre>
+<pre class="r"><code>cm &lt;- confusionMatrix(tab_test)
+(cm)</code></pre>
 <pre><code>## Confusion Matrix and Statistics
 ## 
 ##         Predichos
-## Actual   Barato Normal Caro
-##   Barato    703     42    2
-##   Normal      0      0    0
-##   Caro        0      0    0
-## 
-## Overall Statistics
+## Actual   Barato Caro
+##   Barato    608  106
+##   Caro       15   18
 ##                                           
-##                Accuracy : 0.9411          
-##                  95% CI : (0.9217, 0.9569)
-##     No Information Rate : 0.9411          
-##     P-Value [Acc &gt; NIR] : 0.54            
+##                Accuracy : 0.838           
+##                  95% CI : (0.8096, 0.8637)
+##     No Information Rate : 0.834           
+##     P-Value [Acc &gt; NIR] : 0.4069          
 ##                                           
-##                   Kappa : 0               
+##                   Kappa : 0.1715          
 ##                                           
-##  Mcnemar&#39;s Test P-Value : NA              
+##  Mcnemar&#39;s Test P-Value : 2.796e-16       
+##                                           
+##             Sensitivity : 0.9759          
+##             Specificity : 0.1452          
+##          Pos Pred Value : 0.8515          
+##          Neg Pred Value : 0.5455          
+##              Prevalence : 0.8340          
+##          Detection Rate : 0.8139          
+##    Detection Prevalence : 0.9558          
+##       Balanced Accuracy : 0.5605          
+##                                           
+##        &#39;Positive&#39; Class : Barato          
+## </code></pre>
+<pre class="r"><code>pred = predict(model, newdata = XValidation)
+tab_validation &lt;- table(pred, YValidation, dnn = c(&quot;Actual&quot;, &quot;Predichos&quot;))
+
+(tab_validation)</code></pre>
+<pre><code>##         Predichos
+## Actual   Barato Caro
+##   Barato    218   45
+##   Caro        2    5</code></pre>
+<pre class="r"><code>draw_confusion_matrix(tab_validation, &quot;Actual&quot;, &quot;Predichos&quot;)</code></pre>
+<p><img src="svm_files/figure-html/unnamed-chunk-2-1.png" width="672" /></p>
+<pre class="r"><code>accuracy(tab_validation)</code></pre>
+<pre><code>## [1] 82.59259</code></pre>
+<pre class="r"><code>knn_validation_error &lt;- calc_error_rate(predicted.value=model, true.value=YValidation)
+(knn_validation_error)</code></pre>
+<pre><code>## [1] 1</code></pre>
+<pre class="r"><code>cm &lt;- confusionMatrix(tab_validation)
+(cm)</code></pre>
+<pre><code>## Confusion Matrix and Statistics
 ## 
-## Statistics by Class:
-## 
-##                      Class: Barato Class: Normal Class: Caro
-## Sensitivity                 1.0000       0.00000    0.000000
-## Specificity                 0.0000       1.00000    1.000000
-## Pos Pred Value              0.9411           NaN         NaN
-## Neg Pred Value                 NaN       0.94378    0.997323
-## Prevalence                  0.9411       0.05622    0.002677
-## Detection Rate              0.9411       0.00000    0.000000
-## Detection Prevalence        1.0000       0.00000    0.000000
-## Balanced Accuracy           0.5000       0.50000    0.500000</code></pre>
+##         Predichos
+## Actual   Barato Caro
+##   Barato    218   45
+##   Caro        2    5
+##                                           
+##                Accuracy : 0.8259          
+##                  95% CI : (0.7753, 0.8692)
+##     No Information Rate : 0.8148          
+##     P-Value [Acc &gt; NIR] : 0.3529          
+##                                           
+##                   Kappa : 0.1361          
+##                                           
+##  Mcnemar&#39;s Test P-Value : 8.993e-10       
+##                                           
+##             Sensitivity : 0.9909          
+##             Specificity : 0.1000          
+##          Pos Pred Value : 0.8289          
+##          Neg Pred Value : 0.7143          
+##              Prevalence : 0.8148          
+##          Detection Rate : 0.8074          
+##    Detection Prevalence : 0.9741          
+##       Balanced Accuracy : 0.5455          
+##                                           
+##        &#39;Positive&#39; Class : Barato          
+## </code></pre>
 
 
 

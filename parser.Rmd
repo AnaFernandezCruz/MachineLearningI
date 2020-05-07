@@ -519,10 +519,12 @@ library(forcats)
 
 ```{r}
 library(arules)
-v = discretize(dataset$SalePrice, method="interval", breaks = 3, onlycuts = TRUE)
+#v = discretize(dataset$SalePrice, method = "interval", breaks = 2, onlycuts = TRUE)
+#v = discretize(dataset$SalePrice, method = "cluster", breaks = 2, onlycuts = TRUE)
+v = discretize(dataset$SalePrice, method = "fixed", breaks = c(-Inf,210000,Inf), onlycuts = TRUE)
 
 dataset$GrupoPrecio = cut(dataset$SalePrice,v)
-levels(dataset$GrupoPrecio) = c("Barato","Normal","Caro")
+levels(dataset$GrupoPrecio) = c("Barato","Caro")
 write.csv(dataset, "fulldatasetTransformed.csv")
 ```
 
@@ -646,7 +648,7 @@ preProcValuesValidation <- preProcess(validation_sin_na  %>% dplyr::select(-Over
 # quitadas del modelo 'MoSold','YrSold', no creo que tenga sentido analizarlas
 # anadida MSSubClass a ver si no da problemas
 
-var_modelo = c( 'GrLivArea','LotArea','Total_Bathrooms','Total_porch_SF','MSZoning','LandContour','LotConfig','Condition1','BldgType','HouseStyle','RoofStyle','MasVnrType','Foundation','SaleType','SaleCondition','YearBuilt','OverallQual','OverallCond','PavedDrive','Fence','BsmtFinSF1','Functional','ExterQual','BsmtQual','BsmtExposure','BsmtFinType1','BsmtUnfSF','CentralAir','KitchenQual','Fireplaces','FireplaceQu','BedroomAbvGr','KitchenAbvGr','LotShape','GarageArea','GarageCond','Neighborhood','has2ndFloor','Alley','TotalSF','GarageType','MasVnrArea','MSSubClass','SalePrice','GrupoPrecio')
+var_modelo = c( 'GrLivArea','LotArea','Total_Bathrooms','Total_porch_SF','MSZoning','LandContour','LotConfig','Condition1','BldgType','HouseStyle','RoofStyle','MasVnrType','Foundation','SaleType','SaleCondition','YearBuilt','OverallQual','OverallCond','PavedDrive','Fence','BsmtFinSF1','Functional','ExterQual','BsmtQual','BsmtExposure','BsmtFinType1','BsmtUnfSF','CentralAir','KitchenQual','Fireplaces','FireplaceQu','BedroomAbvGr','KitchenAbvGr','LotShape','GarageArea','GarageCond','Neighborhood','has2ndFloor','Alley','TotalSF','GarageType','MasVnrArea','MSSubClass','BsmtFinSF2','TotalBsmtSF','LowQualFinSF','WoodDeckSF','OpenPorchSF','EnclosedPorch','PoolArea','MiscVal','GrupoPrecio', 'SalePrice')
 
 var_modelo_with_SalePrice = c(var_modelo)
 
@@ -665,10 +667,13 @@ datasetTrain  <-  datasetTrain  %>%  dplyr::select(c(var_modelo))
 datasetTest  <-  datasetTest  %>%  dplyr::select(c(var_modelo)) 
 datasetValidation  <-  validation_sin_na  %>%  dplyr::select(c(var_modelo))
 
-saveRDS(datasetTrain, "datasetTrain.csv")
-saveRDS(datasetTest, "datasetTest.csv")
-saveRDS(datasetValidation, "datasetValidation.csv")
+saveRDS(datasetTrain, "datasetTrain.rds")
+saveRDS(datasetTest, "datasetTest.rds")
+saveRDS(datasetValidation, "datasetValidation.rds")
 
+saveRDS(datasetTrainTransformed, "datasetTrainTransformed.rds")
+saveRDS(datasetTestTransformed, "datasetTestTransformed.rds")
+saveRDS(validationTransformed, "validationTransformed.rds")
 
 
 write.csv(datasetTrainTransformed, "datasetTrainTransformed.csv")

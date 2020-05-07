@@ -8,7 +8,7 @@ library(mgcv)
 library(car)
 library(parallel)
 library(dplyr)
-
+library(data.table)
 
 datasetTrain <-  readRDS("datasetTrain.rds")
 datasetTest<-  readRDS("datasetTest.rds")
@@ -29,7 +29,9 @@ var_eliminar_correlacion = c("Street","Utilities","LandSlope","Condition2","Bsmt
 "LowQualFinSF","MiscFeature","MiscVal","TotRmsAbvGrd","GarageYrBlt","GarageCars")  
 var_modelo = setdiff(setdiff(setdiff(setdiff(colnames(datasetTrain),c('SalePrice')),var_eliminar_correlacion),c('PoolArea')),c('hasPool','hasFirePlaces','has2ndFloor'))
 
-columnas_continuas_clustering = c("LotArea","MasVnrArea","BsmtFinSF1","BsmtFinSF2","BsmtUnfSF" ,"TotalBsmtSF","X1stFlrSF","X2ndFlrSF","LowQualFinSF","GrLivArea", "GarageArea","WoodDeckSF","OpenPorchSF","EnclosedPorch","PoolArea","MiscVal","SalePrice")
+#columnas_continuas_clustering = c("LotArea","MasVnrArea","BsmtFinSF1","BsmtFinSF2","BsmtUnfSF" ,"TotalBsmtSF","X1stFlrSF","X2ndFlrSF","LowQualFinSF","GrLivArea", #"GarageArea","WoodDeckSF","OpenPorchSF","EnclosedPorch","PoolArea","MiscVal","SalePrice")
+
+columnas_continuas_clustering = c("LotArea","MasVnrArea","BsmtFinSF1","BsmtFinSF2","BsmtUnfSF" ,"TotalBsmtSF","LowQualFinSF","GrLivArea", "GarageArea","WoodDeckSF","OpenPorchSF","EnclosedPorch","PoolArea","MiscVal","SalePrice")
 
 var_modelo_with_SalePrice = c(var_modelo,'SalePrice')
 
@@ -50,7 +52,7 @@ dataSetClusteringContinuous <-  dataSetClusteringContinuous  %>%    dplyr::selec
 Intentaremos hacer una descomposición PCA de los datos del dataset para ver si es viable en nuestro dataset simplificar el número de variables a utilizar en los modelos (sobre todos en modelos que no son explicativos, tal y como SVM, y en los que ayuda esta reducción de dimensionalidad en los recursos computacionales utilizados por dicho modelo). Como tenemos variables de todo tipo (discretas, contínuas, categóricas, ordinales) utilizarmos una librería denominada PCAmixdata que es capaz de generar esta descomposición en valores principales mezclando todos los tipos de variable. Para ello, previamente hay que descomponer el dataset en variables de tipo cualitativas y cuantitativas. Para ello la propia librería tiene una función que automatiza esta tarea.
 El siguiente código realiza esta descomposición, tanto en el dataset completo como únicamente en los datos del dataset de Train:
 
-```{r train_test, message=FALSE, warning=FALSE}
+```{r  message=FALSE, warning=FALSE}
 
 library(PCAmixdata)
 splitCompleto <- splitmix(dataSetClustering %>% dplyr::select(-c('SalePrice')))
@@ -62,14 +64,14 @@ objetoPCAMIXCompleto <- PCAmix(X.quanti=X1SplitCompleto, X.quali=X2SplitCompleto
 
 Intentaremos ver el número de variables mínimas necesarias para, al menos, explicar el 60% de la varianza de los datos.
 
-```{r train_test, message=FALSE, warning=FALSE}
+```{r message=FALSE, warning=FALSE}
 
 ```
 
 
 Como vemos, el número de componentes es lo suficientemente alto como para no poder utilizarse en los modelos generados en esta práctica. No obstante, como ejemplo de uso de los datos transformados via reducción de dimensionalidad por PCA, entrenaremos un modelo de tipo "random-forest" con los componentes principales obtenidos con el número de dimensiones anteriormente obtenido:
 
-```{r train_test, message=FALSE, warning=FALSE}
+```{r  message=FALSE, warning=FALSE}
 numeroDimOptimo = 50
 
 splitTrain <- splitmix(dataSetTrainClustering %>% dplyr::select(-c("SalePrice")))

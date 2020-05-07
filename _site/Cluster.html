@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+
+
+<title>Cluster</title>
+
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<script src="site_libs/kePrint-0.0.1/kePrint.js"></script>
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+</style>
+
+
+<style type="text/css">
+/* padding for bootstrap navbar */
+body {
+  padding-top: 51px;
+  padding-bottom: 40px;
+}
+/* offset scroll position for anchor links (for fixed navbar)  */
+.section h1 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h2 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h3 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h4 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h5 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h6 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #ffffff;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script>
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.parent().addClass('active');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "&#xe258;";
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">ML</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="Cluster.html">Clustering</a>
+</li>
+<li>
+  <a href="PCA.html">PCA</a>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+    Aprendizaje supervisado
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="glm.html">GLM</a>
+    </li>
+    <li>
+      <a href="knn.html">KNN</a>
+    </li>
+    <li>
+      <a href="decision_trees.html">Decision Trees</a>
+    </li>
+    <li>
+      <a href="random_forest.html">Random Forest</a>
+    </li>
+    <li>
+      <a href="svm.html">SVM</a>
+    </li>
+  </ul>
+</li>
+<li>
+  <a href="GAM.html">GAM</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">Cluster</h1>
+
+</div>
+
+
+<p>Comenzaremos esta parte de a práctica explorando la capacidad que tiene nuestro dataset de ser segmentado calculando sobre el dataset un estadístico denominado “Estadístico de Hopkins” en el que, si tiene un valor cercano a uno y mayor de 0.5, indica que muy posiblemente el dataset pueda ser dividido en clusters de manera significativa.</p>
+<p>Como vemos por el valor que tiene esta métrica, sí que parece que nuestro dataset pueda ser dividido en grupos.</p>
+<pre><code>## [1] 0.9518797</code></pre>
+<p>En primer lugar, intentaremos realizar el clustering sólo sobre las variables contínuas o numéricas, ignormando las variables factoriales, debido a que se puede aplicar directamente sobre ellas la métrica euclidea y, por tanto, el algoritmo k-means. En primer lugar intentaremos obtener el número óptimo de grupos que podemos formar mediante un gráfico de silueta:</p>
+<p><img src="Cluster_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+<p>Este gráfico nos muestra que el valor óptimo se encuentra en 2. No obstante, elegiremos 3 grupos debido a que esta cantidad será la que salgo después a utilizar otra métrica que tiene en cuenta también las variables que son factores u ordinales. El gráfico con el resultado del proceso de clustering una vez realizado una descomposición PCA sobre el dataset y cogido las dos dimensiones más significativas es el siguiente:</p>
+<p><img src="Cluster_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<p>Ahora intentaremos realizar el proceso de clustering teniendo en cuenta también las variables cualitativas (tanto factoriales como ordinales). Para ello calcularemos una matriz de disimilaridad denominada “matriz de disimilaridad de Gower”</p>
+<pre><code>## 3093828 dissimilarities, summarized :
+##      Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
+## 0.0000058 0.2054900 0.2495900 0.2500700 0.2937300 0.6546800 
+## Metric :  mixed ;  Types = I, I, I, I, N, N, N, N, N, N, N, N, N, N, N, N, T, T, T, T, I, T, T, T, T, T, I, T, T, I, T, I, I, T, I, T, N, N, I, N, I, N, I, I, I, I, I 
+## Number of objects : 2488</code></pre>
+<p>Una vez calculada esta matriz, obtendremos los elementos más parecidos para ver que los resultados son coherentes:</p>
+<pre><code>## # A tibble: 2 x 47
+##   GrLivArea LotArea Total_Bathrooms Total_porch_SF MSZoning LandContour
+##       &lt;dbl&gt;   &lt;dbl&gt;           &lt;dbl&gt;          &lt;dbl&gt; &lt;fct&gt;    &lt;fct&gt;      
+## 1      2787    7939               7            312 RL       Lvl        
+## 2      2787    7976               7            312 RL       Lvl        
+## # … with 41 more variables: LotConfig &lt;fct&gt;, Condition1 &lt;fct&gt;, BldgType &lt;fct&gt;,
+## #   HouseStyle &lt;fct&gt;, RoofStyle &lt;fct&gt;, MasVnrType &lt;fct&gt;, Foundation &lt;fct&gt;,
+## #   SaleType &lt;fct&gt;, SaleCondition &lt;fct&gt;, YearBuilt &lt;fct&gt;, OverallQual &lt;dbl&gt;,
+## #   OverallCond &lt;dbl&gt;, PavedDrive &lt;fct&gt;, Fence &lt;fct&gt;, BsmtFinSF1 &lt;dbl&gt;,
+## #   Functional &lt;fct&gt;, ExterQual &lt;fct&gt;, BsmtQual &lt;fct&gt;, BsmtExposure &lt;fct&gt;,
+## #   BsmtFinType1 &lt;fct&gt;, BsmtUnfSF &lt;dbl&gt;, CentralAir &lt;fct&gt;, KitchenQual &lt;fct&gt;,
+## #   Fireplaces &lt;dbl&gt;, FireplaceQu &lt;fct&gt;, BedroomAbvGr &lt;dbl&gt;,
+## #   KitchenAbvGr &lt;dbl&gt;, LotShape &lt;fct&gt;, GarageArea &lt;dbl&gt;, GarageCond &lt;fct&gt;,
+## #   Neighborhood &lt;fct&gt;, Alley &lt;fct&gt;, TotalSF &lt;dbl&gt;, GarageType &lt;fct&gt;,
+## #   MasVnrArea &lt;dbl&gt;, MSSubClass &lt;fct&gt;, TotalBsmtSF &lt;dbl&gt;, WoodDeckSF &lt;dbl&gt;,
+## #   OpenPorchSF &lt;dbl&gt;, EnclosedPorch &lt;dbl&gt;, SalePrice &lt;dbl&gt;</code></pre>
+<p>Y también mostraremos los elementos más disimilares dentro del dataset:</p>
+<pre><code>## # A tibble: 2 x 47
+##   GrLivArea LotArea Total_Bathrooms Total_porch_SF MSZoning LandContour
+##       &lt;dbl&gt;   &lt;dbl&gt;           &lt;dbl&gt;          &lt;dbl&gt; &lt;fct&gt;    &lt;fct&gt;      
+## 1       810   21780             1              143 4        Lvl        
+## 2      5642   63887             4.5            506 RL       Bnk        
+## # … with 41 more variables: LotConfig &lt;fct&gt;, Condition1 &lt;fct&gt;, BldgType &lt;fct&gt;,
+## #   HouseStyle &lt;fct&gt;, RoofStyle &lt;fct&gt;, MasVnrType &lt;fct&gt;, Foundation &lt;fct&gt;,
+## #   SaleType &lt;fct&gt;, SaleCondition &lt;fct&gt;, YearBuilt &lt;fct&gt;, OverallQual &lt;dbl&gt;,
+## #   OverallCond &lt;dbl&gt;, PavedDrive &lt;fct&gt;, Fence &lt;fct&gt;, BsmtFinSF1 &lt;dbl&gt;,
+## #   Functional &lt;fct&gt;, ExterQual &lt;fct&gt;, BsmtQual &lt;fct&gt;, BsmtExposure &lt;fct&gt;,
+## #   BsmtFinType1 &lt;fct&gt;, BsmtUnfSF &lt;dbl&gt;, CentralAir &lt;fct&gt;, KitchenQual &lt;fct&gt;,
+## #   Fireplaces &lt;dbl&gt;, FireplaceQu &lt;fct&gt;, BedroomAbvGr &lt;dbl&gt;,
+## #   KitchenAbvGr &lt;dbl&gt;, LotShape &lt;fct&gt;, GarageArea &lt;dbl&gt;, GarageCond &lt;fct&gt;,
+## #   Neighborhood &lt;fct&gt;, Alley &lt;fct&gt;, TotalSF &lt;dbl&gt;, GarageType &lt;fct&gt;,
+## #   MasVnrArea &lt;dbl&gt;, MSSubClass &lt;fct&gt;, TotalBsmtSF &lt;dbl&gt;, WoodDeckSF &lt;dbl&gt;,
+## #   OpenPorchSF &lt;dbl&gt;, EnclosedPorch &lt;dbl&gt;, SalePrice &lt;dbl&gt;</code></pre>
+<p>Por último, obtendremos el gráfico número de clústeres/“Silouette with” para intentar ver cuál es el número óptimo de divisiones:</p>
+<p><img src="Cluster_files/figure-html/unnamed-chunk-10-1.png" width="672" /></p>
+<p>Como vemos el número óptimo se encuentra en 3 elementos, que será el que elijamos como número de divisiones en nuestro dataset. A continuación utilizando esta matriz de disimilaridades y el proceso de clustering PAM, calcularemos a qué elemento dentro del cluster pertenece cada uno de los registros de nuestro dataset.</p>
+<p>A continuación realizaremos un proceso de reducción de dimensionalidad a 2 dimensiones utilizando el algoritmo TSNE para hacernos una idea más clara de la forma que tienen estas agrupaciones. El resultado parece un poco extraño porque, aunque se ve que sí que hay 3 agrupaciones, la forma en la que se han colocado los puntos parece indicar que existe la posibilidad de generar 4 grupos.</p>
+<p><img src="Cluster_files/figure-html/unnamed-chunk-12-1.png" width="672" /></p>
+<p>Ahora intentaremos interpretar el resultado de este proceso de clustering. Para ello, en un primer momento observaremos si esta segmentación ha sido realizada teniendo el precio de cada casa como variable principal</p>
+<p><img src="Cluster_files/figure-html/unnamed-chunk-13-1.png" width="672" /></p>
+<p>Lo que vemos en el anterior gráfico es que los elementos pertenecientes al primer cluster tienen un precio mucho mayor en media que los del segundo y tercero. No se observan diferencias significativas en el precio de los segundos y terceros grupos, por lo que esta clasificación a priori no nos permite dividir las casas en 3 tipos distinguidos por precio.</p>
+<p>El siguiente código realiza un cálculo de los estadísticos principales de cada una de las variables agrupadas por valor resultante del cluster.</p>
+<p>Para ayudar a la interpretación de los resultados, construiremos un árbol de decision teniendo como objetivo del mismo el resultado del proceso de clústering.</p>
+<p><img src="Cluster_files/figure-html/unnamed-chunk-15-1.png" width="672" /><img src="Cluster_files/figure-html/unnamed-chunk-15-2.png" width="672" /></p>
+<p>Ahora intentaremos obtener de una forma más legible las reglas de decisión que son equivalentes al árbol resultante para hacer más legible los resultados.</p>
+<table class="table" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:center;">
+rule
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center;width: 30em; background-color: white !important;">
+YearBuilt %in% c(“1980_1990”, “1990_”) &amp; MSSubClass %in% c(“NA”, “NA”, “NA”, “1_5 story_fin”, “2_story_1946_”, “NA”, “split_multi_level”, “NA”, “2_story_PUD_1946”, “NA”) &amp; MasVnrType %in% c(“NA”, “BrkFace”) &amp; LotShape %in% c(“IR3”, “Reg”) &amp; BsmtFinSF1 &gt;= 114
+</td>
+</tr>
+<tr>
+<td style="text-align:center;width: 30em; background-color: white !important;">
+YearBuilt %in% c(“1980_1990”, “1990_”) &amp; MSSubClass %in% c(“1_story_1946_”, “NA”, “NA”, “NA”, “NA”, “2_5_story_all_ages”, “split_foyer”, “duplex_all_style_age”, “1_story_PUD_1946_”, “NA”, “PUD_multilevel”, “NA”) &amp; MasVnrType %in% c(“3”, “NA”, “BrkFace”, “Stone”)
+</td>
+</tr>
+<tr>
+<td style="text-align:center;width: 30em; background-color: white !important;">
+YearBuilt %in% c(“<em>1910&quot;, &quot;1910_1920&quot;, &quot;1920_1930&quot;, &quot;1930_1940&quot;, &quot;1940_1950&quot;, &quot;1950_1960&quot;, &quot;1960_1970&quot;, &quot;1970_1980&quot;) &amp; MSSubClass %in% c(&quot;1_story_1946</em>”, “1_story_1945_”, “1_story_unf_attic”, “1_5_story_unf”, “1_5 story_fin”, “split_multi_level”, “split_foyer”, “duplex_all_style_age”, “1_story_PUD_1946_”, “2_story_PUD_1946”, “PUD_multilevel”, “2_family_conversion”) &amp; Neighborhood %in% c(“NA”, “Blueste”, “BrDale”, “BrkSide”, “CollgCr”, “Edwards”, “Gilbert”, “IDOTRR”, “MeadowV”, “Mitchel”, “NAmes”, “NA”, “NPkVill”, “NA”, “OldTown”, “Sawyer”, “NA”, “NA”) &amp; Foundation %in% c(“PConc”, “NA”) &amp; FireplaceQu %in% c(“Fa”, “TA”, “Gd”, “NA”)
+</td>
+</tr>
+<tr>
+<td style="text-align:center;width: 30em; background-color: white !important;">
+YearBuilt %in% c(“1980_1990”, “1990_”) &amp; MSSubClass %in% c(“1_story_1946_”, “NA”, “NA”, “NA”, “NA”, “2_5_story_all_ages”, “split_foyer”, “duplex_all_style_age”, “1_story_PUD_1946_”, “NA”, “PUD_multilevel”, “NA”) &amp; MasVnrType %in% c(“NA”, “None”) &amp; TotalSF &gt;= 2348.5 &amp; LotShape %in% c(“IR3”, “Reg”)
+</td>
+</tr>
+<tr>
+<td style="text-align:center;width: 30em; background-color: white !important;">
+YearBuilt %in% c(“<em>1910&quot;, &quot;1910_1920&quot;, &quot;1920_1930&quot;, &quot;1930_1940&quot;, &quot;1940_1950&quot;, &quot;1950_1960&quot;, &quot;1960_1970&quot;, &quot;1970_1980&quot;) &amp; MSSubClass %in% c(&quot;1_story_1946</em>”, “1_story_1945_”, “1_story_unf_attic”, “1_5_story_unf”, “1_5 story_fin”, “split_multi_level”, “split_foyer”, “duplex_all_style_age”, “1_story_PUD_1946_”, “2_story_PUD_1946”, “PUD_multilevel”, “2_family_conversion”) &amp; Neighborhood %in% c(“NA”, “ClearCr”, “Crawfor”, “NA”, “NA”, “NWAmes”, “SawyerW”, “NA”, “NA”, “SWISU”, “Timber”, “Veenker”) &amp; MasVnrArea &gt;= 80.5 &amp; FireplaceQu %in% c(“Po”, “Fa”, “TA”, “NA”)
+</td>
+</tr>
+<tr>
+<td style="text-align:center;width: 30em; background-color: white !important;">
+YearBuilt %in% c(“1980_1990”, “1990_”) &amp; MSSubClass %in% c(“1_story_1946_”, “NA”, “NA”, “NA”, “NA”, “2_5_story_all_ages”, “split_foyer”, “duplex_all_style_age”, “1_story_PUD_1946_”, “NA”, “PUD_multilevel”, “NA”) &amp; MasVnrType %in% c(“NA”, “None”) &amp; TotalSF &gt;= 2348.5 &amp; LotShape %in% c(“IR1”, “IR2”) &amp; Neighborhood %in% c(“NA”, “NA”, “NA”, “CollgCr”, “NA”, “NA”, “NA”, “NA”, “NridgHt”, “NWAmes”, “NA”, “NA”, “SawyerW”, “NA”, “Timber”, “Veenker”)
+</td>
+</tr>
+</tbody>
+</table>
+<table class="table" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:center;">
+rule
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center;width: 30em; background-color: white !important;">
+YearBuilt %in% c(“<em>1910&quot;, &quot;1910_1920&quot;, &quot;1920_1930&quot;, &quot;1930_1940&quot;, &quot;1940_1950&quot;, &quot;1950_1960&quot;, &quot;1960_1970&quot;, &quot;1970_1980&quot;) &amp; MSSubClass %in% c(&quot;2_story_1946</em>”, “2_story_1945_”, “2_5_story_all_ages”, “1_5_story_PUD_all”) &amp; FireplaceQu %in% c(“Po”, “TA”, “Gd”, “Ex”) &amp; LotShape %in% c(“IR1”, “IR2”, “NA”)
+</td>
+</tr>
+<tr>
+<td style="text-align:center;width: 30em; background-color: white !important;">
+YearBuilt %in% c(“1980_1990”, “1990_”) &amp; MSSubClass %in% c(“NA”, “NA”, “NA”, “1_5 story_fin”, “2_story_1946_”, “NA”, “split_multi_level”, “NA”, “2_story_PUD_1946”, “NA”) &amp; MasVnrType %in% c(“3”, “NA”, “None”, “Stone”)
+</td>
+</tr>
+<tr>
+<td style="text-align:center;width: 30em; background-color: white !important;">
+YearBuilt %in% c(“1980_1990”, “1990_”) &amp; MSSubClass %in% c(“NA”, “NA”, “NA”, “1_5 story_fin”, “2_story_1946_”, “NA”, “split_multi_level”, “NA”, “2_story_PUD_1946”, “NA”) &amp; MasVnrType %in% c(“NA”, “BrkFace”) &amp; LotShape %in% c(“IR1”, “IR2”)
+</td>
+</tr>
+<tr>
+<td style="text-align:center;width: 30em; background-color: white !important;">
+YearBuilt %in% c(“1980_1990”, “1990_”) &amp; MSSubClass %in% c(“NA”, “NA”, “NA”, “1_5 story_fin”, “2_story_1946_”, “NA”, “split_multi_level”, “NA”, “2_story_PUD_1946”, “NA”) &amp; MasVnrType %in% c(“NA”, “BrkFace”) &amp; LotShape %in% c(“IR3”, “Reg”) &amp; BsmtFinSF1 &lt; 114
+</td>
+</tr>
+<tr>
+<td style="text-align:center;width: 30em; background-color: white !important;">
+YearBuilt %in% c(“<em>1910&quot;, &quot;1910_1920&quot;, &quot;1920_1930&quot;, &quot;1930_1940&quot;, &quot;1940_1950&quot;, &quot;1950_1960&quot;, &quot;1960_1970&quot;, &quot;1970_1980&quot;) &amp; MSSubClass %in% c(&quot;2_story_1946</em>”, “2_story_1945_”, “2_5_story_all_ages”, “1_5_story_PUD_all”) &amp; FireplaceQu %in% c(“Po”, “TA”, “Gd”, “Ex”) &amp; LotShape %in% c(“NA”, “Reg”) &amp; KitchenQual %in% c(“Gd”, “Ex”, “NA”)
+</td>
+</tr>
+<tr>
+<td style="text-align:center;width: 30em; background-color: white !important;">
+YearBuilt %in% c(“1980_1990”, “1990_”) &amp; MSSubClass %in% c(“1_story_1946_”, “NA”, “NA”, “NA”, “NA”, “2_5_story_all_ages”, “split_foyer”, “duplex_all_style_age”, “1_story_PUD_1946_”, “NA”, “PUD_multilevel”, “NA”) &amp; MasVnrType %in% c(“NA”, “None”) &amp; TotalSF &gt;= 2348.5 &amp; LotShape %in% c(“IR1”, “IR2”) &amp; Neighborhood %in% c(“NA”, “Blueste”, “NA”, “NA”, “ClearCr”, “Crawfor”, “NA”, “Gilbert”, “NA”, “NA”, “Mitchel”, “NAmes”, “NoRidge”, “NA”, “NA”, “NA”, “Somerst”, “StoneBr”, “NA”)
+</td>
+</tr>
+</tbody>
+</table>
+<table class="table" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:center;">
+rule
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center;width: 30em; background-color: white !important;">
+YearBuilt %in% c(“<em>1910&quot;, &quot;1910_1920&quot;, &quot;1920_1930&quot;, &quot;1930_1940&quot;, &quot;1940_1950&quot;, &quot;1950_1960&quot;, &quot;1960_1970&quot;, &quot;1970_1980&quot;) &amp; MSSubClass %in% c(&quot;1_story_1946</em>”, “1_story_1945_”, “1_story_unf_attic”, “1_5_story_unf”, “1_5 story_fin”, “split_multi_level”, “split_foyer”, “duplex_all_style_age”, “1_story_PUD_1946_”, “2_story_PUD_1946”, “PUD_multilevel”, “2_family_conversion”) &amp; Neighborhood %in% c(“NA”, “Blueste”, “BrDale”, “BrkSide”, “CollgCr”, “Edwards”, “Gilbert”, “IDOTRR”, “MeadowV”, “Mitchel”, “NAmes”, “NA”, “NPkVill”, “NA”, “OldTown”, “Sawyer”, “NA”, “NA”) &amp; Foundation %in% c(“BrkTil”, “CBlock”, “Slab”, “Stone”, “NA”)
+</td>
+</tr>
+<tr>
+<td style="text-align:center;width: 30em; background-color: white !important;">
+YearBuilt %in% c(“<em>1910&quot;, &quot;1910_1920&quot;, &quot;1920_1930&quot;, &quot;1930_1940&quot;, &quot;1940_1950&quot;, &quot;1950_1960&quot;, &quot;1960_1970&quot;, &quot;1970_1980&quot;) &amp; MSSubClass %in% c(&quot;1_story_1946</em>”, “1_story_1945_”, “1_story_unf_attic”, “1_5_story_unf”, “1_5 story_fin”, “split_multi_level”, “split_foyer”, “duplex_all_style_age”, “1_story_PUD_1946_”, “2_story_PUD_1946”, “PUD_multilevel”, “2_family_conversion”) &amp; Neighborhood %in% c(“NA”, “ClearCr”, “Crawfor”, “NA”, “NA”, “NWAmes”, “SawyerW”, “NA”, “NA”, “SWISU”, “Timber”, “Veenker”) &amp; MasVnrArea &lt; 80.5
+</td>
+</tr>
+<tr>
+<td style="text-align:center;width: 30em; background-color: white !important;">
+YearBuilt %in% c(“1980_1990”, “1990_”) &amp; MSSubClass %in% c(“1_story_1946_”, “NA”, “NA”, “NA”, “NA”, “2_5_story_all_ages”, “split_foyer”, “duplex_all_style_age”, “1_story_PUD_1946_”, “NA”, “PUD_multilevel”, “NA”) &amp; MasVnrType %in% c(“NA”, “None”) &amp; TotalSF &lt; 2348.5
+</td>
+</tr>
+<tr>
+<td style="text-align:center;width: 30em; background-color: white !important;">
+YearBuilt %in% c(“<em>1910&quot;, &quot;1910_1920&quot;, &quot;1920_1930&quot;, &quot;1930_1940&quot;, &quot;1940_1950&quot;, &quot;1950_1960&quot;, &quot;1960_1970&quot;, &quot;1970_1980&quot;) &amp; MSSubClass %in% c(&quot;2_story_1946</em>”, “2_story_1945_”, “2_5_story_all_ages”, “1_5_story_PUD_all”) &amp; FireplaceQu %in% c(“NA”, “Fa”)
+</td>
+</tr>
+<tr>
+<td style="text-align:center;width: 30em; background-color: white !important;">
+YearBuilt %in% c(“<em>1910&quot;, &quot;1910_1920&quot;, &quot;1920_1930&quot;, &quot;1930_1940&quot;, &quot;1940_1950&quot;, &quot;1950_1960&quot;, &quot;1960_1970&quot;, &quot;1970_1980&quot;) &amp; MSSubClass %in% c(&quot;1_story_1946</em>”, “1_story_1945_”, “1_story_unf_attic”, “1_5_story_unf”, “1_5 story_fin”, “split_multi_level”, “split_foyer”, “duplex_all_style_age”, “1_story_PUD_1946_”, “2_story_PUD_1946”, “PUD_multilevel”, “2_family_conversion”) &amp; Neighborhood %in% c(“NA”, “Blueste”, “BrDale”, “BrkSide”, “CollgCr”, “Edwards”, “Gilbert”, “IDOTRR”, “MeadowV”, “Mitchel”, “NAmes”, “NA”, “NPkVill”, “NA”, “OldTown”, “Sawyer”, “NA”, “NA”) &amp; Foundation %in% c(“PConc”, “NA”) &amp; FireplaceQu %in% c(“NA”, “Po”, “NA”)
+</td>
+</tr>
+<tr>
+<td style="text-align:center;width: 30em; background-color: white !important;">
+YearBuilt %in% c(“<em>1910&quot;, &quot;1910_1920&quot;, &quot;1920_1930&quot;, &quot;1930_1940&quot;, &quot;1940_1950&quot;, &quot;1950_1960&quot;, &quot;1960_1970&quot;, &quot;1970_1980&quot;) &amp; MSSubClass %in% c(&quot;2_story_1946</em>”, “2_story_1945_”, “2_5_story_all_ages”, “1_5_story_PUD_all”) &amp; FireplaceQu %in% c(“Po”, “TA”, “Gd”, “Ex”) &amp; LotShape %in% c(“NA”, “Reg”) &amp; KitchenQual %in% c(“Fa”, “TA”, “NA”)
+</td>
+</tr>
+<tr>
+<td style="text-align:center;width: 30em; background-color: white !important;">
+YearBuilt %in% c(“<em>1910&quot;, &quot;1910_1920&quot;, &quot;1920_1930&quot;, &quot;1930_1940&quot;, &quot;1940_1950&quot;, &quot;1950_1960&quot;, &quot;1960_1970&quot;, &quot;1970_1980&quot;) &amp; MSSubClass %in% c(&quot;1_story_1946</em>”, “1_story_1945_”, “1_story_unf_attic”, “1_5_story_unf”, “1_5 story_fin”, “split_multi_level”, “split_foyer”, “duplex_all_style_age”, “1_story_PUD_1946_”, “2_story_PUD_1946”, “PUD_multilevel”, “2_family_conversion”) &amp; Neighborhood %in% c(“NA”, “ClearCr”, “Crawfor”, “NA”, “NA”, “NWAmes”, “SawyerW”, “NA”, “NA”, “SWISU”, “Timber”, “Veenker”) &amp; MasVnrArea &gt;= 80.5 &amp; FireplaceQu %in% c(“NA”, “Gd”, “NA”)
+</td>
+</tr>
+</tbody>
+</table>
+<p>Ahora intentaremos utilizar otro algoritmo de clústering distinto, DBSCAN, basado en agrupamiento espacial basado en densidad. No obstante, debido a la naturaleza de los datos, no hemos sido capaces de dividir este dataset en 3 clústeres distintos por mucho que hemos jugado con los parámetros.</p>
+<p><img src="Cluster_files/figure-html/unnamed-chunk-19-1.png" width="672" /><img src="Cluster_files/figure-html/unnamed-chunk-19-2.png" width="672" /><img src="Cluster_files/figure-html/unnamed-chunk-19-3.png" width="672" /></p>
+<p>Y por último, pasaremos un algoritmo de clústering jerárquico para ver si tenemos resultados distintos a los obtenidos por KNN o por PAM. El resultado obtenido parece ser similar a los anteriores (y la gráfica obtenida más confusa):</p>
+<pre class="r"><code>hclust_avg &lt;- hclust(gower_dist,  method = &#39;complete&#39;)
+plot(hclust_avg)</code></pre>
+<p><img src="Cluster_files/figure-html/train_test-1.png" width="672" /></p>
+<pre class="r"><code>y_hc = cutree(hclust_avg, 3)
+
+clusplot(dataSetClustering,
+         y_hc,
+         lines = 0,
+         shade = TRUE,
+         color = TRUE,
+         labels= 2,
+         plotchar = FALSE,
+         span = TRUE,
+         main = paste(&#39;Clusters of customers&#39;),
+         xlab = &#39;dimx&#39;,
+         ylab = &#39;dimy&#39;)</code></pre>
+<p><img src="Cluster_files/figure-html/train_test-2.png" width="672" /></p>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open')
+  });
+});
+</script>
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

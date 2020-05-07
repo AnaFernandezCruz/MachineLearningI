@@ -14,10 +14,10 @@ source("funcs.R")
 
 ```{r load_data, message=FALSE, warning=FALSE, echo=TRUE}
 
-dataTrain <- readRDS("datasetTrain.csv")
-dataTest <- readRDS("datasetTest.csv")
+dataTrain <- readRDS("datasetTrain.rds")
+dataTest <- readRDS("datasetTest.rds")
 
-dataValidation <- readRDS("datasetValidation.csv")
+dataValidation <- readRDS("datasetValidation.rds")
 
 ```
 
@@ -29,7 +29,7 @@ dataTest <- dataTest %>% dplyr::select(-SalePrice)
 dataValidation <- dataValidation %>% dplyr::select(-SalePrice)
 
 
-group <- c('TotalSF','GrLivArea','GrupoPrecio')
+group <- c('TotalSF','LotArea','GrupoPrecio')
 
 dataTrain <- dataTrain %>% dplyr::select(group)
 dataTest <- dataTest %>% dplyr::select(group)
@@ -58,7 +58,7 @@ YValidation <- dataValidation$GrupoPrecio
 ```{r run_model}
 
 #model <- svm(formula = GrupoPrecio ~ ., data = dataTrain, kernel = "linear", cost = 1, scale = TRUE)
-model <- best.tune(method = svm, train.x = GrupoPrecio ~ ., data = dataTrain, ranges = list(cost = c(0.001, 0.01, 0.1, 1, 5, 10, 100)), kernel = "linear")
+model <- best.tune(method = svm, train.x = GrupoPrecio ~ ., data = dataTrain, ranges = list(cost = c(0.001, 0.01, 0.1, 1, 5, 10, 100)), kernel = "radial")
 
 plot(model, dataTrain)
 

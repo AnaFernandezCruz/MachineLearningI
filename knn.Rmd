@@ -8,7 +8,10 @@ library(class)
 library(dplyr)
 library(caret)
 library (ROCR)
+library(MASS)
+library(hmeasure)
 source("funcs.R")
+data(Pima.te) 
 
 ```
 
@@ -16,10 +19,14 @@ Cargamos los datos que utilizaremos para el entrenamiento, el test y la validaci
 
 ```{r load_data, message=FALSE, warning=FALSE, echo=TRUE}
 
-dataTrain <- readRDS("datasetTrain.csv")
-dataTest <- readRDS("datasetTest.csv")
+dataTrain <- readRDS("datasetTrain.rds")
+dataTest <- readRDS("datasetTest.rds")
+dataValidation <- readRDS("datasetValidation.rds")
 
-dataValidation <- readRDS("datasetValidation.csv")
+dataTrain<-  readRDS("datasetTrainTransformed.rds")
+dataTest<-  readRDS("datasetTestTransformed.rds")
+dataValidation<-  readRDS("validationTransformed.rds")
+
 
 ```
 
@@ -74,6 +81,18 @@ knn_test_error <- calc_error_rate(predicted.value=model, true.value=YTest)
 (knn_test_error)
 
 draw_confusion_matrix(tab_test, "Actual", "Predichos")
+
+
+#scores.knn <- attr(model, "prob")
+#scores.knn[model=="No"] <- 1-scores.knn[model=="No"]
+#scores <- data.frame(LDA=scores.knn,kNN=scores.knn)
+
+#results <- HMeasure(YTest,scores)
+#par(mfrow=c(2,2))
+#plotROC(results,which=1)
+#plotROC(results,which=2)
+#plotROC(results,which=3)
+#plotROC(results,which=4)
 ```
 
 ```{r }
@@ -88,7 +107,7 @@ Obtemos el hiperparametro k (el numero de vecinos que determinaran la clase que 
 i <- 1
 k <- 1
 
-for(i in 1:28){
+for(i in 1:100){
   model <- knn(XTrain, XTest, cl = YTrain, k=i)
   tab_test <- table(model, YTest, dnn = c("Actual", "Predichos"))
   k[i] <- accuracy(tab_test)
@@ -102,7 +121,7 @@ Una vez obtenida la k más optima podemos ver que el modelo funciona mejor.
 
 ```{r}
 
-model <- knn(XTrain, XTest, cl = YTrain, k=13)
+model <- knn(XTrain, XTest, cl = YTrain, k=8)
 
 ```
 
@@ -124,7 +143,7 @@ Utilizamos el conjunto de validación para comprobar nuestro modelo.
 
 ```{r}
 
-model <- knn(XTrain, XValidation, cl = YTrain, k=13)
+model <- knn(XTrain, XValidation, cl = YTrain, k=8)
 
 ```
 
