@@ -1,0 +1,371 @@
+---
+title: "Cluster"
+---
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+
+library(mgcv)
+library(car)
+library(parallel)
+library(dplyr)
+
+
+datasetTrain <-  readRDS("datasetTrain.rds")
+datasetTest<-  readRDS("datasetTest.rds")
+validation_sin_na<-  readRDS("datasetValidation.rds")
+datasetTrainTransformed<-  readRDS("datasetTrainTransformed.rds")
+datasetTestTransformed<-  readRDS("datasetTestTransformed.rds")
+validationTransformed<-  readRDS("validationTransformed.rds")
+
+names(datasetTrain) <- make.names(names(datasetTrain))
+names(datasetTest) <- make.names(names(datasetTrain))
+names(validation_sin_na) <- make.names(names(validation_sin_na))
+names(datasetTrainTransformed) <- make.names(names(datasetTrainTransformed))
+names(datasetTestTransformed) <- make.names(names(datasetTestTransformed))
+names(validationTransformed) <- make.names(names(validation_sin_na))
+
+```
+
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+library(cluster)
+library(factoextra)
+library(clustertend)
+
+var_ordinales <- c('LotShape','Utilities','LandSlope','OverallQual','OverallCond','ExterQual','ExterCond','BsmtQual','BsmtCond','BsmtExposure','BsmtFinType1','BsmtFinType2','HeatingQC','CentralAir','Electrical','KitchenQual','Functional','FireplaceQu','GarageFinish','GarageQual','GarageCond','PavedDrive','PoolQC','Fence')
+
+columnas_continuas_clustering = c("LotArea","MasVnrArea","BsmtFinSF1","BsmtFinSF2","BsmtUnfSF" ,"TotalBsmtSF","X1stFlrSF","X2ndFlrSF","LowQualFinSF","GrLivArea", "GarageArea","WoodDeckSF","OpenPorchSF","EnclosedPorch","PoolArea","MiscVal","SalePrice")
+
+var_eliminar_correlacion = c("Street","Utilities","LandSlope","Condition2","BsmtFinSF2", 
+"LowQualFinSF","MiscFeature","MiscVal","TotRmsAbvGrd","GarageYrBlt","GarageCars")
+
+var_modelo = setdiff(setdiff(setdiff(setdiff(colnames(datasetTrain),c('SalePrice')),var_eliminar_correlacion),c('PoolArea')),c('hasPool','hasFirePlaces','has2ndFloor','GrupoPrecio'))
+
+columnas_continuas_clustering = c("LotArea","MasVnrArea","BsmtFinSF1","BsmtFinSF2","BsmtUnfSF" ,"TotalBsmtSF","X1stFlrSF","X2ndFlrSF","LowQualFinSF","GrLivArea", "GarageArea","WoodDeckSF","OpenPorchSF","EnclosedPorch","PoolArea","MiscVal","SalePrice")
+
+var_modelo_with_SalePrice = c(var_modelo,'SalePrice')
+
+
+
+dataSetClusteringContinuous  <-  union_all(datasetTrain,datasetTest) %>% na.omit() 
+dataSetClustering  <-  union_all(datasetTrain,datasetTest)  %>%  dplyr::select(c(var_modelo,'SalePrice'))    %>%  na.omit()
+
+
+dataSetTrainClustering  <-  datasetTrain  %>%  dplyr::select(c(var_modelo,'SalePrice'))  %>%  na.omit()
+dataSetTestClustering  <-  datasetTest  %>%  dplyr::select(c(var_modelo,'SalePrice'))  %>%  na.omit()
+dataSetValidationClustering  <-  validation_sin_na  %>%  dplyr::select(c(var_modelo,'SalePrice'))  %>%  na.omit()
+
+dataSetClusteringContinuous <-  dataSetClusteringContinuous  %>%    dplyr::select(columnas_continuas_clustering)   %>%  na.omit() 
+
+```
+
+Comenzaremos esta parte de a práctica explorando la capacidad que tiene nuestro dataset de ser segmentado calculando sobre el dataset un estadístico denominado "Estadístico de Hopkins" en el que, si tiene un valor cercano a uno y mayor de 0.5, indica que muy posiblemente el dataset pueda ser dividido en clusters de manera significativa.
+
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+
+set.seed(123)
+res <- get_clust_tendency(scale(dataSetClusteringContinuous), n = nrow(dataSetClustering)-1)
+```
+
+Como vemos por el valor que tiene esta métrica, sí que parece que nuestro dataset pueda ser dividido en grupos.
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+
+res$hopkins_stat
+
+```
+
+En primer lugar, intentaremos realizar el clustering sólo sobre las variables contínuas o numéricas, ignormando las variables factoriales, debido a que se puede aplicar directamente sobre ellas la métrica euclidea y, por tanto, el algoritmo k-means.  En primer lugar intentaremos obtener el número óptimo de grupos que podemos formar mediante un gráfico de silueta:
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+fviz_nbclust(dataSetClusteringContinuous, FUNcluster = kmeans, method = c("silhouette"), k.max = 20, nboot = 100,)
+```
+
+  Este gráfico nos muestra que el valor óptimo se encuentra en 2. No obstante, elegiremos 3 grupos debido a que esta cantidad será la que salgo después a utilizar otra métrica que tiene en cuenta también las variables que son factores u ordinales. El gráfico con el resultado del proceso de clustering una vez realizado una descomposición PCA sobre el dataset y cogido las dos dimensiones más significativas es el siguiente:
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+
+kmeansContinuousVariable <- eclust(dataSetClusteringContinuous, "kmeans", hc_metric="euclidean", k=3 ,stand = TRUE)
+#res$plot + 
+#  scale_fill_gradient(low = "steelblue", high = "white")
+
+```
+
+Ahora intentaremos realizar el proceso de clustering teniendo en cuenta también las variables cualitativas (tanto factoriales como ordinales). Para ello calcularemos una matriz de disimilaridad denominada "matriz de disimilaridad de Gower"
+
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+
+var_ordinales_modelo <- intersect(var_ordinales,var_modelo)
+var_asimetricas <- c('precio')
+
+gower_dist <- daisy(dataSetClustering,
+                    metric = "gower",
+                    stand = TRUE,
+                    type = list(ordratio = var_ordinales_modelo))
+                    
+summary(gower_dist)
+```
+
+ Una vez calculada esta matriz, obtendremos los elementos más parecidos para ver que los resultados son coherentes:
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+gower_mat <- as.matrix(gower_dist)
+
+
+# Output most similar pair
+
+dataSetClustering[
+  which(gower_mat == min(gower_mat[gower_mat != min(gower_mat)]),
+        arr.ind = TRUE)[1, ], ]
+```
+
+  Y también mostraremos los elementos más disimilares dentro del dataset:
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+
+dataSetClustering[
+  which(gower_mat == max(gower_mat[gower_mat != max(gower_mat)]),
+        arr.ind = TRUE)[1, ], ]
+```
+
+  Por último, obtendremos el gráfico número de clústeres/"Silouette with" para intentar ver cuál es el número óptimo de divisiones:
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+sil_width <- c(NA)
+
+for(i in 2:10){
+  
+  pam_fit <- pam(gower_dist,
+                 diss = TRUE,
+                 k = i)
+  
+  sil_width[i] <- pam_fit$silinfo$avg.width
+  
+}
+
+# Plot sihouette width (higher is better)
+
+plot(1:10, sil_width,
+     xlab = "Número de clústeres",
+     ylab = "Silhouette Width")
+lines(1:10, sil_width)
+
+```
+
+Como vemos el número óptimo se encuentra en 3 elementos, que será el que elijamos como número de divisiones en nuestro dataset. A continuación utilizando esta matriz de disimilaridades y el proceso de clustering PAM, calcularemos a qué elemento dentro del cluster pertenece cada uno de los registros de nuestro dataset. 
+
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+
+pam_fit <- pam(gower_dist, diss = TRUE, k = 3)
+
+
+```
+
+
+A continuación realizaremos un proceso de reducción de dimensionalidad a 2 dimensiones utilizando el algoritmo TSNE para hacernos una idea más clara de la forma que tienen estas agrupaciones. El resultado parece un poco extraño porque, aunque se ve que sí que hay 3 agrupaciones, la forma en la que se han colocado los puntos parece indicar que existe la posibilidad de generar 4 grupos.
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+
+
+library(Rtsne)
+
+
+set.seed(123)
+tsne_obj <- Rtsne(gower_dist, is_distance = TRUE)
+
+tsne_data <- tsne_obj$Y %>%
+  data.frame() %>%
+  setNames(c("X", "Y")) %>%
+  mutate(cluster = factor(pam_fit$clustering),
+         name = dataSetClustering$SalePrice)
+
+ggplot(aes(x = X, y = Y), data = tsne_data) +
+  geom_point(aes(color = cluster))
+
+
+
+```
+
+  Ahora intentaremos interpretar el resultado de este proceso de clustering. Para ello, en un primer momento observaremos si esta segmentación ha sido realizada teniendo el precio de cada casa como variable principal
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+
+ggplot(tsne_data, aes(cluster, name, colour = cluster)) + 
+  geom_point()
+
+```
+
+  Lo que vemos en el anterior gráfico es que los elementos pertenecientes al primer cluster tienen un precio mucho mayor en media que los del segundo y tercero. No se observan diferencias significativas en el precio de los segundos y terceros grupos, por lo que esta clasificación a priori no nos permite dividir las casas en 3 tipos distinguidos por precio.
+
+ El siguiente código realiza un cálculo de los estadísticos principales de cada una de las variables agrupadas por valor resultante del cluster.
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+
+
+
+dataSetClustering_withClusterField <- dataSetClustering %>%
+  mutate(cluster_result = pam_fit$clustering) 
+
+dataSetClustering_withClusterField$cluster_result <- as.factor(dataSetClustering_withClusterField$cluster_result)
+
+pam_results <- dataSetClustering_withClusterField %>%
+  group_by(cluster_result) %>%
+  do(the_summary = summary(.))
+
+#pam_results$the_summary
+
+
+
+
+
+```
+
+ Para ayudar a la interpretación de los resultados, construiremos un árbol de decision teniendo como objetivo del mismo el resultado del proceso de clústering.
+
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+
+library(party)
+library(rattle)					# Fancy tree plot
+library(rpart.plot)				# Enhanced tree plots
+library(RColorBrewer)				# Color selection for fancy tree plot
+library(party)					# Alternative decision tree algorithm
+library(partykit)				# Convert rpart object to BinaryTree
+library(caret)		
+
+#output.tree <- ctree(
+#  cluster_result ~ . , 
+#  data = dataSetClustering_withClusterField)
+
+tree.1 <- rpart(cluster_result ~ .,data=dataSetClustering_withClusterField,control=rpart.control(cp=0,minsplit = 70))
+
+prp(tree.1) 										
+fancyRpartPlot(tree.1)
+
+#rpart.rules(tree.1)
+```
+
+
+  Ahora intentaremos obtener de una forma más legible las reglas de decisión que son equivalentes al árbol resultante para hacer más legible los resultados.
+
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+
+party_obj <- as.party.rpart(tree.1, data = TRUE)
+decisions <- partykit:::.list.rules.party(party_obj)
+pathpred <- function(object, ...)
+{
+  ## coerce to "party" object if necessary
+  if(!inherits(object, "party")) object <- as.party(object)
+
+  ## get standard predictions (response/prob) and collect in data frame
+  rval <- data.frame(response = predict(object, type = "response", ...))
+  rval$prob <- predict(object, type = "node", ...)
+
+  ## get rules for each node
+  rls <- partykit:::.list.rules.party(object)
+
+  ## get predicted node and select corresponding rule
+  rval$rule <- rls[as.character(predict(object, type = "node", ...))]
+
+  return(rval)
+}
+rp_pred <- pathpred(tree.1)
+
+#plot(output.tree)
+
+library(knitr)
+library(kableExtra)
+
+rp_pred <- distinct(rp_pred[seq(1,dim(rp_pred)[1]),c(1,3) ])
+
+tablaReglas01 <- rp_pred %>% dplyr::filter(response == 1) %>%  dplyr::select(rule)
+
+tablaReglas01 %>% kable( "html", align = "c") %>%
+  kable_styling(full_width = F) %>%
+  column_spec(1, width = "30em", background = "white")
+
+
+```
+
+
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+tablaReglas02 <- rp_pred %>% dplyr::filter(response == 2) %>%  dplyr::select(rule)
+
+tablaReglas02 %>% kable( "html", align = "c") %>%
+  kable_styling(full_width = F) %>%
+  column_spec(1, width = "30em", background = "white")
+
+```
+
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+tablaReglas02 <- rp_pred %>% dplyr::filter(response == 3) %>%  dplyr::select(rule)
+tablaReglas02 %>% kable( "html", align = "c") %>%
+  kable_styling(full_width = F) %>%
+  column_spec(1, width = "30em", background = "white")
+
+```
+
+
+   Ahora intentaremos utilizar otro algoritmo de clústering distinto, DBSCAN, basado en agrupamiento espacial basado en densidad. No obstante, debido a la naturaleza de los datos, no hemos sido capaces de dividir este dataset en 3 clústeres distintos por mucho que hemos jugado con los parámetros.
+  
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+library(fpc)
+library(dbscan)
+
+dbscan::kNNdistplot(gower_mat, k =  3)
+abline(h = 0.15, lty = 2)
+
+#db <- fpc::dbscan(dataSetClusteringContinuous , eps = 1000, MinPts = 5, scale = TRUE)
+
+#plot(db, dataSetClusteringContinuous , main = "DBSCAN", frame = FALSE)
+
+db <- fpc::dbscan(gower_mat , eps = 2.1, MinPts = 5, scale = TRUE, 
+       method = "dist")
+
+plot(db, gower_mat , main = "DBSCAN", frame = FALSE)
+
+hullplot(gower_mat, db$cluster)
+
+```
+
+  Y por último, pasaremos un algoritmo de clústering jerárquico para ver si tenemos resultados distintos a los obtenidos por KNN o por PAM. El resultado obtenido parece ser similar a los anteriores (y la gráfica obtenida más confusa):
+
+
+```{r train_test, message=FALSE, warning=FALSE}
+
+hclust_avg <- hclust(gower_dist,  method = 'complete')
+plot(hclust_avg)
+
+y_hc = cutree(hclust_avg, 3)
+
+clusplot(dataSetClustering,
+         y_hc,
+         lines = 0,
+         shade = TRUE,
+         color = TRUE,
+         labels= 2,
+         plotchar = FALSE,
+         span = TRUE,
+         main = paste('Clusters of customers'),
+         xlab = 'dimx',
+         ylab = 'dimy')
+
+```
+
+
+
+
+
+
+
+
+
+
+

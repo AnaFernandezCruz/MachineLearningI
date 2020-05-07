@@ -20,6 +20,7 @@
 <script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
 <script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
 <script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
 <link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
 <script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
 
@@ -245,6 +246,9 @@ $(document).ready(function () {
 </style>
 
 <!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
 
 
 
@@ -305,7 +309,7 @@ $(document).ready(function () {
   </ul>
 </li>
 <li>
-  <a href="knn.html">Ajuste Hiperparámtros</a>
+  <a href="knn.html">Ajuste Hiperparámetros</a>
 </li>
 <li>
   <a href="knn.html">Evaluación modelos</a>
@@ -323,6 +327,14 @@ $(document).ready(function () {
 
 <div class="fluid-row" id="header">
 
+<div class="btn-group pull-right">
+<button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
 
 
 <h1 class="title toc-ignore">DECISION TREES</h1>
@@ -330,7 +342,38 @@ $(document).ready(function () {
 </div>
 
 
+<p>En este punto vamos a aplicar los árboles de decisión a nuestro modelo. Los árboles de decisión se componen del nodo raíz, que es del que partes, y respondiendo preguntas con “si” o “no”, nos iremos moviendo por nodos interiores hasta llegar a las hojas o nodos terminales. Nuestro objetivo es tener un árbol de decisión que use el menor número de preguntas posible.</p>
+<pre class="r"><code>library(rpart)
+library(rpart.plot)
+library(rattle)
 
+library(readr)
+dataTrain &lt;- readRDS(&quot;datasetTrain.csv&quot;)
+
+dataTest &lt;- readRDS(&quot;datasetTest.csv&quot;)
+
+val &lt;- readRDS(&quot;datasetValidation.csv&quot;)</code></pre>
+<pre class="r"><code>hrdataTREE1 = rpart(GrupoPrecio ~ ., data = dataTrain)
+
+par(mfrow = c(1, 1), xpd = NA) # otherwise on some devices the text is clipped
+fancyRpartPlot(hrdataTREE1, sub = &quot;&quot;)</code></pre>
+<p><img src="decision_trees_files/figure-html/unnamed-chunk-2-1.png" width="2880" /></p>
+<pre class="r"><code>#PROBAR VAL
+
+tab1 = table(pred = predict(hrdataTREE1, dataTest, type = &quot;class&quot;), obs = dataTest$GrupoPrecio)
+ntest = nrow(dataTest)
+acierto1 = sum(diag(tab1))/ntest
+acierto1</code></pre>
+<pre><code>## [1] 0.9959839</code></pre>
+<pre class="r"><code>#PROBAR VAL
+
+tab1 = table(pred = predict(hrdataTREE1, val, type = &quot;class&quot;), obs = val$GrupoPrecio)
+ntest = nrow(val)
+acierto1 = sum(diag(tab1))/ntest
+acierto1</code></pre>
+<pre><code>## [1] 0.9962963</code></pre>
+<p>PROBAR PODA</p>
+<p>PDF3: COMPARACION MODELOS</p>
 
 
 
@@ -365,6 +408,11 @@ $(document).ready(function () {
 </script>
 
 <!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("hide" === "show");
+});
+</script>
 
 
 <!-- dynamically load mathjax for compatibility with self-contained -->

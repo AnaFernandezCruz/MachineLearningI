@@ -1,0 +1,132 @@
+---
+title: "PCA"
+---
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+
+library(mgcv)
+library(car)
+library(parallel)
+library(dplyr)
+
+
+datasetTrain <-  readRDS("datasetTrain.rds")
+datasetTest<-  readRDS("datasetTest.rds")
+validation_sin_na<-  readRDS("datasetValidation.rds")
+datasetTrainTransformed<-  readRDS("datasetTrainTransformed.rds")
+datasetTestTransformed<-  readRDS("datasetTestTransformed.rds")
+validationTransformed<-  readRDS("validationTransformed.rds")
+
+names(datasetTrain) <- make.names(names(datasetTrain))
+names(datasetTest) <- make.names(names(datasetTrain))
+names(validation_sin_na) <- make.names(names(validation_sin_na))
+names(datasetTrainTransformed) <- make.names(names(datasetTrainTransformed))
+names(datasetTestTransformed) <- make.names(names(datasetTestTransformed))
+names(validationTransformed) <- make.names(names(validation_sin_na))
+
+
+var_eliminar_correlacion = c("Street","Utilities","LandSlope","Condition2","BsmtFinSF2", 
+"LowQualFinSF","MiscFeature","MiscVal","TotRmsAbvGrd","GarageYrBlt","GarageCars")  
+var_modelo = setdiff(setdiff(setdiff(setdiff(colnames(datasetTrain),c('SalePrice')),var_eliminar_correlacion),c('PoolArea')),c('hasPool','hasFirePlaces','has2ndFloor'))
+
+columnas_continuas_clustering = c("LotArea","MasVnrArea","BsmtFinSF1","BsmtFinSF2","BsmtUnfSF" ,"TotalBsmtSF","X1stFlrSF","X2ndFlrSF","LowQualFinSF","GrLivArea", "GarageArea","WoodDeckSF","OpenPorchSF","EnclosedPorch","PoolArea","MiscVal","SalePrice")
+
+var_modelo_with_SalePrice = c(var_modelo,'SalePrice')
+
+
+dataSetClustering  <-  datasetTrain  %>%  dplyr::select(c(var_modelo,'SalePrice'))    %>%  na.omit()
+dataSetTrainClustering  <-  datasetTrain  %>%  dplyr::select(c(var_modelo,'SalePrice'))  %>%  na.omit()
+dataSetTestClustering  <-  datasetTest  %>%  dplyr::select(c(var_modelo,'SalePrice'))  %>%  na.omit()
+dataSetValidationClustering  <-  validation_sin_na  %>%  dplyr::select(c(var_modelo,'SalePrice'))  %>%  na.omit()
+dataSetClusteringContinuous  <-  datasetTrain %>%  dplyr::select(-c('has2ndFloor'))  %>%  na.omit() 
+dataSetClusteringContinuous <-  dataSetClusteringContinuous  %>%    dplyr::select(columnas_continuas_clustering)   %>%  na.omit() 
+
+
+
+```
+
+
+
+Intentaremos hacer una descomposición PCA de los datos del dataset para ver si es viable en nuestro dataset simplificar el número de variables a utilizar en los modelos (sobre todos en modelos que no son explicativos, tal y como SVM, y en los que ayuda esta reducción de dimensionalidad en los recursos computacionales utilizados por dicho modelo). Como tenemos variables de todo tipo (discretas, contínuas, categóricas, ordinales) utilizarmos una librería denominada PCAmixdata que es capaz de generar esta descomposición en valores principales mezclando todos los tipos de variable. Para ello, previamente hay que descomponer el dataset en variables de tipo cualitativas y cuantitativas. Para ello la propia librería tiene una función que automatiza esta tarea.
+El siguiente código realiza esta descomposición, tanto en el dataset completo como únicamente en los datos del dataset de Train:
+
+```{r train_test, message=FALSE, warning=FALSE}
+
+library(PCAmixdata)
+splitCompleto <- splitmix(dataSetClustering %>% dplyr::select(-c('SalePrice')))
+X1SplitCompleto <- splitCompleto$X.quanti 
+X2SplitCompleto <- splitCompleto$X.quali 
+objetoPCAMIXCompleto <- PCAmix(X.quanti=X1SplitCompleto, X.quali=X2SplitCompleto,rename.level=TRUE, graph=FALSE,ndim=50)
+
+```
+
+Intentaremos ver el número de variables mínimas necesarias para, al menos, explicar el 60% de la varianza de los datos.
+
+```{r train_test, message=FALSE, warning=FALSE}
+
+```
+
+
+Como vemos, el número de componentes es lo suficientemente alto como para no poder utilizarse en los modelos generados en esta práctica. No obstante, como ejemplo de uso de los datos transformados via reducción de dimensionalidad por PCA, entrenaremos un modelo de tipo "random-forest" con los componentes principales obtenidos con el número de dimensiones anteriormente obtenido:
+
+```{r train_test, message=FALSE, warning=FALSE}
+numeroDimOptimo = 50
+
+splitTrain <- splitmix(dataSetTrainClustering %>% dplyr::select(-c("SalePrice")))
+X1Train <- splitTrain$X.quanti 
+X2Train <- splitTrain$X.quali 
+objetoPCAMIXTrain <- PCAmix(X.quanti=X1Train, X.quali=X2Train,rename.level=TRUE, graph=FALSE,ndim=numeroDimOptimo)
+
+splitTest <- splitmix(dataSetTestClustering %>% dplyr::select(-c("SalePrice")))
+X1Test <- splitTest$X.quanti 
+X2Test <- splitTest$X.quali 
+#objetoPCAMIXTest <- PCAmix(X.quanti=X1Test, #X.quali=X2Test,rename.level=TRUE, graph=FALSE,ndim=numeroDimOptimo)
+
+#objetoPCAMIXTrain$eig
+coordenadasPCATrain=as.data.table(cbind(objetoPCAMIXTrain$ind$coord, SalePrice= dataSetTrainClustering %>% dplyr::select(c("SalePrice"))  ))
+
+coordenadasPCATest=as.data.table(cbind(predict(objetoPCAMIXTrain,X1Test,X2Test), SalePrice=dataSetTestClustering %>% dplyr::select(c("SalePrice")) ))
+
+# ahora la regresion por random forest con los componentes PCA
+
+library(caret)
+
+#coordenadasPCATrainRF=as.data.table(cbind(objetoPCAMIXTrain$ind$coord, #SalePrice=dataSetTrainClustering$SalePrice))
+
+#coordenadasPCATestRF=as.data.table(cbind(predict(objetoPCAMIXTrain,X1Test,X2Test#), precio=dataSetTrainClustering$SalePrice))
+
+ctrl = trainControl(method="repeatedcv",
+                    number=2,
+                    repeats=1)
+
+tGrid <-  expand.grid(mtry = c(7))
+
+rf_model_pca <-train(SalePrice ~.,
+                data=coordenadasPCATrain,          
+                method="rf",
+                nodesize= 30,
+                ntree =500,
+                do.trace= 10,
+                trControl=ctrl,
+                tuneGrid = tGrid
+                 )
+
+#rf_model_pca$results
+
+# y por último , genero el mismo random forest con todos los componenes
+rf_model_sin_pca <-train(SalePrice ~.,
+                data=dataSetTrainClustering,          
+                method="rf",
+                nodesize= 30,
+                ntree =500,
+                do.trace= 10,
+                trControl=ctrl,
+                tuneGrid = tGrid
+                 )
+
+rf_model_pca$results
+rf_model_sin_pca$results
+
+```
+
+

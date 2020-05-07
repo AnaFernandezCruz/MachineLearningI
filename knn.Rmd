@@ -2,159 +2,143 @@
 title: "K Nearest Neighbors - KNN"
 ---
 
-```{r load_libraries, message=FALSE, warning=FALSE, echo=FALSE}
 
-library(dplyr)
+```{r load_libraries}
 library(class)
+library(dplyr)
 library(caret)
-library(ggplot2)
-library(arules)
-library(RColorBrewer)
-source("utils.R")
+library (ROCR)
+source("funcs.R")
 
-library(plotly)
-
-source("process_nan.R")
-source("split_data.R")
 ```
 
-
-Cargamos los datos:
+Cargamos los datos que utilizaremos para el entrenamiento, el test y la validación:
 
 ```{r load_data, message=FALSE, warning=FALSE, echo=TRUE}
 
-df_total <- read.csv(file = 'dataset/TrainTestDefinitivo1.csv')
-#df_total <- read.csv(file = 'dataset/dataset1.csv')
+dataTrain <- readRDS("datasetTrain.csv")
+dataTest <- readRDS("datasetTest.csv")
+
+dataValidation <- readRDS("datasetValidation.csv")
 
 ```
 
-```{r discretize_var_pred, message=FALSE, warning=FALSE, echo=TRUE}
+Procedemos a despejar de los dataset la variable objetivo original SalePrice. De la cual creamos la variable GrupoPrecio, del tipo categorica.
 
-v = discretize(df_total$SalePrice, breaks = 3, onlycuts =TRUE, infinity = TRUE)
+```{r choose_features}
 
-df_total$GrupoPrecio = cut(df_total$SalePrice, v)
+dataTrain <- dataTrain %>% dplyr::select(-SalePrice)
+dataTest <- dataTest %>% dplyr::select(-SalePrice)
 
-levels(df_total$GrupoPrecio) = c('barato', 'normal', 'caro')
-
-
-
-
-df_total$GrupoPrecio[which(mtcars$GrupoPrecio == 0)] <- 'barato'
-df_total$GrupoPrecio[which(mtcars$GrupoPrecio == 1)] <- 'normal'
-df_total$GrupoPrecio[which(mtcars$GrupoPrecio == 2)] <- 'caro'
-df_total$GrupoPrecio <- as.factor(df_total$GrupoPrecio)
-
-fig <- plot_ly(df_total, x = ~TotalSF, y = ~LotArea, z = ~GrLivArea, color = ~GrupoPrecio, colors = c('#BF382A', '#00FF00','#0C4B8E'))
-fig <- fig %>% add_markers()
-fig <- fig %>% layout(scene = list(xaxis = list(title = 'Weight'),
-                     yaxis = list(title = 'Gross horsepower'),
-                     zaxis = list(title = '1/4 mile time')))
-
-fig
-```
-
-
-```{r choose_cols}
-
-group <- c('GrLivArea', 'LotArea','BedroomAbvGr','SalePrice', 'GrupoPrecio')
+dataValidation <- dataValidation %>% dplyr::select(-SalePrice)
 
 group <- c('TotalSF','LotArea','GrLivArea','GrupoPrecio')
 
-df <- df_total %>% select(group)
+dataTrain <- dataTrain %>% dplyr::select(group)
+dataTest <- dataTest %>% dplyr::select(group)
 
-
-draw_scatter(df_total,'GrLivArea','SalePrice' )
-draw_scatter(df_total,'SalePrice','YrSold')
-draw_scatter(df_total,'BsmtFinSF1','SalePrice')
-#draw_scatter(df_total,'SalePrice','Neighborhood')
-
-draw_scatter(df_total,'YearBuilt','GrLivArea')
-draw_scatter(df_total,'YearBuilt','TotalSF')
-draw_scatter(df_total,'YearBuilt','LotArea')
-
-draw_scatter(df_total,'Neighborhood','GrLivArea')
-draw_scatter(df_total,'Neighborhood','TotalSF')
-draw_scatter(df_total,'Neighborhood','LotArea')
-```
-
-```{r eda}
-
-summary(df)
-head(df)
+dataValidation <- dataValidation %>% dplyr::select(group)
 
 ```
 
+A continuación preparamos los dataset para entrenar el modelo y posteriormente evaluar como se comporta con el conjunto de test y finalmente con el grupo de validación.
 
-```{r clean_data}
+```{r process_data }
 
-df <- df[!(is.na(df$GrupoPrecio)),]
+XTrain <- dataTrain %>% dplyr::select(-GrupoPrecio)
+YTrain <- dataTrain$GrupoPrecio
 
+XTest <- dataTest %>% dplyr::select(-GrupoPrecio)
+YTest <- dataTest$GrupoPrecio
 
-(get_cols_nan(df))
-#df <- fillNanWithMean(df)
-```
-
-
-
-Separamos el dataframe en dos partes, una parte para el entrenamiento y otra para el test
-
-```{r split_data, message=FALSE, warning=FALSE, echo=FALSE}
-
-result <- split_data(df, 0.7)
-
-train <- result$blockH
-test <- result$blockL
-
-XTrain <- train %>% select(-GrupoPrecio)
-YTrain <- train$GrupoPrecio
-
-XTest <- test %>% select(-GrupoPrecio)
-YTest <- test$GrupoPrecio
-
-
-
-nor <-function(x) { (x -min(x))/(max(x)-min(x))   }
-
-#XTrain <- as.data.frame(lapply(XTrain[,c(1,2,3)], nor))
-#XTest <- as.data.frame(lapply(XTest[,c(1,2,3)], nor))
-
+XValidation <- dataValidation %>% dplyr::select(-GrupoPrecio)
+YValidation <- dataValidation$GrupoPrecio
 
 ```
 
-Ejecutamos el modelo knn con el parametro k = 13, que nos da la siguiente matriz de confusión
-```{r run_model, message=FALSE, warning=FALSE, echo=TRUE}
 
-pr_train <- knn(XTrain, XTrain, cl = YTrain, k=3)
-pr_test <- knn(XTrain, XTest, cl = YTrain, k=3)
+```{r run_model}
+
+model <- knn(XTrain, XTest, cl = YTrain, k=1)
 
 ```
 
-Evaluamos el modelo:
-```{r eval_model}
+```{r }
 
-tab_train <- table(pr_train, YTrain, dnn = c("Actual", "Predichos"))
-tab_test <- table(pr_test, YTest, dnn = c("Actual", "Predichos"))
-
-accuracy(tab_train)
-knn_train_error <- calc_error_rate(predicted.value=pr_train, true.value=YTrain)
-(knn_train_error)
-
-accuracy(tab_test)
-knn_test_error <- calc_error_rate(predicted.value=pr_test, true.value=YTest)
-(knn_test_error)
-
+tab_test <- table(model, YTest, dnn = c("Actual", "Predichos"))
 
 (tab_test)
-draw_confusion_matrix(tab_train, "Actual", "Predichos")
+
+accuracy(tab_test)
+knn_test_error <- calc_error_rate(predicted.value=model, true.value=YTest)
+(knn_test_error)
+
+draw_confusion_matrix(tab_test, "Actual", "Predichos")
+```
+
+```{r }
+
+cm <- confusionMatrix(tab_test)
+(cm)
+```
+
+Obtemos el hiperparametro k (el numero de vecinos que determinaran la clase que predice el modelo), probando una series de valores y evaluando cual da una accuary mayor.
+
+```{r }
+i <- 1
+k <- 1
+
+for(i in 1:28){
+  model <- knn(XTrain, XTest, cl = YTrain, k=i)
+  tab_test <- table(model, YTest, dnn = c("Actual", "Predichos"))
+  k[i] <- accuracy(tab_test)
+  opt <- i
+  cat(opt, '=', k[i], '')
+}
+plot(k, type="b", xlab="K-Value", ylab="Accuracy level")
+(k)
+```
+Una vez obtenida la k más optima podemos ver que el modelo funciona mejor.
+
+```{r}
+
+model <- knn(XTrain, XTest, cl = YTrain, k=13)
+
+```
+
+```{r }
+
+tab_test <- table(model, YTest, dnn = c("Actual", "Predichos"))
+
+(tab_test)
 draw_confusion_matrix(tab_test, "Actual", "Predichos")
 
+accuracy(tab_test)
+knn_test_error <- calc_error_rate(predicted.value=model, true.value=YTest)
+(knn_test_error)
+cm <- confusionMatrix(tab_test)
+(cm)
+```
+
+Utilizamos el conjunto de validación para comprobar nuestro modelo.
+
+```{r}
+
+model <- knn(XTrain, XValidation, cl = YTrain, k=13)
 
 ```
 
+```{r }
+
+tab_validation <- table(model, YValidation, dnn = c("Actual", "Predichos"))
+
+(tab_validation)
+draw_confusion_matrix(tab_validation, "Actual", "Predichos")
+
+accuracy(tab_validation)
+knn_validation_error <- calc_error_rate(predicted.value=model, true.value=YValidation)
+(knn_validation_error)
+cm <- confusionMatrix(tab_validation)
+(cm)
+
 ```
-
-
-
-
-
-

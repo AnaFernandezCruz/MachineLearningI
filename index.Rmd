@@ -2,6 +2,17 @@
 title: "MACHINE LEARNING"
 ---
 
-```{r}
- prueba <- 232232
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(cache=TRUE)
 ```
+
+```{r load_data}
+source("flow.R")
+```
+
+```{r}
+#datasetTrain
+#datasetTest
+#datasetValidation
+```
+

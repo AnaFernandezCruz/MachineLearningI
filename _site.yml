@@ -5,9 +5,9 @@ navbar:
     - text: "Home"
       href: index.html
     - text: "Clustering"
-      href: index.html
-    - text: "Dimensionalidad"
-      href: index.html
+      href: Cluster.html
+    - text: "PCA"
+      href: PCA.html
     - text: "Aprendizaje supervisado"
       menu:
         - text: "GLM"
@@ -20,12 +20,8 @@ navbar:
           href: random_forest.html
         - text: "SVM"
           href: svm.html
-    - text: "Ajuste Hiperparámetros"
-      href: knn.html
-    - text: "Evaluación modelos"
-      href: knn.html
-    - text: "Otros modelos"
-      href: knn.html
+    - text: "GAM"
+      href: GAM.html
 output:
   html_document:
     theme: cosmo

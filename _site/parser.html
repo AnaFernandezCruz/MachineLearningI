@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Ana Fernández Cruz, Jesús Gallego Olivas y Miguel Ángel Sánchez Alcázar." />
+
+
+<title>Métodos de Análisis de Datos</title>
+
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+</style>
+
+
+<style type="text/css">
+/* padding for bootstrap navbar */
+body {
+  padding-top: 51px;
+  padding-bottom: 40px;
+}
+/* offset scroll position for anchor links (for fixed navbar)  */
+.section h1 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h2 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h3 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h4 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h5 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h6 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #ffffff;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script>
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.parent().addClass('active');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "&#xe258;";
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">ML</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="Cluster.html">Clustering</a>
+</li>
+<li>
+  <a href="PCA.html">PCA</a>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+    Aprendizaje supervisado
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="glm.html">GLM</a>
+    </li>
+    <li>
+      <a href="knn.html">KNN</a>
+    </li>
+    <li>
+      <a href="decision_trees.html">Decision Trees</a>
+    </li>
+    <li>
+      <a href="random_forest.html">Random Forest</a>
+    </li>
+    <li>
+      <a href="svm.html">SVM</a>
+    </li>
+  </ul>
+</li>
+<li>
+  <a href="GAM.html">GAM</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div class="fluid-row" id="header">
+
+<div class="btn-group pull-right">
+<button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">Métodos de Análisis de Datos</h1>
+<h4 class="author">Ana Fernández Cruz, Jesús Gallego Olivas y Miguel Ángel Sánchez Alcázar.</h4>
+<h4 class="date">19 de Diciembre de 2019</h4>
+
+</div>
+
+
+<p>Antes de empezar a realizar el estudio debemos unificar los datos. Inicialmente los disponemos en tres archivos csv, ‘train.csv’, ‘test.csv’ y ‘sample_submission.csv’.</p>
+<pre class="r"><code>cols_remove_nas &lt;-c(&#39;Alley&#39;,&#39;BsmtQual&#39;,&#39;BsmtCond&#39;,&#39;BsmtExposure&#39;,&#39;BsmtFinType1&#39;,&#39;BsmtFinType2&#39;,&#39;GarageType&#39;,&#39;GarageFinish&#39;,&#39;GarageQual&#39;,&#39;GarageCond&#39;,&#39;PoolQC&#39;,&#39;Fence&#39;,&#39;MiscFeature&#39;,&#39;FireplaceQu&#39;)
+
+dataset &lt;- mutate_at(dataset, cols_remove_nas, 
+          list(~ifelse(is.na(.), &#39;NA&#39;,.)) )</code></pre>
+<pre class="r"><code>var_discretas &lt;- c(&#39;BsmtFullBath&#39;,&#39;BsmtHalfBath&#39;,&#39;FullBath&#39;,&#39;HalfBath&#39;,&#39;BedroomAbvGr&#39;,&#39;KitchenAbvGr&#39;,&#39;TotRmsAbvGrd&#39;,&#39;Fireplaces&#39;,&#39;GarageCars&#39;,&#39;GarageYrBlt&#39;,&#39;YearBuilt&#39;,&#39;YearRemodAdd&#39;,&#39;YrSold&#39;,&#39;MoSold&#39;)
+
+var_continuas &lt;- c(&#39;LotFrontage&#39;,&#39;LotArea&#39;,&#39;MasVnrArea&#39;,&#39;BsmtFinSF1&#39;,&#39;BsmtFinSF2&#39;,&#39;BsmtUnfSF&#39;,&#39;TotalBsmtSF&#39;,&#39;1stFlrSF&#39;,&#39;2ndFlrSF&#39;,&#39;LowQualFinSF&#39;,&#39;GrLivArea&#39;,&#39;GarageArea&#39;,&#39;WoodDeckSF&#39;,&#39;OpenPorchSF&#39;,&#39;EnclosedPorch&#39;, &#39;3SsnPorch&#39;,&#39;ScreenPorch&#39;,&#39;PoolArea&#39;,&#39;MiscVal&#39;,&#39;SalePrice&#39;)
+
+var_continuas_sin_columnas_imputacion &lt;- c(&#39;LotFrontage&#39;,&#39;LotArea&#39;,&#39;MasVnrArea&#39;,&#39;BsmtFinSF1&#39;,&#39;BsmtFinSF2&#39;,&#39;BsmtUnfSF&#39;,&#39;TotalBsmtSF&#39;,&#39;1stFlrSF&#39;,&#39;2ndFlrSF&#39;,&#39;LowQualFinSF&#39;,&#39;GrLivArea&#39;,&#39;GarageArea&#39;,&#39;WoodDeckSF&#39;,&#39;OpenPorchSF&#39;,&#39;EnclosedPorch&#39;, &#39;3SsnPorch&#39;,&#39;ScreenPorch&#39;,&#39;PoolArea&#39;,&#39;MiscVal&#39;,&#39;SalePrice&#39;)
+
+
+var_ordinales &lt;- c(&#39;LotShape&#39;,&#39;Utilities&#39;,&#39;LandSlope&#39;,&#39;OverallQual&#39;,&#39;OverallCond&#39;,&#39;ExterQual&#39;,&#39;ExterCond&#39;,&#39;BsmtQual&#39;,&#39;BsmtCond&#39;,&#39;BsmtExposure&#39;,&#39;BsmtFinType1&#39;,&#39;BsmtFinType2&#39;,&#39;HeatingQC&#39;,&#39;CentralAir&#39;,&#39;Electrical&#39;,&#39;KitchenQual&#39;,&#39;Functional&#39;,&#39;FireplaceQu&#39;,&#39;GarageFinish&#39;,&#39;GarageQual&#39;,&#39;GarageCond&#39;,&#39;PavedDrive&#39;,&#39;PoolQC&#39;,&#39;Fence&#39;)
+
+var_nominales &lt;- c(&#39;MSSubClass&#39;,&#39;MSZoning&#39;,&#39;Street&#39;,&#39;Alley&#39;,&#39;LandContour&#39;,&#39;LotConfig&#39;,&#39;Neighborhood&#39;,&#39;Condition1&#39;,&#39;Condition2&#39;,&#39;BldgType&#39;,&#39;HouseStyle&#39;,&#39;RoofStyle&#39;,&#39;RoofMatl&#39;,&#39;Exterior1st&#39;,
+&#39;Exterior2nd&#39;,&#39;MasVnrType&#39;,&#39;Foundation&#39;,&#39;Heating&#39;,&#39;GarageType&#39;,&#39;MiscFeature&#39;, &#39;SaleType&#39;,&#39;SaleCondition&#39;)
+
+var_continuas_discretas = c(var_continuas,var_discretas)
+var_continuas_discretas_sin_imputacion = c(var_continuas_sin_columnas_imputacion,var_discretas)
+
+var_modelo = c()
+var_columnas_eliminadas = c()
+var_transformacion_log = c()
+var_eliminar_correlacion = c()
+var_creadas_transformacion = c()</code></pre>
+<pre class="r"><code>list_split1 &lt;- dataset %&gt;% split_dataframe(.1)
+
+validation &lt;- list_split1[[1]]  # 10%
+trainTest  &lt;- list_split1[[2]]     # 90%
+validationIds = validation %&gt;%  dplyr::select(&#39;Id&#39;)
+trainTestIds =  trainTest  %&gt;%  dplyr::select(&#39;Id&#39;)
+#Dividimos el dataset 70% - 30%
+list_split &lt;- trainTest %&gt;% split_dataframe(.7)
+
+train &lt;- list_split[[1]]  # 70%
+test &lt;- list_split[[2]]   # 30%
+trainIds = train %&gt;% dplyr::select(&#39;Id&#39;)
+testIds = test %&gt;%  dplyr::select(&#39;Id&#39;)</code></pre>
+<pre class="r"><code>elementosBajaVarianza &lt;- nearZeroVar(dataset,freqCut = 95/5,uniqueCut = 10)
+
+# funcion para eliminar elementos con baja correlacion
+lmp &lt;- function (modelobject) {
+    if (class(modelobject) != &quot;lm&quot;) stop(&quot;No es un objeto de tipo regresion lineal &#39;lm&#39; &quot;)
+    f &lt;- summary(modelobject)$fstatistic
+    p &lt;- pf(f[1],f[2],f[3],lower.tail=F)
+    attributes(p) &lt;- NULL
+    return(p)
+}
+
+# estas columna dan problemas, la varible 3SnnPorch empieza por un número y a la hora de ejecutar el modelo para ver si son significativas en la regresión  
+var_columnas_eliminadas = c(var_columnas_eliminadas,&#39;3SsnPorch&#39;)
+
+for(i in colnames(dataset)[elementosBajaVarianza]) {
+  if(i != &#39;3SsnPorch&#39;) {
+    modelRegression &lt;- lm(reformulate(termlabels = i, response = &#39;SalePrice&#39;) ,data=dataset)
+    if(lmp(modelRegression) &gt;.05) {
+      var_eliminar_correlacion = c(var_eliminar_correlacion,i)
+    }
+  }
+}
+
+(var_eliminar_correlacion)</code></pre>
+<pre><code>## [1] &quot;Street&quot;       &quot;Utilities&quot;    &quot;LandSlope&quot;    &quot;Condition2&quot;   &quot;BsmtFinSF2&quot;  
+## [6] &quot;LowQualFinSF&quot; &quot;MiscFeature&quot;  &quot;MiscVal&quot;</code></pre>
+<pre class="r"><code>var_continuas &lt;- c(&#39;LotArea&#39;,&#39;MasVnrArea&#39;,&#39;BsmtFinSF1&#39;,&#39;BsmtFinSF2&#39;,&#39;BsmtUnfSF&#39;,&#39;TotalBsmtSF&#39;,&#39;1stFlrSF&#39;,&#39;2ndFlrSF&#39;,&#39;LowQualFinSF&#39;,&#39;GrLivArea&#39;,&#39;GarageArea&#39;,&#39;WoodDeckSF&#39;,&#39;OpenPorchSF&#39;,&#39;EnclosedPorch&#39;, &#39;3SsnPorch&#39;,&#39;ScreenPorch&#39;,&#39;PoolArea&#39;,&#39;MiscVal&#39;,&#39;SalePrice&#39;)
+
+#dataset %&gt;%  dplyr::select(var_continuas) %&gt;% plot_histogram()</code></pre>
+<pre class="r"><code>correlacionesProblematicas &lt;- findCorrelation(cor(na.omit(dataset %&gt;% dplyr::select(var_continuas))),cutoff = 0.8, verbose = FALSE, names = TRUE)
+correlacionesProblematicas</code></pre>
+<pre><code>## [1] &quot;1stFlrSF&quot;</code></pre>
+<pre class="r"><code>library(EnvStats)</code></pre>
+<pre><code>## 
+## Attaching package: &#39;EnvStats&#39;</code></pre>
+<pre><code>## The following objects are masked from &#39;package:moments&#39;:
+## 
+##     kurtosis, skewness</code></pre>
+<pre><code>## The following object is masked from &#39;package:MASS&#39;:
+## 
+##     boxcox</code></pre>
+<pre><code>## The following objects are masked from &#39;package:stats&#39;:
+## 
+##     predict, predict.lm</code></pre>
+<pre><code>## The following object is masked from &#39;package:base&#39;:
+## 
+##     print.default</code></pre>
+<pre class="r"><code>listaOutliers &lt;- list()
+#listaBoxPlots &lt;- c()
+dataset_var_continuas &lt;- dataset %&gt;% dplyr::select(var_continuas)
+iterator = 1 
+listaPosOutliers &lt;- c()
+for(i in colnames(dataset_var_continuas)) {
+  outlier_values &lt;- boxplot.stats(dataset_var_continuas[[i]])$out
+  boxPlotDibujar &lt;- boxplot(dataset_var_continuas[[i]], main=i, boxwex=0.1)
+  #if(i %in% c(&#39;LotArea&#39;,&#39;1stFlrSF&#39;,&#39;GrLivArea&#39;,&#39;PoolArea&#39;,&#39;TotalBsmtSF&#39;)) {
+  #  boxPlotDibujar
+  #}
+  #listaBoxPlots &lt;- c(listaBoxPlots,boxPlotDibujar)
+  outliersRosen &lt;- rosnerTest(dataset_var_continuas[[i]], k = 6, warn = F)
+  listaOutliers[[iterator]] &lt;- outliersRosen
+   iterator&lt;- iterator +1
+    if(i %in% c(&#39;LotArea&#39;,&#39;1stFlrSF&#39;,&#39;GrLivArea&#39;,&#39;PoolArea&#39;,&#39;TotalBsmtSF&#39;,&#39;SalePrice&#39;))     {
+      listaPosOutliers &lt;- c(listaPosOutliers,outliersRosen$all.stats$Obs.Num)
+    }
+}</code></pre>
+<p><img src="parser_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<pre><code>## Warning in rosnerTest(dataset_var_continuas[[i]], k = 6, warn = F): 23
+## observations with NA/NaN/Inf in &#39;x&#39; removed.</code></pre>
+<p><img src="parser_files/figure-html/unnamed-chunk-6-2.png" width="672" /></p>
+<pre><code>## Warning in rosnerTest(dataset_var_continuas[[i]], k = 6, warn = F): 1
+## observations with NA/NaN/Inf in &#39;x&#39; removed.</code></pre>
+<p><img src="parser_files/figure-html/unnamed-chunk-6-3.png" width="672" /></p>
+<pre><code>## Warning in rosnerTest(dataset_var_continuas[[i]], k = 6, warn = F): 1
+## observations with NA/NaN/Inf in &#39;x&#39; removed.</code></pre>
+<p><img src="parser_files/figure-html/unnamed-chunk-6-4.png" width="672" /></p>
+<pre><code>## Warning in rosnerTest(dataset_var_continuas[[i]], k = 6, warn = F): 1
+## observations with NA/NaN/Inf in &#39;x&#39; removed.</code></pre>
+<p><img src="parser_files/figure-html/unnamed-chunk-6-5.png" width="672" /></p>
+<pre><code>## Warning in rosnerTest(dataset_var_continuas[[i]], k = 6, warn = F): 1
+## observations with NA/NaN/Inf in &#39;x&#39; removed.</code></pre>
+<p><img src="parser_files/figure-html/unnamed-chunk-6-6.png" width="672" /><img src="parser_files/figure-html/unnamed-chunk-6-7.png" width="672" /><img src="parser_files/figure-html/unnamed-chunk-6-8.png" width="672" /><img src="parser_files/figure-html/unnamed-chunk-6-9.png" width="672" /><img src="parser_files/figure-html/unnamed-chunk-6-10.png" width="672" /></p>
+<pre><code>## Warning in rosnerTest(dataset_var_continuas[[i]], k = 6, warn = F): 1
+## observations with NA/NaN/Inf in &#39;x&#39; removed.</code></pre>
+<p><img src="parser_files/figure-html/unnamed-chunk-6-11.png" width="672" /><img src="parser_files/figure-html/unnamed-chunk-6-12.png" width="672" /><img src="parser_files/figure-html/unnamed-chunk-6-13.png" width="672" /><img src="parser_files/figure-html/unnamed-chunk-6-14.png" width="672" /><img src="parser_files/figure-html/unnamed-chunk-6-15.png" width="672" /><img src="parser_files/figure-html/unnamed-chunk-6-16.png" width="672" /><img src="parser_files/figure-html/unnamed-chunk-6-17.png" width="672" /><img src="parser_files/figure-html/unnamed-chunk-6-18.png" width="672" /><img src="parser_files/figure-html/unnamed-chunk-6-19.png" width="672" /></p>
+<pre class="r"><code>listaPosOutliers &lt;- unique(listaPosOutliers)</code></pre>
+<pre class="r"><code>var_modelo_with_SalePrice = c(var_modelo,&#39;SalePrice&#39;)
+var_columnas_eliminadas = c(&#39;TotRmsAbvGrd&#39;,&#39;GarageYrBlt&#39;,&#39;GarageCars&#39;,&#39;TotalBsmtSF&#39;,&#39;1stFlrSF&#39;,&#39;2ndFlrSF&#39;,&#39;BsmtFinSF2&#39;,&#39;1stFlrSF&#39;,&#39;2ndFlrSF&#39;,&#39;FullBath&#39;,&#39;HalfBath&#39;,&#39;BsmtFullBath&#39;,&#39;BsmtHalfBath&#39;,&#39;OpenPorchSF&#39;,&#39;3SsnPorch&#39;,&#39;EnclosedPorch&#39;,&#39;ScreenPorch&#39;,&#39;WoodDeckSF&#39;,&#39;GarageFinish&#39;,&#39;hasFirePlaces&#39;,&#39;LotFrontage&#39;)
+var_columnas_eliminadas_bajo_p_valor = c(&#39;LandSlope&#39;)
+var_transformacion_log = c(&#39;TotalSF&#39;)
+var_eliminar_correlacion = c(var_eliminar_correlacion,c(&#39;TotRmsAbvGrd&#39;,&#39;GarageYrBlt&#39;,&#39;GarageCars&#39;))</code></pre>
+<pre class="r"><code>dataset &lt;- dataset %&gt;% dplyr::mutate( TotalSF = TotalBsmtSF + `1stFlrSF` + `2ndFlrSF`  )
+dataset &lt;- dataset %&gt;% dplyr::mutate( Total_Bathrooms = FullBath + 0.5*HalfBath +  BsmtFullBath + 0.5*BsmtHalfBath )
+dataset &lt;- dataset %&gt;% dplyr::mutate( Total_porch_SF = OpenPorchSF +`3SsnPorch` +  EnclosedPorch + ScreenPorch + WoodDeckSF )
+
+var_creadas_transformacion = c( &#39;TotalSF&#39;,&#39;Total_Bathrooms&#39;,&#39;Total_porch_SF&#39;,&#39;hasPool&#39;,&#39;hasGarage&#39;,&#39;hasFirePlaces&#39;,&#39;has2ndFloor&#39;)</code></pre>
+<pre class="r"><code># YearBuilt: discretizamos la variable en tramos
+# YearRemodAdd: discretizamos la variable en tramos
+dataset$YearBuilt &lt;- cut(dataset$YearBuilt, 
+                   breaks=c(-Inf, 1910,1920,1930,1940,1950,1960,1970,1980,1990,Inf), 
+                   labels=c(&quot;_1910&quot;,&quot;1910_1920&quot;,&quot;1920_1930&quot;,&quot;1930_1940&quot;,  &quot;1940_1950&quot;,&quot;1950_1960&quot;,&quot;1960_1970&quot;,&quot;1970_1980&quot;,&quot;1980_1990&quot;,&quot;1990_&quot;))
+dataset$YearRemodAdd &lt;- cut(dataset$YearRemodAdd, 
+                   breaks=c(-Inf, 1910,1920,1930,1940,1950,1960,1970,1980,1990,Inf), 
+                   labels=c(&quot;_1910&quot;,&quot;1910_1920&quot;,&quot;1920_1930&quot;,&quot;1930_1940&quot;,  &quot;1940_1950&quot;,&quot;1950_1960&quot;,&quot;1960_1970&quot;,&quot;1970_1980&quot;,&quot;1980_1990&quot;,&quot;1990_&quot;))   </code></pre>
+<pre class="r"><code>#MSSubClass:
+
+dataset &lt;-  dataset %&gt;% dplyr::mutate( hasPool := ifelse(PoolArea &gt; 0 &amp;&amp; not(is.na(PoolArea)), TRUE, FALSE))  
+
+#dataset &lt;-  dataset %&gt;% dplyr::mutate( hasBasement := ifelse(TotalBsmtSF &gt; 0, TRUE, FALSE)) 
+
+dataset &lt;-  dataset %&gt;% dplyr::mutate( hasFirePlaces := ifelse(Fireplaces &gt; 0 &amp;&amp; not(is.na(Fireplaces)), TRUE, FALSE)) 
+
+dataset &lt;-  dataset %&gt;% dplyr::mutate( has2ndFloor := ifelse(`2ndFlrSF`  &gt; 0 &amp;&amp; not(is.na(`2ndFlrSF`)), TRUE, FALSE)) </code></pre>
+<p>—————- 1. IMPUTAMOS</p>
+<p>Como hay muchas variables que no tienen valores faltantes, vamos a crear un dataset únicamente con las columnas que tienen missings para poder analizar mejor los datos. Para ello:</p>
+<pre class="r"><code>na_counts &lt;- sapply(dataset, function(x) sum(is.na(x)))
+
+na_counts_sort &lt;- sort(na_counts, decreasing = TRUE)
+
+na_counts_sort &lt;- na_counts_sort[1:20]
+
+(na_counts_sort)</code></pre>
+<pre><code>##     LotFrontage     GarageYrBlt      MasVnrType      MasVnrArea        MSZoning 
+##             486             159              24              23               4 
+##       Utilities    BsmtFullBath    BsmtHalfBath      Functional Total_Bathrooms 
+##               2               2               2               2               2 
+##     Exterior1st     Exterior2nd      BsmtFinSF1      BsmtFinSF2       BsmtUnfSF 
+##               1               1               1               1               1 
+##     TotalBsmtSF      Electrical     KitchenQual      GarageCars      GarageArea 
+##               1               1               1               1               1</code></pre>
+<pre class="r"><code>dataset_na &lt;- dataset %&gt;% dplyr::select(LotFrontage, MasVnrArea, BsmtFinSF1, BsmtFinSF2, BsmtUnfSF, TotalBsmtSF, GarageArea, GarageYrBlt, BsmtFullBath, BsmtHalfBath, GarageCars, KitchenQual, Electrical, MasVnrType,  MSZoning, Exterior1st, Exterior2nd, SaleType)</code></pre>
+<pre class="r"><code>colMeans(is.na(dataset_na))</code></pre>
+<pre><code>##  LotFrontage   MasVnrArea   BsmtFinSF1   BsmtFinSF2    BsmtUnfSF  TotalBsmtSF 
+## 0.1664953751 0.0078794108 0.0003425831 0.0003425831 0.0003425831 0.0003425831 
+##   GarageArea  GarageYrBlt BsmtFullBath BsmtHalfBath   GarageCars  KitchenQual 
+## 0.0003425831 0.0544707091 0.0006851662 0.0006851662 0.0003425831 0.0003425831 
+##   Electrical   MasVnrType     MSZoning  Exterior1st  Exterior2nd     SaleType 
+## 0.0003425831 0.0082219938 0.0013703323 0.0003425831 0.0003425831 0.0003425831</code></pre>
+<pre class="r"><code>#summary_antes_imputar &lt;- summary(train)
+#para las variables cuantitativas con una proporción del faltantes menor que el 3%,
+#imputaremos el valor de la media
+
+cuantitativas &lt;- c(&#39;MasVnrArea&#39;,&#39;GarageCars&#39;,&#39;GarageArea&#39;, &#39;BsmtFinSF1&#39;, &#39;BsmtFinSF2&#39;, &#39;BsmtUnfSF&#39;, &#39;TotalBsmtSF&#39;,&#39;BsmtFullBath&#39;, &#39;BsmtHalfBath&#39;)
+
+for (i in cuantitativas){
+  list_values &lt;- ifelse(is.na(dataset[[i]]), 
+                        round(mean(train[[i]], na.rm=TRUE), 0), dataset[[i]])
+  dataset[[i]] &lt;- list_values
+}
+
+dataset</code></pre>
+<pre><code>## # A tibble: 2,919 x 87
+##       Id MSSubClass MSZoning LotFrontage LotArea Street Alley LotShape
+##    &lt;dbl&gt;      &lt;dbl&gt; &lt;chr&gt;          &lt;dbl&gt;   &lt;dbl&gt; &lt;chr&gt;  &lt;chr&gt; &lt;chr&gt;   
+##  1     1         60 RL                65    8450 Pave   NA    Reg     
+##  2     2         20 RL                80    9600 Pave   NA    Reg     
+##  3     3         60 RL                68   11250 Pave   NA    IR1     
+##  4     4         70 RL                60    9550 Pave   NA    IR1     
+##  5     5         60 RL                84   14260 Pave   NA    IR1     
+##  6     6         50 RL                85   14115 Pave   NA    IR1     
+##  7     7         20 RL                75   10084 Pave   NA    Reg     
+##  8     8         60 RL                NA   10382 Pave   NA    IR1     
+##  9     9         50 RM                51    6120 Pave   NA    Reg     
+## 10    10        190 RL                50    7420 Pave   NA    Reg     
+## # … with 2,909 more rows, and 79 more variables: LandContour &lt;chr&gt;,
+## #   Utilities &lt;chr&gt;, LotConfig &lt;chr&gt;, LandSlope &lt;chr&gt;, Neighborhood &lt;chr&gt;,
+## #   Condition1 &lt;chr&gt;, Condition2 &lt;chr&gt;, BldgType &lt;chr&gt;, HouseStyle &lt;chr&gt;,
+## #   OverallQual &lt;dbl&gt;, OverallCond &lt;dbl&gt;, YearBuilt &lt;fct&gt;, YearRemodAdd &lt;fct&gt;,
+## #   RoofStyle &lt;chr&gt;, RoofMatl &lt;chr&gt;, Exterior1st &lt;chr&gt;, Exterior2nd &lt;chr&gt;,
+## #   MasVnrType &lt;chr&gt;, MasVnrArea &lt;dbl&gt;, ExterQual &lt;chr&gt;, ExterCond &lt;chr&gt;,
+## #   Foundation &lt;chr&gt;, BsmtQual &lt;chr&gt;, BsmtCond &lt;chr&gt;, BsmtExposure &lt;chr&gt;,
+## #   BsmtFinType1 &lt;chr&gt;, BsmtFinSF1 &lt;dbl&gt;, BsmtFinType2 &lt;chr&gt;, BsmtFinSF2 &lt;dbl&gt;,
+## #   BsmtUnfSF &lt;dbl&gt;, TotalBsmtSF &lt;dbl&gt;, Heating &lt;chr&gt;, HeatingQC &lt;chr&gt;,
+## #   CentralAir &lt;chr&gt;, Electrical &lt;chr&gt;, `1stFlrSF` &lt;dbl&gt;, `2ndFlrSF` &lt;dbl&gt;,
+## #   LowQualFinSF &lt;dbl&gt;, GrLivArea &lt;dbl&gt;, BsmtFullBath &lt;dbl&gt;,
+## #   BsmtHalfBath &lt;dbl&gt;, FullBath &lt;dbl&gt;, HalfBath &lt;dbl&gt;, BedroomAbvGr &lt;dbl&gt;,
+## #   KitchenAbvGr &lt;dbl&gt;, KitchenQual &lt;chr&gt;, TotRmsAbvGrd &lt;dbl&gt;,
+## #   Functional &lt;chr&gt;, Fireplaces &lt;dbl&gt;, FireplaceQu &lt;chr&gt;, GarageType &lt;chr&gt;,
+## #   GarageYrBlt &lt;dbl&gt;, GarageFinish &lt;chr&gt;, GarageCars &lt;dbl&gt;, GarageArea &lt;dbl&gt;,
+## #   GarageQual &lt;chr&gt;, GarageCond &lt;chr&gt;, PavedDrive &lt;chr&gt;, WoodDeckSF &lt;dbl&gt;,
+## #   OpenPorchSF &lt;dbl&gt;, EnclosedPorch &lt;dbl&gt;, `3SsnPorch` &lt;dbl&gt;,
+## #   ScreenPorch &lt;dbl&gt;, PoolArea &lt;dbl&gt;, PoolQC &lt;chr&gt;, Fence &lt;chr&gt;,
+## #   MiscFeature &lt;chr&gt;, MiscVal &lt;dbl&gt;, MoSold &lt;dbl&gt;, YrSold &lt;dbl&gt;,
+## #   SaleType &lt;chr&gt;, SaleCondition &lt;chr&gt;, SalePrice &lt;dbl&gt;, TotalSF &lt;dbl&gt;,
+## #   Total_Bathrooms &lt;dbl&gt;, Total_porch_SF &lt;dbl&gt;, hasPool &lt;lgl&gt;,
+## #   hasFirePlaces &lt;lgl&gt;, has2ndFloor &lt;lgl&gt;</code></pre>
+<pre class="r"><code>#para variables categoricas con una proporción de datos faltantes menor que el 3%
+#vamos a imputar el valor más frecuente.  
+
+categoricas &lt;- c(&#39;MasVnrType&#39;, &#39;MSZoning&#39;, &#39;Functional&#39;, &#39;Electrical&#39;,
+                 &#39;KitchenQual&#39;, &#39;SaleType&#39;, &#39;Exterior1st&#39;, &#39;Exterior2nd&#39;,  &#39;Utilities&#39;)
+for (i in categoricas){
+  y = as.data.frame(table(unlist(train[[i]])))
+  sorted_list &lt;-y[with(y, order(-Freq)),]
+  frecuent_value &lt;- sorted_list$Var1[1]
+  list_values &lt;- c()
+  for(j in 1:length(dataset[[i]])) {
+    if(is.na(dataset[[i]][j])) {
+      dataset[[i]][j] = frecuent_value
+      na.rm=TRUE
+      list_values = c(list_values, dataset[[i]][j])
+    }
+    else {
+      list_values = c(list_values, dataset[[i]][j])
+    }
+  }
+  dataset[[i]] &lt;- list_values
+}
+
+#summary_despues_imputar &lt;- summary(train)</code></pre>
+<pre class="r"><code>vecindario_precioGaraje&lt;- dataset %&gt;% dplyr::select(Neighborhood, GarageYrBlt)
+
+vecindario_agrupado &lt;- vecindario_precioGaraje %&gt;% 
+  group_by(Neighborhood) %&gt;% 
+  summarise(mean_data = round(mean(GarageYrBlt,na.rm=TRUE),0))
+summary(vecindario_agrupado)</code></pre>
+<pre><code>##  Neighborhood         mean_data   
+##  Length:25          Min.   :1944  
+##  Class :character   1st Qu.:1966  
+##  Mode  :character   Median :1976  
+##                     Mean   :1978  
+##                     3rd Qu.:1999  
+##                     Max.   :2006</code></pre>
+<pre class="r"><code>#En la variable grouped_list tenemos los vecindarios de Boston y la media del año
+#en el que fueron construidos sus garajes. Esos son los valores que usaremos para imputar.
+
+year_corregido&lt;- c()
+
+for(j in 1:length(vecindario_precioGaraje$GarageYrBlt)) {
+  if(is.na(vecindario_precioGaraje$GarageYrBlt[j])) {
+    #Obtenemos el vecindario correspondiente al NA
+    vecindario = vecindario_precioGaraje$Neighborhood[j]
+    #Ahora que conocemos el vecindario, tenemos que saber cual es el año que le corresponde dentro de la lista de vecindarios,          sacamos su numero de fila
+    index_vecindario = which(grepl(vecindario, vecindario_agrupado$Neighborhood))
+    #Entramos en este if porque hay dos vecindarios: Sawyer y SawyerW. Cuando buscamos el de Sawyer nos da el indice de los dos         vecindarios, asi que nos quedamos con el primero.
+    if (length(index_vecindario)&gt;1){
+      index_vecindario = index_vecindario[1]
+    }
+    year_a_imputar = vecindario_agrupado[index_vecindario,2]
+    na.rm=TRUE
+    year_corregido&lt;-c(year_corregido,year_a_imputar)
+  }else {
+    year_corregido&lt;-c(year_corregido,vecindario_precioGaraje$GarageYrBlt[j])
+    next 
+  }
+}
+
+length(year_corregido)</code></pre>
+<pre><code>## [1] 2919</code></pre>
+<pre class="r"><code>year_corregido&lt;- unlist(year_corregido)
+length(year_corregido)</code></pre>
+<pre><code>## [1] 2919</code></pre>
+<pre class="r"><code>#actualizamos la columna en el dataset
+dataset[&quot;GarageYrBlt&quot;]&lt;-year_corregido</code></pre>
+<pre class="r"><code>vecindario_agrupado2 &lt;- vecindario_precioGaraje %&gt;% 
+  group_by(Neighborhood) %&gt;% 
+  summarise(mean_data = round(mean(GarageYrBlt,na.rm=TRUE),0))
+
+#summary(vecindario_agrupado2)</code></pre>
+<pre class="r"><code>nombresVariablesFactores  &lt;- c(&#39;MiscFeature&#39;,&#39;Alley&#39;,&#39;Fence&#39;,&#39;LotConfig&#39;,&#39;GarageType&#39;,&#39;MSZoning&#39;,&#39;Exterior1st&#39;,&#39;Exterior2nd&#39;,&#39;Electrical&#39;,&#39;SaleType&#39;,&#39;SaleCondition&#39;,&#39;Foundation&#39;,&#39;Heating&#39;,&#39;RoofStyle&#39;,
+&#39;RoofMatl&#39;,&#39;LandContour&#39;,&#39;BldgType&#39;,&#39;HouseStyle&#39;,&#39;Neighborhood&#39;,&#39;Condition1&#39;,&#39;Condition2&#39;,&#39;MoSold&#39;,&#39;YrSold&#39;,&#39;Street&#39;,&#39;LotShape&#39;,&#39;Utilities&#39;,&#39;LandSlope&#39;,&#39;MasVnrType&#39;,&#39;BsmtFinType2&#39;,&#39;CentralAir&#39;,&#39;Functional&#39;,&#39;PavedDrive&#39;,&#39;hasPool&#39;,&#39;hasFirePlaces&#39;)
+
+
+for(i in nombresVariablesFactores){
+        dataset[[i]] &lt;- as.factor(dataset[[i]])
+}
+
+
+dataset$MSSubClass &lt;- as.factor(dataset$MSSubClass)
+dataset$MSSubClass&lt;-revalue(dataset$MSSubClass, c(&#39;20&#39;=&#39;1_story_1946_&#39;, &#39;30&#39;=&#39;1_story_1945_&#39;, &#39;40&#39;=&#39;1_story_unf_attic&#39;, &#39;45&#39;=&#39;1_5_story_unf&#39;, &#39;50&#39;=&#39;1_5 story_fin&#39;, &#39;60&#39;=&#39;2_story_1946_&#39;, &#39;70&#39;=&#39;2_story_1945_&#39;, &#39;75&#39;=&#39;2_5_story_all_ages&#39;, &#39;80&#39;=&#39;split_multi_level&#39;, &#39;85&#39;=&#39;split_foyer&#39;, &#39;90&#39;=&#39;duplex_all_style_age&#39;, &#39;120&#39;=&#39;1_story_PUD_1946_&#39;, &#39;150&#39;=&#39;1_5_story_PUD_all&#39;, &#39;160&#39;=&#39;2_story_PUD_1946&#39;, &#39;180&#39;=&#39;PUD_multilevel&#39;, &#39;190&#39;=&#39;2_family_conversion&#39;))</code></pre>
+<pre class="r"><code>#OverallQual, OverallCond (dejarlas como estan)
+levesl1_10 &lt;- c(&quot;Very Poor&quot;,&quot;Poor&quot;,&quot;Fair&quot;,&quot;Below Average&quot;,&quot;Average&quot;,&quot;Above Average&quot;,&quot;Good&quot;,&quot;Very Good&quot;,&quot;Excellent&quot;,&quot;Very Excellent&quot;)
+
+#ExterQual , ExterCond , HeatingQC, KitchenQual,GarageQual,GarageCond
+return_position1_5 &lt;- function(elements) {
+    levesl1_5 &lt;- c(&#39;Po&#39;,&#39;Fa&#39;,&#39;TA&#39;,&#39;Gd&#39;,&#39;Ex&#39;)
+    pos &lt;- match(elements,levesl1_5)
+    elem &lt;- which(levesl1_5 %in% elements)
+    return(levesl1_5[elem])
+}
+
+
+#BsmtQual,BsmtCond,FireplaceQu
+return_position1_6 &lt;- function(elements) {
+    levesl1_6 &lt;- c(&#39;NA&#39;,&#39;Po&#39;,&#39;Fa&#39;,&#39;TA&#39;,&#39;Gd&#39;,&#39;Ex&#39;)
+    pos &lt;- match(elements,levesl1_6)
+    elem &lt;- which(levesl1_6 %in% elements)
+    return(levesl1_6[elem])
+}
+
+
+#BsmtExposure
+return_position1_5_B &lt;- function(elements) {
+    levesl1_5_B &lt;- c(&#39;NA&#39;,&#39;No&#39;,&#39;Mn&#39;,&#39;Av&#39;,&#39;Gd&#39;)
+    pos &lt;- match(elements,levesl1_5_B)
+    elem &lt;- which(levesl1_5_B %in% elements)
+    return(levesl1_5_B[elem])
+}
+
+
+#BsmtFinType1 , BsmtFinType2
+return_position1_7 &lt;- function(elements) {
+    levesl1_7 &lt;- c(&#39;NA&#39;,&#39;Unf&#39;,&#39;LwQ&#39;,&#39;Rec&#39;,&#39;BLQ&#39;,&#39;ALQ&#39;,&#39;GLQ&#39;)
+    pos &lt;- match(elements,levesl1_7)
+    elem &lt;- which(levesl1_7 %in% elements)
+    return(levesl1_7[elem])
+}
+
+#CentralAir
+levesl_2 &lt;- c(&#39;N&#39;,&#39;Y&#39;)  
+
+#GarageFinish
+return_levels_garage &lt;- function(elements) {
+    levels_garage &lt;-c(&#39;NA&#39;,&#39;Unf&#39;,&#39;RFn&#39;,&#39;Fin&#39;)
+    pos &lt;- match(elements,levels_garage)
+    elem &lt;- which(levels_garage %in% elements)
+    return(levels_garage[elem])
+}
+
+
+# PoolQC
+return_levesl_poolQC &lt;- function(elements) {
+    levesl_poolQC &lt;- c(&#39;NA&#39;,&#39;Fa&#39;,&#39;TA&#39;,&#39;Gd&#39;,&#39;Ex&#39;)
+    pos &lt;- match(elements,levesl_poolQC)
+    elem &lt;- which(levesl_poolQC %in% elements)
+    return(levesl_poolQC[elem])
+}
+
+
+library(forcats)
+
+      #OverallCond
+      dataset &lt;- dataset %&gt;% dplyr::mutate( ExterQual:=fct_relevel(ExterQual,return_position1_5))
+     
+      #ExterCond , 
+      dataset &lt;- dataset %&gt;% dplyr::mutate( ExterCond := fct_relevel(ExterCond,return_position1_5))
+     
+      #HeatingQC, 
+      dataset &lt;- dataset %&gt;% dplyr::mutate( HeatingQC := fct_relevel(HeatingQC,return_position1_5))
+      
+      #KitchenQual,
+      dataset &lt;- dataset %&gt;% dplyr::mutate( KitchenQual := fct_relevel(KitchenQual,return_position1_5))
+      
+      #GarageQual,
+      dataset &lt;- dataset %&gt;% dplyr::mutate( GarageQual := fct_relevel(GarageQual,return_position1_5))
+      
+      #GarageCond
+      dataset &lt;- dataset %&gt;% dplyr::mutate( GarageCond := fct_relevel(GarageCond,return_position1_5))
+     
+      #BsmtQual
+      dataset &lt;- dataset %&gt;% dplyr::mutate( BsmtQual := fct_relevel(BsmtQual,return_position1_6))
+      
+      #BsmtCond,
+      dataset &lt;- dataset %&gt;% dplyr::mutate( BsmtCond := fct_relevel(BsmtCond,return_position1_6))
+      
+      #FireplaceQu
+      dataset &lt;- dataset %&gt;% dplyr::mutate(FireplaceQu := fct_relevel(FireplaceQu,return_position1_6))
+     
+      #BsmtExposure
+      dataset &lt;- dataset %&gt;% dplyr::mutate( BsmtExposure := fct_relevel(BsmtExposure,return_position1_5_B))
+      
+      #BsmtFinType1 
+      dataset &lt;- dataset %&gt;% dplyr::mutate( BsmtFinType1 := fct_relevel(BsmtFinType1,return_position1_7))
+      
+      #BsmtFinType2
+      dataset &lt;- dataset %&gt;% dplyr::mutate( BsmtFinType1 := fct_relevel(BsmtFinType2,return_position1_7))
+      
+     #GarageFinish
+      dataset &lt;- dataset %&gt;% dplyr::mutate( GarageFinish := fct_relevel(GarageFinish,return_levels_garage))
+      
+      # PoolQC
+      dataset &lt;- dataset %&gt;% dplyr::mutate( PoolQC := fct_relevel(PoolQC,return_levesl_poolQC))
+
+
+# para dummify variables si es necesario tenemos esta funcion del paquete dataexplorer
+#train &lt;- dummify(train, maxcat = 50L, select = var_nominales)</code></pre>
+<pre class="r"><code>library(arules)</code></pre>
+<pre><code>## Loading required package: Matrix</code></pre>
+<pre><code>## 
+## Attaching package: &#39;Matrix&#39;</code></pre>
+<pre><code>## The following objects are masked from &#39;package:tidyr&#39;:
+## 
+##     expand, pack, unpack</code></pre>
+<pre><code>## 
+## Attaching package: &#39;arules&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:dplyr&#39;:
+## 
+##     recode</code></pre>
+<pre><code>## The following objects are masked from &#39;package:base&#39;:
+## 
+##     abbreviate, write</code></pre>
+<pre class="r"><code>v = discretize(dataset$SalePrice, method=&quot;interval&quot;, breaks = 3, onlycuts = TRUE)
+
+dataset$GrupoPrecio = cut(dataset$SalePrice,v)
+levels(dataset$GrupoPrecio) = c(&quot;Barato&quot;,&quot;Normal&quot;,&quot;Caro&quot;)
+write.csv(dataset, &quot;fulldatasetTransformed.csv&quot;)</code></pre>
+<p>———————- 2. SKEWNESS</p>
+<pre class="r"><code>var_continuas_discretas = c(var_continuas,var_discretas)
+library(moments)
+listasVariablesSkewness &lt;-  dataset %&gt;% dplyr::select(var_continuas_discretas) %&gt;%  dplyr::select(-c(&#39;YearBuilt&#39;,&#39;YearRemodAdd&#39;,&#39;YrSold&#39;,&#39;MoSold&#39;))  %&gt;% summarize_all(funs(skewness))</code></pre>
+<pre><code>## Warning: funs() is soft deprecated as of dplyr 0.8.0
+## Please use a list of either functions or lambdas: 
+## 
+##   # Simple named list: 
+##   list(mean = mean, median = median)
+## 
+##   # Auto named with `tibble::lst()`: 
+##   tibble::lst(mean, median)
+## 
+##   # Using lambdas
+##   list(~ mean(., trim = .2), ~ median(., na.rm = TRUE))
+## This warning is displayed once per session.</code></pre>
+<pre class="r"><code>variablesSkewnessAlto &lt;- colnames(listasVariablesSkewness %&gt;% select_if(function(x) any(x &gt; 0.8)))  
+#variablesSkewnessAlto &lt;- variablesSkewnessAlto[variablesSkewnessAlto != #&quot;SalePrice&quot;]   </code></pre>
+<pre class="r"><code>log_transform&lt;- function(x, na.rm=FALSE) (log(x +1))
+variablesTransformar = variablesSkewnessAlto[!variablesSkewnessAlto %in% var_columnas_eliminadas  &amp; !variablesSkewnessAlto %in% var_eliminar_correlacion ]
+
+
+#variablesTransformar &lt;- c(variablesTransformar,&#39;TotalSF&#39;)
+
+for(i in 1:ncol(dataset)){
+  
+  nombreCol = names(dataset)[i]
+  
+  if(nombreCol == &#39;MasVnrArea&#39; | nombreCol == &#39;MiscVal&#39; | nombreCol == &#39;SaleCondition&#39; ) {
+    
+  } else
+    if (nombreCol %in% variablesTransformar &amp; nombreCol != &#39;SalePrice&#39;){
+      dataset[,i] &lt;- log(dataset[,i] +1)
+    } else if(nombreCol == &#39;SalePrice&#39;){
+      dataset[,i] &lt;- log(dataset[,i])
+    }else if(nombreCol == &#39;TotalSF&#39;){
+      dataset[,i] &lt;- log(dataset[,i])
+    } 
+  
+}</code></pre>
+<p>——————————- GUARDAR AQUI DATASET Y SEPARAR TRAIN Y TEST. ——————————- HACER SKEWNESS COMO ESTA Y ESTE CODIGO</p>
+<p>—————— 3. CONTINUAMOS</p>
+<pre class="r"><code>dataset_train_test_sin_outliers &lt;- dataset_train_test %&gt;%  dplyr::filter(SalePrice  &lt; 13.2 )
+dataset_train_test_sin_outliers &lt;- dataset_train_test %&gt;%  dplyr::filter(GrLivArea  &lt; 8.4 )
+dataset_sin_na &lt;- dataset_train_test %&gt;%  na.omit()
+dataset_train_test_sin_outliers &lt;- dataset_train_test %&gt;%  na.omit() 
+
+listaPosOutliers &lt;- c()
+for(i in colnames(dataset_sin_na)) {
+  if(is.numeric(dataset_sin_na[[i]]) &amp;&amp; !is.factor(dataset_sin_na[[i]])  ) {
+      if(i %in% c(&#39;LotArea&#39;,&#39;1stFlrSF&#39;,&#39;GrLivArea&#39;,&#39;TotalBsmtSF&#39;,&#39;SalePrice&#39;,&#39;Total_porch_SF&#39;,&#39;TotalSF&#39;))   {
+          outliersRosen &lt;- rosnerTest(dataset_sin_na[[i]], k = 5, warn = F)
+          #print(outliersRosen$all.stats$Obs.Num)
+          listaPosOutliers &lt;- c(listaPosOutliers,outliersRosen$all.stats$Obs.Num)
+      }
+  }
+}
+
+listaPosOutliers &lt;- unique(listaPosOutliers , na.rm=TRUE)
+
+dataset_sin_na_outliers &lt;- dataset_train_test_sin_outliers[-listaPosOutliers,] 
+
+#train_sin_na_outliers &lt;- train_sin_na_outliers[-c(1334),] 
+#dataset_sin_na_outliers &lt;- dataset_sin_na_outliers[-c(358,182),] 
+
+datasetTrain &lt;- dataset_train_test_sin_outliers %&gt;%  filter(Id %in%  trainIds$Id)  %&gt;% dplyr::select(-Id)
+datasetTest  &lt;- dataset_train_test_sin_outliers %&gt;%  filter(Id %in%  testIds$Id)  %&gt;% dplyr::select(-Id)
+
+preProcValuesDataset &lt;- preProcess(dataset_train_test_sin_outliers  %&gt;% dplyr::select(-OverallQual, -OverallCond,-Id)    ,method = c(&quot;center&quot;, &quot;scale&quot;))
+
+validation_sin_na &lt;- validation %&gt;%  na.omit() %&gt;% dplyr::select(-Id)
+preProcValuesValidation &lt;- preProcess(validation_sin_na  %&gt;% dplyr::select(-OverallQual, -OverallCond),method = c(&quot;center&quot;, &quot;scale&quot;))</code></pre>
+<pre><code>## Warning in preProcess.default(validation_sin_na %&gt;% dplyr::select(-
+## OverallQual, : These variables have zero variances: PoolArea</code></pre>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open')
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("hide" === "show");
+});
+</script>
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

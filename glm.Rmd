@@ -1,4 +1,72 @@
 ---
 title: "GLM"
-output: html_document
 ---
+
+```{r load_libraries}
+library(class)
+library(dplyr)
+library(caret)
+library (ROCR)
+source("funcs.R")
+```
+
+
+```{r load_data, message=FALSE, warning=FALSE, echo=TRUE}
+
+dataTrain <- readRDS("datasetTrain.csv")
+dataTest <- readRDS("datasetTest.csv")
+
+```
+
+
+```{r choose_features}
+
+dataTrain <- dataTrain %>% dplyr::select(-SalePrice)
+dataTest <- dataTest %>% dplyr::select(-SalePrice)
+
+group <- c('TotalSF','LotArea','GrLivArea','GrupoPrecio')
+
+dataTrain <- dataTrain %>% dplyr::select(group)
+dataTest <- dataTest %>% dplyr::select(group)
+
+```
+
+
+```{r process_data }
+
+
+XTrain <- dataTrain %>% dplyr::select(-GrupoPrecio)
+YTrain <- dataTrain$GrupoPrecio
+
+XTest <- dataTest %>% dplyr::select(-GrupoPrecio)
+YTest <- dataTest$GrupoPrecio
+
+#XTrain<- as.data.frame(lapply(XTrain, normalize_standar,4,5))
+#XTest<- as.data.frame(lapply(XTest,normalize_standar,3,4))
+
+```
+
+
+```{r run_model}
+
+model <- glm(GrupoPrecio ~ ., family=binomial(link='logit'),data=dataTrain)
+summary(model)
+
+pred <- predict(model, newdata = XTest,type='response')
+pred <- ifelse(pred > 0.5,1,0)
+misClasificError <- mean(pred != YTest)
+(misClasificError)
+```
+
+```{r evaluate_model}
+
+tab_test <- table(pred, YTest, dnn = c("Actual", "Predichos"))
+
+(tab_test)
+
+accuracy(tab_test)
+knn_test_error <- calc_error_rate(predicted.value=model, true.value=YTest)
+(knn_test_error)
+
+draw_confusion_matrix(tab_test, "Actual", "Predichos")
+```

@@ -2,133 +2,108 @@
 title: "SVM"
 ---
 
-```{r}
+```{r load_libraries}
+library(class)
+library(dplyr)
+library(caret)
+library (ROCR)
 library(e1071)
-library(ROCR)
-source("utils.R")
-source("process_nan.R")
-source("split_data.R")
+source("funcs.R")
 ```
 
 
-```{r}
-df_total <- read.csv(file = 'dataset/TrainTestDefinitivo1.csv')
-# Se convierte la variable respuesta a factor
-#datos$y <- as.factor(datos$y)
+```{r load_data, message=FALSE, warning=FALSE, echo=TRUE}
 
-# Para que la función svm() calcule el Support Vector Classifier,
-# se tiene que indicar que la función kernel es lineal.
-#modelo_svm <- svm(formula = y ~ X1 + X2, data = datos, kernel = "linear", cost = 10, scale = FALSE)
+dataTrain <- readRDS("datasetTrain.csv")
+dataTest <- readRDS("datasetTest.csv")
+
+dataValidation <- readRDS("datasetValidation.csv")
 
 ```
 
+```{r choose_features}
 
-```{r}
-v = discretize(df_total$SalePrice, breaks = 3, onlycuts =TRUE, infinity = TRUE)
+dataTrain <- dataTrain %>% dplyr::select(-SalePrice)
+dataTest <- dataTest %>% dplyr::select(-SalePrice)
 
-df_total$GrupoPrecio = cut(df_total$SalePrice, v)
-
-levels(df_total$GrupoPrecio) = c('barato', 'normal', 'caro')
-
-df_total$GrupoPrecio <- as.factor(df_total$GrupoPrecio)
-```
-
-
-```{r}
+dataValidation <- dataValidation %>% dplyr::select(-SalePrice)
 
 
 group <- c('TotalSF','GrLivArea','GrupoPrecio')
 
-df <- df_total %>% select(group)
+dataTrain <- dataTrain %>% dplyr::select(group)
+dataTest <- dataTest %>% dplyr::select(group)
 
-(get_cols_nan(df))
-#group <- c('SalePrice', 'Fence', 'BsmtQual', 'BsmtExposure', 'BsmtFinType1', 'FireplaceQu', 'GarageCond', 'Alley',  'GarageType'  )
+dataValidation <- dataValidation %>% dplyr::select(group)
 
-#df <- df_total %>% select(-group)
 
 ```
 
 
-```{r}
+```{r process_data }
 
-result <- split_data(df, 0.7)
+XTrain <- dataTrain %>% dplyr::select(-GrupoPrecio)
+YTrain <- dataTrain$GrupoPrecio
 
-train <- result$blockH
-test <- result$blockL
+XTest <- dataTest %>% dplyr::select(-GrupoPrecio)
+YTest <- dataTest$GrupoPrecio
 
-XTrain <- train %>% select(-GrupoPrecio)
-YTrain <- train$GrupoPrecio
-
-XTest <- test %>% select(-GrupoPrecio)
-YTest <- test$GrupoPrecio
+XValidation <- dataValidation %>% dplyr::select(-GrupoPrecio)
+YValidation <- dataValidation$GrupoPrecio
 
 ```
 
 
-```{r}
-#modelo_svm <- svm(formula = GrupoPrecio ~ ., data = train, kernel = "linear", cost = 45, scale = TRUE)
-#print(modelo_svm)
-#plot(modelo_svm, train)
-#y_pred = predict(modelo_svm, newdata = XTest) 
-#y_pred
 
-set.seed(1)
+```{r run_model}
 
-#tune.out <- tune(svm, GrupoPrecio ~ ., data = train, kernel = "linear", ranges = list(cost = c(0.001, 0.01, 0.1, 1, 5, 10, 100)))
-#bestmod = tune.out$best.model
-#summary(bestmod)
+#model <- svm(formula = GrupoPrecio ~ ., data = dataTrain, kernel = "linear", cost = 1, scale = TRUE)
+model <- best.tune(method = svm, train.x = GrupoPrecio ~ ., data = dataTrain, ranges = list(cost = c(0.001, 0.01, 0.1, 1, 5, 10, 100)), kernel = "linear")
 
-modelo_svm_linear <- best.tune(method = svm, train.x = GrupoPrecio ~ ., data = train, ranges = list(cost = c(0.001, 0.01, 0.1, 1, 5, 10, 100)), kernel = "linear")
-print(modelo_svm_linear)
-plot(modelo_svm_linear, train)
-y_pred_linear = predict(modelo_svm_linear, newdata = XTest) 
-#y_pred_linear
+plot(model, dataTrain)
 
-modelo_svm_radial <- best.tune(method = svm, train.x = GrupoPrecio ~ ., data = train, ranges = list(cost = c(0.001, 0.01, 0.1, 1, 5, 10, 100)), kernel = "radial", gamma = 1)
-print(modelo_svm_radial)
-plot(modelo_svm_radial, train)
-y_pred_radial = predict(modelo_svm_radial, newdata = XTest) 
-#y_pred_linear
+```
+
+```{r evaluate_model}
+
+pred = predict(model, newdata = XTest)
+tab_test <- table(pred, YTest, dnn = c("Actual", "Predichos"))
+
+(tab_test)
+draw_confusion_matrix(tab_test, "Actual", "Predichos")
+
+accuracy(tab_test)
+knn_test_error <- calc_error_rate(predicted.value=model, true.value=YTest)
+(knn_test_error)
 
 
 ```
 
 ```{r}
-tab_test_linear <- table(y_pred_linear, YTest, dnn = c("Actual", "Predichos")) 
-tab_test_linear
 
-tab_test_radial <- table(y_pred_radial, YTest, dnn = c("Actual", "Predichos")) 
-tab_test_radial
+cm <- confusionMatrix(tab_test)
+(cm)
+```
+
+
+```{r}
+
+pred = predict(model, newdata = XValidation)
+tab_validation <- table(pred, YValidation, dnn = c("Actual", "Predichos"))
+
+(tab_validation)
+draw_confusion_matrix(tab_validation, "Actual", "Predichos")
+
+accuracy(tab_validation)
+knn_validation_error <- calc_error_rate(predicted.value=model, true.value=YValidation)
+(knn_validation_error)
+
+
 ```
 
 ```{r}
 
-accuracy(tab_test_linear)
-knn_test_error_linear <- calc_error_rate(predicted.value=y_pred_linear, true.value=YTest)
-(knn_test_error_linear)
-draw_confusion_matrix(tab_test_linear, "Actual", "Predichos")
-
-
-accuracy(tab_test_radial)
-knn_test_error_radial <- calc_error_rate(predicted.value=y_pred_radial, true.value=YTest)
-(knn_test_error_radial)
-draw_confusion_matrix(tab_test_radial, "Actual", "Predichos")
-```
-```{r}
-rocplot = function(pred, truth, ...) {
-  predob = prediction(pred, truth)
-  perf = performance(predob, "tpr", "fpr")
-  plot(perf, ...)
-}
-```
-
-```{r}
-modelo_svm_radial_d <- best.tune(method = svm, train.x = GrupoPrecio ~ ., data = train, ranges = list(cost = c(0.001, 0.01, 0.1, 1, 5, 10, 100)), kernel = "radial", gamma = 1,  decision.values = T)
-
-#svmfit.opt = svm(y ~ ., data = dat[train, ], kernel = "radial", gamma = 2, cost = 1, decision.values = T)
-fitted = attributes(predict(modelo_svm_radial_d, newdata = XTest , decision.values = TRUE))$decision.
-
-par(mfrow = c(1, 2))
-#rocplot(fitted, train, main = "Training Data")
+cm <- confusionMatrix(tab_validation)
+(cm)
 ```
 

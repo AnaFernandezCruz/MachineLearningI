@@ -1,0 +1,435 @@
+---
+title: "GAM"
+---
+
+## R Markdown
+
+En primer lugar cargaremos los datasets obtenidos en las fases anteriores del modelado de datos.
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+
+library(mgcv)
+library(car)
+library(parallel)
+library(dplyr)
+
+
+datasetTrain <-  readRDS("datasetTrain.rds")
+datasetTest<-  readRDS("datasetTest.rds")
+validation_sin_na<-  readRDS("datasetValidation.rds")
+datasetTrainTransformed<-  readRDS("datasetTrainTransformed.rds")
+datasetTestTransformed<-  readRDS("datasetTestTransformed.rds")
+validationTransformed<-  readRDS("validationTransformed.rds")
+
+names(datasetTrain) <- make.names(names(datasetTrain))
+names(datasetTest) <- make.names(names(datasetTrain))
+names(validation_sin_na) <- make.names(names(validation_sin_na))
+names(datasetTrainTransformed) <- make.names(names(datasetTrainTransformed))
+names(datasetTestTransformed) <- make.names(names(datasetTestTransformed))
+names(validationTransformed) <- make.names(names(validation_sin_na))
+
+
+detectCores()
+ 
+###indicate number of cores used for parallel processing
+if (detectCores()>1) {
+cl <- makeCluster(detectCores()-1)
+} else cl <- NULL
+
+```
+
+Quitaremos de estos datasets posibles outliers que se hayan podido colar en pasos anteriores del procesamiento (casas muy baratos on una superficie exageradamente alta) y dividiremos en dataset en casas "baratas" (menos de 300000 dólares) y casas "caras" (más de 300000 dólares). Estos dataset serviran para extaer las variables más influyentes dentro de las poblaciones y crear a posteriori una regresión logística de tipo GAM para intentar discriminar casas caras de las baratas:
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+
+dataSetTrainGAM = datasetTrain %>%   filter( ! (exp(SalePrice) < 200000 &&exp(GrLivArea) > 4000  ))  %>%  na.omit()
+dataSetTestGAM = datasetTest %>% filter( ! (exp(SalePrice) < 200000 &&exp(GrLivArea) > 4000  ))  %>%  na.omit()
+dataSetValidationGAM = validation_sin_na  %>%  na.omit()
+
+dataSetTrainGAMCaros <-  dataSetTrainGAM %>% filter(exp(SalePrice) > 300000)
+dataSetTrainGAMBaratos <- dataSetTrainGAM %>% filter(exp(SalePrice) < 300000)
+dataSetTestGAMCaros <-  dataSetTestGAM %>% filter(exp(SalePrice) > 300000)
+dataSetTestGAMBaratos <- dataSetTestGAM %>% filter(exp(SalePrice) < 300000)
+
+```
+
+  La idea de esta práctica es generar dos modelos y compararlos entre sí:
+   - Un primer modelo GAM de regresión con la totalidad de la población y las variables más importantes de cara a la exactitud de la predicción.
+   - Otro modelo basado en un clasificador que discrimine entre casas caras y           baratas (se considera cara si su precio es mayor de 300000$) y cuyo resultado      final será la media aritmética ponderada por la probabilidad del primer modelo      entre otros dos modelos de regresión, uno para casas baratas y otro para casas      caras. 
+      
+
+  Para hacer una primera estimación del modelo, generaremos varios ramdon-forest con los dataset obtenidos en el paso anterior (casas baratas, casas caras y todas las casas). Comenzaremos por realizar este proceso sobre el conjunto de todas las casas y dibujaremos un gráfico resultado de generar el random-forest que nuestra una idea de lo importante que es una variable en el resultado final. Esta importancia muestra de forma aproximada (en valor medio para todos los árboles generados en el random-forest) el efecto en la precisión de la regresión (a través de su RMS) al eliminar la varible del conjunto de variables del modelo. El resultado es el siguiente:
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+library(randomForest)
+library(ggplot2)
+
+
+dataSetTrainTestGAMBaratos <- union(dataSetTrainGAMBaratos,dataSetTestGAMBaratos) 
+dataSetTrainTestGAMCaros   <- union(dataSetTrainGAMCaros,dataSetTestGAMCaros) 
+dataSetTrainTestGAM <- union(dataSetTrainGAM,dataSetTestGAM) 
+
+excludedVars <- c('SalePrice','GrupoPrecio')
+
+set.seed(2018)
+arbol_visualizacion <- randomForest(x= dataSetTrainTestGAM %>% dplyr::select(-excludedVars), y=dataSetTrainTestGAM$SalePrice, ntree=100,importance=TRUE)
+varImportantes <- importance(arbol_visualizacion)
+dataframeTestImportantes <- data.frame(Variables = row.names(varImportantes), MSE = varImportantes[,1])
+dataframeTestImportantes <- dataframeTestImportantes[order(dataframeTestImportantes$MSE, decreasing = TRUE),]
+
+ggplot(dataframeTestImportantes[1:30,], aes(x=reorder(Variables, MSE), y=MSE, fill=MSE)) + geom_bar(stat = 'identity') + labs(x = 'Variables', y= '% incremento en MSE si que quita aleatoriamente del dataframe la Variable para todas las casas') + coord_flip() + theme(legend.position="none")
+```
+
+  En el se muestran que las variables que tienen más impacto en la precisión son tienen que ver en primer lugar con las diversas áreas en las que se descompone una casas, el vecindario, el tipo de casa, tamaños medios de habitaciones, numero medio de baños y por último el tipo de calefacción que tienen y el año de construcción. Las calidades de los materiales y las características de garages, habitaciones, etc. tienen menos importancia a priori en el valor de la casa.
+
+Realizaremos ahora el mismo procedimiento pero sobre únicamente la población de casas baratas. El resultado es el siguiente:
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+arbol_visualizacion <- randomForest(x=dataSetTrainTestGAMBaratos %>% dplyr::select(-excludedVars ), y=dataSetTrainTestGAMBaratos$SalePrice, ntree=100,importance=TRUE)
+varImportantesTest <- importance(arbol_visualizacion)
+dataframeTestImportantesBaratos <- data.frame(Variables = row.names(varImportantesTest), MSE = varImportantesTest[,1])
+dataframeTestImportantesBaratos <- dataframeTestImportantesBaratos[order(dataframeTestImportantesBaratos$MSE, decreasing = TRUE),]
+
+ggplot(dataframeTestImportantesBaratos[1:30,], aes(x=reorder(Variables, MSE), y=MSE, fill=MSE)) + geom_bar(stat = 'identity') + labs(x = 'Variables', y= 'incremento en MSE si que quita aleatoriamente del dataframe la Variable para las casas baratas') + coord_flip() + theme(legend.position="none")
+
+```
+
+    En este primer modelo, a diferencia del anterior, cobran más importancia las variables que modelan el vecindario, el estilo arquitectónico de la casa, las características del garaje y las calidades de los materiales.
+
+    Ahora realizaremos el procedimiento anterior sobre las casas clasificadas como "caras":
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+
+arbol_visualizacion <- randomForest(x=dataSetTrainTestGAMCaros %>% dplyr::select(-excludedVars), y=dataSetTrainTestGAMCaros$SalePrice, ntree=100,importance=TRUE)
+varImportantesTest <- importance(arbol_visualizacion)
+dataframeTestImportantesCaros <- data.frame(Variables = row.names(varImportantesTest), MSE = varImportantesTest[,1])
+dataframeTestImportantesCaros <- dataframeTestImportantesCaros[order(dataframeTestImportantesCaros$MSE, decreasing = TRUE),]
+
+ggplot(dataframeTestImportantesCaros[1:30,], aes(x=reorder(Variables, MSE), y=MSE, fill=MSE)) + geom_bar(stat = 'identity') + labs(x = 'Variables', y= '% incremento en  MSE si que quita aleatoriamente del dataframe la Variable para las casas caras') + coord_flip() + theme(legend.position="none")
+
+```
+    En este modelo las variables que tienen más importancia tienen que ver con el tamaño de las casas y sus divisiones (porche, "Lot", habitaciones, sótano) y curiosamente el mes en el que se vendió, así como el tipo de venta. El vecindario y las calidades de la casa tienen un poder discriminador menor. No obstante, llama la antención que el que tenga elementos como piscina no aparezcan en esta gráfica.
+
+
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+
+var_modelo = c( 'GrLivArea','LotArea','Total_Bathrooms','MSZoning','LandContour','LotConfig','Condition1','BldgType','HouseStyle','RoofStyle','MasVnrType','Foundation','SaleType','SaleCondition','YearBuilt','OverallQual','OverallCond','PavedDrive','Fence','BsmtFinSF1','ExterQual','BsmtQual','BsmtExposure','BsmtFinType1','BsmtUnfSF','CentralAir','KitchenQual','Fireplaces','FireplaceQu','BedroomAbvGr','KitchenAbvGr','LotShape','GarageArea','GarageCond','Neighborhood','TotalSF','GarageType','MSSubClass','MasVnrArea','Total_porch_SF')
+
+var_modelo_with_SalePrice = c(var_modelo,'SalePrice')
+
+variablesEliminarCorr = c('TotalSF','X2ndFlrSF','FullBath','BsmtFullBath','X1stFlrSF')
+
+```
+
+  A continuación se muestran una serie de funciones de apoyo que ayudarán a generar los diferentes modelos de regresión realizados en este punto:
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+obtenFormulaGAM<-function(dataset,varPrincipal,modelo_continuas,variableNames,variablesEliminar=variablesEliminarCorr)
+{
+  variablesFinal <- c()
+  factores <- names(sapply(dataset,is.factor)[sapply(dataset,is.factor) == TRUE])
+  
+  
+        for(variable in modelo_continuas) 
+        {
+          #nuevoValor <- paste('s(',variable,',bs="ps",m=2,k=10,by = Neighborhood)')
+          #nuevoValor2 <- paste('s(',variable,',bs="ps",m=2,k=10')
+          numeroElementosDistintos = dim(unique(dataset[variable]))[1]
+          numeroK <- numeroElementosDistintos
+          if(numeroK > 9){
+            numeroK <- -1
+          }
+          
+          if(!variable  %in%  factores) {
+            #nuevoValor <- paste('s(',variable,',by = MSSubClass)')
+            nuevoValor2 <- paste('s(',variable,', k= ',numeroK,')')
+          } else {
+            nuevoValor2 <- paste(variable)
+            #nuevoValor <- paste('s(',variable,')')
+          }
+          #variablesFinal <- c(variablesFinal,nuevoValor2,nuevoValor)
+          
+          if(numeroElementosDistintos > 1 && ! variable %in% variablesEliminar ) {
+            variablesFinal <- c(variablesFinal,nuevoValor2)
+          }
+  }
+  #print(variablesFinal)
+  as.formula(paste(varPrincipal, paste(variablesFinal, collapse=" + "), sep=" ~ "))
+}
+
+
+obtenFormulaGAMCaret <-function(dataset,varPrincipal,modelo_continuas,variableNames)
+{
+  variablesFinal <- c()
+  factores <- names(sapply(dataset,is.factor)[sapply(dataset,is.factor) == TRUE])
+  
+  
+  for(variable in modelo_continuas) 
+  {
+    numeroElementosDistintos = dim(unique(dataset[variable]))[1]
+    numeroK <- numeroElementosDistintos
+    
+    
+    if(!variable  %in%  factores) {
+      #nuevoValor <- paste('s(',variable,',by = MSSubClass)')
+      #nuevoValor2 <- paste('s(',variable,', k= ',numeroK,')')
+      nuevoValor2 <- paste('',variable,'')
+    } else {
+      nuevoValor2 <- paste(variable)
+      #nuevoValor <- paste('s(',variable,')')
+    }
+    #variablesFinal <- c(variablesFinal,nuevoValor2,nuevoValor)
+    
+    if(numeroElementosDistintos > 1  ) {
+      variablesFinal <- c(variablesFinal,nuevoValor2)
+    }
+  }
+  #print(variablesFinal)
+  as.formula(paste(varPrincipal, paste(variablesFinal, collapse=" + "), sep=" ~ "))
+}
+
+```
+
+ A continuación generaremos los tres modelos de regresión comentados con anterioridad: un primer modelo con las 30 variables más importantes para el modelo que intente estimar el valor de una vivienda. Otro modelo que se concentre en las 20 características más importantes que definen las casas "baratas" y otro con las 13 características más importantes que definen las casas "caras". El siguiente código genera el primero de los modelos:
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+
+formulaCarosBaratos <- obtenFormulaGAM(dataSetTrainGAM,c('SalePrice'),dataframeTestImportantes[1:30,]$Variables)
+formulaBaratos <- obtenFormulaGAM(dataSetTrainGAMBaratos,c('SalePrice'),dataframeTestImportantesBaratos[1:20,]$Variables)
+formulaCaros <- obtenFormulaGAM(dataSetTrainGAMCaros,c('SalePrice'),dataframeTestImportantesCaros[1:20,]$Variables)
+
+
+
+modeloGAMCarosBaratos <- mgcv::gam( formulaCarosBaratos  , data = dataSetTrainGAM , family=gaussian, method="GCV.Cp",  cluster=cl ,control=list(nthreads=4),select = TRUE)
+
+
+#summary(modeloGAMCarosBaratos)
+#plot(modeloGAMCarosBaratos,all.terms=TRUE,residuals=TRUE)
+#mgcv::gam.check(modeloGAMCarosBaratos)
+#concurvity(modeloGAMCarosBaratos,full=TRUE)
+
+```
+
+  Este es el código que genera el modelo de las casas "baratas":
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+
+#b1 <- mgcv::gam(formula, data = datasetTrainGam2 , family=gaussian )
+modeloGAMBaratos <- mgcv::gam( formulaBaratos  , data = dataSetTrainGAM , family=gaussian, method="GCV.Cp",  cluster=cl ,control=list(nthreads=4))
+
+
+#summary(modeloGAMBaratos)
+#plot(modeloGAMBaratos,all.terms=TRUE,residuals=TRUE)
+#mgcv::gam.check(modeloGAMBaratos)
+
+```
+
+  Y este es el código que genera el modelo de las casas "caras":
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+
+modeloGAMCaros <- mgcv::gam( formulaCaros  , data = dataSetTrainGAM , family=gaussian, method="GCV.Cp",  cluster=cl ,control=list(nthreads=4))
+
+
+#summary(modeloGAMCaros)
+#plot(modeloGAMCaros,all.terms=TRUE,residuals=TRUE)
+#mgcv::gam.check(modeloGAMCaros)
+
+#library('caretEnsemble')
+#library('caret')
+
+#gamSpline,gam
+
+#formulaCarosBaratosCaret <- #obtenFormulaGAMCaret(dataSetTrainGAM,c('SalePrice'),dataframeTestImportantes[1:30,#]$Variables)
+
+#myControl <- trainControl(method="cv", number=5,savePredictions="final",index = #createFolds(dataSetTrainGAMBaratos$SalePrice, 5))
+#caretList(
+#  formulaCarosBaratosCaret,
+#  dataSetTrainGAMBaratos,
+#  methodList=c("gamSpline"),
+#  trControl=myControl
+#  )
+
+
+
+#cooksd <- cooks.distance(b1)
+
+# Plot the Cook's Distance using the traditional 4/n criterion
+#sample_size <- nrow(dataSetTrainGAM)
+#plot(cooksd, pch="*", cex=2, main="Influential Obs by Cooks distance")  # plot cook's distance
+#abline(h = 4/sample_size, col="red")  # add cutoff line
+#text(x=1:length(cooksd)+1, y=cooksd, labels=ifelse(cooksd>4/sample_size, #names(cooksd),""), col="red")  # add labels
+
+#influential <-which(cooksd > 20)
+
+#datasetTrain[c(566,1541),var_modelo]
+
+
+
+```
+
+  A continuación veremos las características y poder de predicción de estos tres modelos generados con los elementos de Train del dataset completo sobre los elementos de Test. para ell, calcularemos las correlaciones de los elementos predecidos y la métrica MAE. El código que realiza este proceso se muestra a continuación:
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+
+predictedCarosBaratosArray = matrix(, ncol = 3,nrow=nrow(dataSetTestGAM))
+for (index in seq(1,nrow(dataSetTestGAM))) {
+  try(
+    { 
+      predictedCarosBaratosArray[index,1] = index
+      predictedCarosBaratosArray[index,3] = dataSetTestGAM[index,]$SalePrice
+      predictedCarosBaratos <- predict(modeloGAMCarosBaratos,dataSetTestGAM[index,] , type="response")
+      predictedCarosBaratosArray[index,2] = predictedCarosBaratos[1]
+    }
+    )
+}
+
+
+predictedCarosArray = matrix(, ncol = 3,nrow=nrow(dataSetTestGAM))
+for (index in seq(1,nrow(dataSetTestGAM))) {
+  try(
+    { 
+      predictedCarosArray[index,1] = index
+      predictedCarosArray[index,3] = dataSetTestGAM[index,]$SalePrice
+      predictedCaros <- predict(modeloGAMCaros,dataSetTestGAM[index,] , type="response")
+      predictedCarosArray[index,2] = predictedCaros[1]
+    }
+    )
+}
+
+predictedBaratosArray = matrix(, ncol = 3,nrow=nrow(dataSetTestGAM))
+for (index in seq(1,nrow(dataSetTestGAM))) {
+  try(
+    { 
+      predictedBaratosArray[index,1] = index
+      predictedBaratosArray[index,3] = dataSetTestGAM[index,]$SalePrice
+      predictedBaratos <- predict(modeloGAMBaratos,dataSetTestGAM[index,] , type="response")
+      predictedBaratosArray[index,2] = predictedBaratos[1]
+    }
+    )
+}
+
+mae <- function(error) { mean(abs(error), na.rm=TRUE) }
+
+
+corCarosBaratos <- cor(predictedCarosBaratosArray,use="complete.obs")[2,3]
+corCaros <- cor(predictedCarosArray,use="complete.obs")[2,3]
+corBaratos<- cor(predictedBaratosArray,use="complete.obs")[2,3]
+
+maeCarosBaratos <- mae(predictedCarosBaratosArray[,2]-predictedCarosBaratosArray[,3])
+maeCaros <- mae(predictedCarosArray[,2]-predictedCarosArray[,3])
+maeBaratos <- mae(predictedBaratosArray[,2]-predictedBaratosArray[,3])
+
+```
+
+  La siguiente función muestra los valores AIC para los 3 modelos. Como se ve, el modelo denominado "modeloGAMCarosBaratos" es ligeramente mejor que el resto de los modelos. Con lo que es un punto más para seleccionar dicho modelo frente a los otros dos:
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+AIC(modeloGAMCarosBaratos,modeloGAMBaratos,modeloGAMCaros)
+
+```
+
+
+  Con estos resultados en la mano, elegiremos como mejor modelo para predecir el valor de las casas (el logaritmo del mismo) a el modelo que no discrimina entre las características de las casas baratas y las caras (parece un poco de sentido común que al final el mejor modelo sea esta).
+  
+  Comprobaremos la validad del modelo en primer lugar mostrando las típicas gráficas que muestran la distribución de los resíduos para comprobar si las hipótesis básicas para las cuales un modelo lineal es válido se cumplen (homocedasticidad de los residuos, incorrelación de los residuos, y normalidad de los residuos).  Comprobamos que la hipótesis de homocedasticida no se cumple en el modelo, existe todavía ciertos cambios en la varianza de los errores en función de la predicción (una ligera parábola hacia arriba). Hay que seguir trabajando en el ajuste de los parámetros de este modelo para conseguir cumplir con este criterio.
+
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+
+mgcv::gam.check(modeloGAMCarosBaratos)
+
+```
+
+  Ahora conprobaremos en el modelo si hay correlación elevada entre las variables. El concepto equivalente en los modelos de tipo GAM se denomina "concurvity", y la siguiente función ayuda a mostrar este rasgo en los modelos GAM:
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+
+concurvity(modeloGAMCarosBaratos)
+
+```
+
+   Se comprueba que, efectivamente, existe un elevado grado de correlación entre alguna de las combinaciones de las variables "GrLivArea", "LotArea", "TotRmsAbvGrd" y "TotalBsmtSF". Está claro que sí que se puede dar esa correlación entre "GrLivArea" , "TotalBsmsSF" y "TotRmsAbvGrd", debido a que todas tienen relacióncon el área de la planta del edificio, pero no encuentro razón para que la variable "LotArea" aparezca en este listado.
+   
+   A continuación generaremos el modelo de regresión logística para clasificar las casas en "baratas" y "caras". Nos encontramos con un dataset muy imbalaceado (menos del 5% de las casas son caras). De momento, no se aplica ninguna técnica que ayuda a conseguir un dataset más balanceado (submuestreo, generación de datos artificiales que ayuden a balancear el dataset, etc.).  El siguiente código realizrá en modelo sobre las variables que hemos considerado importantes para discernir las casas baratas de las caras:
+
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+
+dataSetTrainGAMLogistic <- dataSetTrainGAM %>%  mutate(precioCaro = SalePrice >= log(300000)) %>% dplyr::select(-c("SalePrice"))
+dataSetTestGAMLogistic <- dataSetTestGAM %>%  mutate(precioCaro = SalePrice >= log(300000)) %>% dplyr::select(-c("SalePrice"))
+
+formulaCarosRegresion <-  obtenFormulaGAM(dataSetTrainGAMCaros,c('precioCaro'),dataframeTestImportantesCaros[1:13,]$Variables)
+
+modeloGAMLogisticRegressionCaros <- mgcv::gam( formulaCarosRegresion  , data = dataSetTrainGAMLogistic , family=binomial(link="logit"), method="GCV.Cp",  cluster=cl ,control=list(nthreads=4))
+```
+
+  Como antes, comprobaremos la validez del modelo, con las gráficas de residuos.
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+#summary(modeloGAMLogisticRegressionCaros)
+#plot(modeloGAMLogisticRegressionCaros,all.terms=TRUE,residuals=TRUE)
+mgcv::gam.check(modeloGAMLogisticRegressionCaros)
+
+```
+
+  Y por último, comprobaremos las posibles autocorrelacines elevadas entre variables dentro del modelo:
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+concurvity(modeloGAMLogisticRegressionCaros)
+```
+
+    Nos encontramos con los mismos probemas que en el caso del modelo anterior.
+    A continuación, seleccionaremos un punto de corte óptimo para realizar la discriminación entre lo que se considera una casa barata y cara utilizando el criterio dado por la función "OptimalValue" de la biblioteca "InformationValue". Además, dibujaremos una curva "ROC" para evaluar la calidad del clasificador:
+
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+predicted <- plogis(predict(modeloGAMLogisticRegressionCaros, dataSetTestGAMLogistic))
+
+library(InformationValue)
+optCutOff <- optimalCutoff(dataSetTestGAMLogistic$precioCaro, predicted)[1] 
+
+misClassError(dataSetTestGAMLogistic$precioCaro, predicted, threshold = optCutOff)
+
+plotROC(dataSetTestGAMLogistic$precioCaro, predicted)
+
+```
+
+   Como se observa, a priori el clasificador hace un trabajo razonable, pero ¿es suficientemente bueno dado lo imbalanceado del dataset? Para ellos medimos el grado de concordancia entre los elementos predecidos y los valores reales en el dataset de Train:
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+Concordance(dataSetTestGAMLogistic$precioCaro, predicted)
+```
+
+  Como vemos, este clasificador no es mejor que tirar un dado "al azar" y clasificar según el resultado obtenido. Este resultado hay que mejorarlo con técnicas que de alguna forma "balanceen" la cantidad de datos en las dos clases.
+  
+  A continuación mostramos la matriz de confusión del modelo con los datos de TEST:
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+confusionMatrix(dataSetTestGAMLogistic$precioCaro, predicted, threshold = optCutOff)
+```
+
+
+
+
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+modeloGAMBaratos2 <- mgcv::gam( formulaBaratos  , data = dataSetTrainGAMBaratos , family=gaussian, method="GCV.Cp",  cluster=cl ,control=list(nthreads=4))
+
+#modeloGAMCaros2 <- mgcv::gam( formulaBaratos  , data = dataSetTrainGAMCaros , #family=gaussian, method="GCV.Cp",  cluster=cl ,control=list(nthreads=4))
+
+```
+
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+
+prediccionModeloFinal <- function(dato,clasificador = modeloGAMLogisticRegressionCaros,modeloCaros = modeloGAMCaros ,modeloBaratos = modeloGAMBaratos,umbralDecision = optCutOff) {
+  
+}
+
+```
+
+
+
+
