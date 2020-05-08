@@ -338,123 +338,64 @@ library(dplyr)</code></pre>
 library(e1071)
 source(&quot;funcs.R&quot;)</code></pre>
 <pre class="r"><code>dataTrain &lt;- readRDS(&quot;datasetTrain.rds&quot;)
-dataTest &lt;- readRDS(&quot;datasetTest.rds&quot;)
-
-dataValidation &lt;- readRDS(&quot;datasetValidation.rds&quot;)</code></pre>
+dataTest &lt;- readRDS(&quot;datasetTest.rds&quot;)</code></pre>
 <pre class="r"><code>dataTrain &lt;- dataTrain %&gt;% dplyr::select(-SalePrice)
 dataTest &lt;- dataTest %&gt;% dplyr::select(-SalePrice)
-
-dataValidation &lt;- dataValidation %&gt;% dplyr::select(-SalePrice)
-
 
 group &lt;- c(&#39;TotalSF&#39;,&#39;LotArea&#39;,&#39;GrupoPrecio&#39;)
 
 dataTrain &lt;- dataTrain %&gt;% dplyr::select(group)
-dataTest &lt;- dataTest %&gt;% dplyr::select(group)
-
-dataValidation &lt;- dataValidation %&gt;% dplyr::select(group)</code></pre>
+dataTest &lt;- dataTest %&gt;% dplyr::select(group)</code></pre>
 <pre class="r"><code>XTrain &lt;- dataTrain %&gt;% dplyr::select(-GrupoPrecio)
 YTrain &lt;- dataTrain$GrupoPrecio
 
 XTest &lt;- dataTest %&gt;% dplyr::select(-GrupoPrecio)
-YTest &lt;- dataTest$GrupoPrecio
-
-XValidation &lt;- dataValidation %&gt;% dplyr::select(-GrupoPrecio)
-YValidation &lt;- dataValidation$GrupoPrecio</code></pre>
+YTest &lt;- dataTest$GrupoPrecio</code></pre>
 <pre class="r"><code>#model &lt;- svm(formula = GrupoPrecio ~ ., data = dataTrain, kernel = &quot;linear&quot;, cost = 1, scale = TRUE)
-model &lt;- best.tune(method = svm, train.x = GrupoPrecio ~ ., data = dataTrain, ranges = list(cost = c(0.001, 0.01, 0.1, 1, 5, 10, 100)), kernel = &quot;radial&quot;)
+model &lt;- best.tune(method = svm, train.x = GrupoPrecio ~ ., data = dataTrain, ranges = list(cost = c(0.001, 0.01, 0.1, 1, 5, 10, 100)), kernel = &quot;radial&quot;, gamma = 1)
 
 plot(model, dataTrain)</code></pre>
 <p><img src="svm_files/figure-html/run_model-1.png" width="672" /></p>
-<pre class="r"><code>pred = predict(model, newdata = XTest)
+<pre class="r"><code>pred &lt;- predict(model, newdata = XTest)
 tab_test &lt;- table(pred, YTest, dnn = c(&quot;Actual&quot;, &quot;Predichos&quot;))
-
 (tab_test)</code></pre>
 <pre><code>##         Predichos
 ## Actual   Barato Caro
-##   Barato    608  106
-##   Caro       15   18</code></pre>
+##   Barato    647  103
+##   Caro       17   22</code></pre>
 <pre class="r"><code>draw_confusion_matrix(tab_test, &quot;Actual&quot;, &quot;Predichos&quot;)</code></pre>
 <p><img src="svm_files/figure-html/evaluate_model-1.png" width="672" /></p>
 <pre class="r"><code>accuracy(tab_test)</code></pre>
-<pre><code>## [1] 83.80187</code></pre>
-<pre class="r"><code>knn_test_error &lt;- calc_error_rate(predicted.value=model, true.value=YTest)</code></pre>
-<pre><code>## Warning in `!=.default`(true.value, predicted.value): longitud de objeto mayor
-## no es múltiplo de la longitud de uno menor</code></pre>
-<pre><code>## Warning in is.na(e1) | is.na(e2): longitud de objeto mayor no es múltiplo de la
-## longitud de uno menor</code></pre>
-<pre class="r"><code>(knn_test_error)</code></pre>
-<pre><code>## [1] 1</code></pre>
+<pre><code>## [1] 84.79087</code></pre>
+<pre class="r"><code>knn_test_error &lt;- calc_error_rate(predicted.value=pred, true.value=YTest)
+(knn_test_error)</code></pre>
+<pre><code>## [1] 0.1520913</code></pre>
 <pre class="r"><code>cm &lt;- confusionMatrix(tab_test)
 (cm)</code></pre>
 <pre><code>## Confusion Matrix and Statistics
 ## 
 ##         Predichos
 ## Actual   Barato Caro
-##   Barato    608  106
-##   Caro       15   18
+##   Barato    647  103
+##   Caro       17   22
 ##                                           
-##                Accuracy : 0.838           
-##                  95% CI : (0.8096, 0.8637)
-##     No Information Rate : 0.834           
-##     P-Value [Acc &gt; NIR] : 0.4069          
+##                Accuracy : 0.8479          
+##                  95% CI : (0.8209, 0.8723)
+##     No Information Rate : 0.8416          
+##     P-Value [Acc &gt; NIR] : 0.3337          
 ##                                           
-##                   Kappa : 0.1715          
+##                   Kappa : 0.2087          
 ##                                           
-##  Mcnemar&#39;s Test P-Value : 2.796e-16       
+##  Mcnemar&#39;s Test P-Value : 8.533e-15       
 ##                                           
-##             Sensitivity : 0.9759          
-##             Specificity : 0.1452          
-##          Pos Pred Value : 0.8515          
-##          Neg Pred Value : 0.5455          
-##              Prevalence : 0.8340          
-##          Detection Rate : 0.8139          
-##    Detection Prevalence : 0.9558          
-##       Balanced Accuracy : 0.5605          
-##                                           
-##        &#39;Positive&#39; Class : Barato          
-## </code></pre>
-<pre class="r"><code>pred = predict(model, newdata = XValidation)
-tab_validation &lt;- table(pred, YValidation, dnn = c(&quot;Actual&quot;, &quot;Predichos&quot;))
-
-(tab_validation)</code></pre>
-<pre><code>##         Predichos
-## Actual   Barato Caro
-##   Barato    218   45
-##   Caro        2    5</code></pre>
-<pre class="r"><code>draw_confusion_matrix(tab_validation, &quot;Actual&quot;, &quot;Predichos&quot;)</code></pre>
-<p><img src="svm_files/figure-html/unnamed-chunk-2-1.png" width="672" /></p>
-<pre class="r"><code>accuracy(tab_validation)</code></pre>
-<pre><code>## [1] 82.59259</code></pre>
-<pre class="r"><code>knn_validation_error &lt;- calc_error_rate(predicted.value=model, true.value=YValidation)
-(knn_validation_error)</code></pre>
-<pre><code>## [1] 1</code></pre>
-<pre class="r"><code>cm &lt;- confusionMatrix(tab_validation)
-(cm)</code></pre>
-<pre><code>## Confusion Matrix and Statistics
-## 
-##         Predichos
-## Actual   Barato Caro
-##   Barato    218   45
-##   Caro        2    5
-##                                           
-##                Accuracy : 0.8259          
-##                  95% CI : (0.7753, 0.8692)
-##     No Information Rate : 0.8148          
-##     P-Value [Acc &gt; NIR] : 0.3529          
-##                                           
-##                   Kappa : 0.1361          
-##                                           
-##  Mcnemar&#39;s Test P-Value : 8.993e-10       
-##                                           
-##             Sensitivity : 0.9909          
-##             Specificity : 0.1000          
-##          Pos Pred Value : 0.8289          
-##          Neg Pred Value : 0.7143          
-##              Prevalence : 0.8148          
-##          Detection Rate : 0.8074          
-##    Detection Prevalence : 0.9741          
-##       Balanced Accuracy : 0.5455          
+##             Sensitivity : 0.9744          
+##             Specificity : 0.1760          
+##          Pos Pred Value : 0.8627          
+##          Neg Pred Value : 0.5641          
+##              Prevalence : 0.8416          
+##          Detection Rate : 0.8200          
+##    Detection Prevalence : 0.9506          
+##       Balanced Accuracy : 0.5752          
 ##                                           
 ##        &#39;Positive&#39; Class : Barato          
 ## </code></pre>

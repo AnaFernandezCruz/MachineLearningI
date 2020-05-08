@@ -1,5 +1,8 @@
 ---
 title: "SVM"
+output: 
+  html_document:
+    code_folding: hide
 ---
 
 ```{r load_libraries}
@@ -17,8 +20,6 @@ source("funcs.R")
 dataTrain <- readRDS("datasetTrain.rds")
 dataTest <- readRDS("datasetTest.rds")
 
-dataValidation <- readRDS("datasetValidation.rds")
-
 ```
 
 ```{r choose_features}
@@ -26,15 +27,10 @@ dataValidation <- readRDS("datasetValidation.rds")
 dataTrain <- dataTrain %>% dplyr::select(-SalePrice)
 dataTest <- dataTest %>% dplyr::select(-SalePrice)
 
-dataValidation <- dataValidation %>% dplyr::select(-SalePrice)
-
-
 group <- c('TotalSF','LotArea','GrupoPrecio')
 
 dataTrain <- dataTrain %>% dplyr::select(group)
 dataTest <- dataTest %>% dplyr::select(group)
-
-dataValidation <- dataValidation %>% dplyr::select(group)
 
 
 ```
@@ -48,9 +44,6 @@ YTrain <- dataTrain$GrupoPrecio
 XTest <- dataTest %>% dplyr::select(-GrupoPrecio)
 YTest <- dataTest$GrupoPrecio
 
-XValidation <- dataValidation %>% dplyr::select(-GrupoPrecio)
-YValidation <- dataValidation$GrupoPrecio
-
 ```
 
 
@@ -58,7 +51,7 @@ YValidation <- dataValidation$GrupoPrecio
 ```{r run_model}
 
 #model <- svm(formula = GrupoPrecio ~ ., data = dataTrain, kernel = "linear", cost = 1, scale = TRUE)
-model <- best.tune(method = svm, train.x = GrupoPrecio ~ ., data = dataTrain, ranges = list(cost = c(0.001, 0.01, 0.1, 1, 5, 10, 100)), kernel = "radial")
+model <- best.tune(method = svm, train.x = GrupoPrecio ~ ., data = dataTrain, ranges = list(cost = c(0.001, 0.01, 0.1, 1, 5, 10, 100)), kernel = "radial", gamma = 1)
 
 plot(model, dataTrain)
 
@@ -68,14 +61,12 @@ plot(model, dataTrain)
 
 pred <- predict(model, newdata = XTest)
 tab_test <- table(pred, YTest, dnn = c("Actual", "Predichos"))
-
 (tab_test)
 draw_confusion_matrix(tab_test, "Actual", "Predichos")
 
 accuracy(tab_test)
-knn_test_error <- calc_error_rate(predicted.value=model, true.value=YTest)
+knn_test_error <- calc_error_rate(predicted.value=pred, true.value=YTest)
 (knn_test_error)
-
 ```
 
 ```{r}
@@ -84,25 +75,4 @@ cm <- confusionMatrix(tab_test)
 (cm)
 ```
 
-
-```{r}
-
-pred = predict(model, newdata = XValidation)
-tab_validation <- table(pred, YValidation, dnn = c("Actual", "Predichos"))
-
-(tab_validation)
-draw_confusion_matrix(tab_validation, "Actual", "Predichos")
-
-accuracy(tab_validation)
-knn_validation_error <- calc_error_rate(predicted.value=model, true.value=YValidation)
-(knn_validation_error)
-
-
-```
-
-```{r}
-
-cm <- confusionMatrix(tab_validation)
-(cm)
-```
 

@@ -1,9 +1,16 @@
 ---
 title: "K Nearest Neighbors - KNN"
+output: 
+  html_document:
+    code_folding: hide
 ---
+A continuación aplicaremos un modelo knn o k nearest neighbors a nuestro grupo de datos. El algoritmo clasifica cada dato nuevo en el grupo que corresponda, según tenga "k" vecinos más cerca de un grupo o de otro. Es decir, calcula la distancia del elemento nuevo a cada uno de los existentes, y ordena dichas distancias de menor a mayor para ir seleccionando el grupo al que pertenece. Este grupo será, por tanto, el de mayor frecuencia con menores distancias.
 
+El knn es un algoritmo de aprendizaje supervisado, es decir, que a partir de un juego de datos inicial su objetivo será el de clasificar correctamente todas las instancias nuevas.
 
-```{r load_libraries}
+Cargamos las librerias y los datos que utilizaremos para el entrenamiento, con el conjunto de train, y la evaluación del modelo con el conjunto de test:
+
+```{r message = FALSE}
 library(class)
 library(dplyr)
 library(caret)
@@ -15,42 +22,37 @@ data(Pima.te)
 
 ```
 
-Cargamos los datos que utilizaremos para el entrenamiento, el test y la validación:
-
 ```{r load_data, message=FALSE, warning=FALSE, echo=TRUE}
 
 dataTrain <- readRDS("datasetTrain.rds")
 dataTest <- readRDS("datasetTest.rds")
-dataValidation <- readRDS("datasetValidation.rds")
-
-#dataTrain<-  readRDS("datasetTrainTransformed.rds")
-#dataTest<-  readRDS("datasetTestTransformed.rds")
-#dataValidation<-  readRDS("validationTransformed.rds")
-
 
 ```
 
-Procedemos a despejar de los dataset la variable objetivo original SalePrice. De la cual creamos la variable GrupoPrecio, del tipo categorica.
+Procedemos a despejar de los dataset (train y test) la variable objetivo original SalePrice. De la cual ya hemos creamos la variable GrupoPrecio, del tipo categorica. Separando asi por una parte un grupo de casas baratas y otro grupo de casas caras.
 
-```{r choose_features}
+Nuestro modelo clasificará casas entre estos dos grupos.
+
+```{r}
 
 dataTrain <- dataTrain %>% dplyr::select(-SalePrice)
 dataTest <- dataTest %>% dplyr::select(-SalePrice)
 
-dataValidation <- dataValidation %>% dplyr::select(-SalePrice)
+```
 
+Para este modelo se han elegido un grupo de caracteristica del dataset original. Son todas de numéricas y se han escogido debido a un analisis exploratorio de los datos previos y la realización de un modelo de randon forest que se explicara en otra sección del informe.
+
+A continuación preparamos los dataset para entrenar el modelo y posteriormente evaluar como se comporta con el conjunto de test.
+
+```{r}
 group <- c('TotalSF','LotArea','GrLivArea','GrupoPrecio')
 
 dataTrain <- dataTrain %>% dplyr::select(group)
 dataTest <- dataTest %>% dplyr::select(group)
 
-dataValidation <- dataValidation %>% dplyr::select(group)
-
 ```
 
-A continuación preparamos los dataset para entrenar el modelo y posteriormente evaluar como se comporta con el conjunto de test y finalmente con el grupo de validación.
-
-```{r process_data }
+```{r}
 
 XTrain <- dataTrain %>% dplyr::select(-GrupoPrecio)
 YTrain <- dataTrain$GrupoPrecio
@@ -58,13 +60,35 @@ YTrain <- dataTrain$GrupoPrecio
 XTest <- dataTest %>% dplyr::select(-GrupoPrecio)
 YTest <- dataTest$GrupoPrecio
 
-XValidation <- dataValidation %>% dplyr::select(-GrupoPrecio)
-YValidation <- dataValidation$GrupoPrecio
+```
+
+Inciamos el modelo entrenado con el conjunto de entrenamiento y evaluando como se comporta con el mismo. Si los grupos estan bien separados con una k mayor que uno deberia de dar un porcentaje de acierto alto, porque se evalua contra el mismo conjutno que usamos para entrenar el modelo.
+
+
+```{r}
+
+model <- knn(XTrain, XTrain, cl = YTrain, k=3)
 
 ```
 
+```{r }
 
-```{r run_model}
+tab_train <- table(model, YTrain, dnn = c("Actual", "Predichos"))
+(tab_train)
+accuracy(tab_train)
+knn_train_error <- calc_error_rate(predicted.value=model, true.value=YTrain)
+(knn_train_error)
+draw_confusion_matrix(tab_train, "Actual", "Predichos")
+cm <- confusionMatrix(tab_train)
+(cm)
+
+```
+
+Podemos observar que al acierto es alto pero no como deberia ya que intenta clasificar los mismos elementos que se usaron para entrenar. Esto muestra que posiblemente se tengan que volver a escoger un grupo de caracteristicas diferentes.
+
+Procedemos a evaluar el modelo con nuestro conjunto de test y buscar el valor de k más optimo.
+
+```{r}
 
 model <- knn(XTrain, XTest, cl = YTrain, k=3)
 
@@ -73,35 +97,17 @@ model <- knn(XTrain, XTest, cl = YTrain, k=3)
 ```{r }
 
 tab_test <- table(model, YTest, dnn = c("Actual", "Predichos"))
-
 (tab_test)
-
 accuracy(tab_test)
 knn_test_error <- calc_error_rate(predicted.value=model, true.value=YTest)
 (knn_test_error)
-
 draw_confusion_matrix(tab_test, "Actual", "Predichos")
-
-
-#scores.knn <- attr(model, "prob")
-#scores.knn[model=="No"] <- 1-scores.knn[model=="No"]
-#scores <- data.frame(LDA=scores.knn,kNN=scores.knn)
-
-#results <- HMeasure(YTest,scores)
-#par(mfrow=c(2,2))
-#plotROC(results,which=1)
-#plotROC(results,which=2)
-#plotROC(results,which=3)
-#plotROC(results,which=4)
-```
-
-```{r }
-
 cm <- confusionMatrix(tab_test)
 (cm)
+
 ```
 
-Obtemos el hiperparametro k (el numero de vecinos que determinaran la clase que predice el modelo), probando una series de valores y evaluando cual da una accuary mayor.
+Obtemos el hiperparametro k (el numero de vecinos que determinaran la clase que predice el modelo), probando una series de valores y evaluando cual da un % de acierto mayor.
 
 ```{r }
 i <- 1
@@ -115,49 +121,26 @@ for(i in 1:100){
   cat(opt, '=', k[i], '')
 }
 plot(k, type="b", xlab="K-Value", ylab="Accuracy level")
-(k)
 ```
-Una vez obtenida la k más optima podemos ver que el modelo funciona mejor.
+Una vez obtenida la k más optima, evaluamos al modelo con el conjunto de test y con el valor de k que hemos obtenido. El modelo deberia de funcionar algo mejor.
 
 ```{r}
 
 model <- knn(XTrain, XTest, cl = YTrain, k=11)
 
+saveRDS(model, "modelKNN.rds")
 ```
 
 ```{r }
 
-tab_test <- table(model, YTest, dnn = c("Actual", "Predichos"))
+tab_test_h <- table(model, YTest, dnn = c("Actual", "Predichos"))
 
-(tab_test)
-draw_confusion_matrix(tab_test, "Actual", "Predichos")
+(tab_test_h)
+draw_confusion_matrix(tab_test_h, "Actual", "Predichos")
 
-accuracy(tab_test)
-knn_test_error <- calc_error_rate(predicted.value=model, true.value=YTest)
-(knn_test_error)
-cm <- confusionMatrix(tab_test)
+accuracy(tab_test_h)
+knn_test_h_error <- calc_error_rate(predicted.value=model, true.value=YTest)
+(knn_test_h_error)
+cm <- confusionMatrix(tab_test_h)
 (cm)
-```
-
-Utilizamos el conjunto de validación para comprobar nuestro modelo.
-
-```{r}
-
-model <- knn(XTrain, XValidation, cl = YTrain, k=11)
-
-```
-
-```{r }
-
-tab_validation <- table(model, YValidation, dnn = c("Actual", "Predichos"))
-
-(tab_validation)
-draw_confusion_matrix(tab_validation, "Actual", "Predichos")
-
-accuracy(tab_validation)
-knn_validation_error <- calc_error_rate(predicted.value=model, true.value=YValidation)
-(knn_validation_error)
-cm <- confusionMatrix(tab_validation)
-(cm)
-
 ```
