@@ -597,7 +597,10 @@ summary(vecindario_agrupado)</code></pre>
 ##                     Mean   :1978  
 ##                     3rd Qu.:1999  
 ##                     Max.   :2006</code></pre>
-<pre class="r"><code>#En la variable grouped_list tenemos los vecindarios de Boston y la media del año
+<pre class="r"><code> anoMedio  &lt;- round(mean(vecindario_precioGaraje$GarageYrBlt, na.rm = TRUE))
+ 
+
+#En la variable grouped_list tenemos los vecindarios de Boston y la media del año
 #en el que fueron construidos sus garajes. Esos son los valores que usaremos para imputar.
 
 year_corregido&lt;- c()
@@ -614,11 +617,19 @@ for(j in 1:length(vecindario_precioGaraje$GarageYrBlt)) {
     }
     year_a_imputar = vecindario_agrupado[index_vecindario,2]
     na.rm=TRUE
-    year_corregido&lt;-c(year_corregido,year_a_imputar)
+    #year_corregido&lt;-c(year_corregido,year_a_imputar)
+    if(length( year_a_imputar ) &gt; 0) {
+          year_corregido[length(year_corregido) + 1] &lt;- year_a_imputar
+    } else {
+        year_corregido[length(year_corregido) + 1] &lt;- anoMedio
+    }
   }else {
-    year_corregido&lt;-c(year_corregido,vecindario_precioGaraje$GarageYrBlt[j])
-    next 
+    #year_corregido&lt;-c(year_corregido,vecindario_precioGaraje$GarageYrBlt[j])
+    year_corregido[length(year_corregido) + 1] &lt;- vecindario_precioGaraje$GarageYrBlt[j]
+    #next 
   }
+  #print(paste0(&quot;Current element: &quot;, j,&quot; y length &quot;,length(year_corregido)))
+  
 }
 
 length(year_corregido)</code></pre>
@@ -643,7 +654,7 @@ for(i in nombresVariablesFactores){
 
 
 dataset$MSSubClass &lt;- as.factor(dataset$MSSubClass)
-dataset$MSSubClass&lt;-revalue(dataset$MSSubClass, c(&#39;20&#39;=&#39;1_story_1946_&#39;, &#39;30&#39;=&#39;1_story_1945_&#39;, &#39;40&#39;=&#39;1_story_unf_attic&#39;, &#39;45&#39;=&#39;1_5_story_unf&#39;, &#39;50&#39;=&#39;1_5 story_fin&#39;, &#39;60&#39;=&#39;2_story_1946_&#39;, &#39;70&#39;=&#39;2_story_1945_&#39;, &#39;75&#39;=&#39;2_5_story_all_ages&#39;, &#39;80&#39;=&#39;split_multi_level&#39;, &#39;85&#39;=&#39;split_foyer&#39;, &#39;90&#39;=&#39;duplex_all_style_age&#39;, &#39;120&#39;=&#39;1_story_PUD_1946_&#39;, &#39;150&#39;=&#39;1_5_story_PUD_all&#39;, &#39;160&#39;=&#39;2_story_PUD_1946&#39;, &#39;180&#39;=&#39;PUD_multilevel&#39;, &#39;190&#39;=&#39;2_family_conversion&#39;))</code></pre>
+dataset$MSSubClass&lt;-revalue(dataset$MSSubClass, c(&#39;20&#39;=&#39;1_story_1946_&#39;, &#39;30&#39;=&#39;1_story_1945_&#39;, &#39;40&#39;=&#39;1_story_unf_attic&#39;, &#39;45&#39;=&#39;1_5_story_unf&#39;, &#39;50&#39;=&#39;1_5_story_fin&#39;, &#39;60&#39;=&#39;2_story_1946_&#39;, &#39;70&#39;=&#39;2_story_1945_&#39;, &#39;75&#39;=&#39;2_5_story_all_ages&#39;, &#39;80&#39;=&#39;split_multi_level&#39;, &#39;85&#39;=&#39;split_foyer&#39;, &#39;90&#39;=&#39;duplex_all_style_age&#39;, &#39;120&#39;=&#39;1_story_PUD_1946_&#39;, &#39;150&#39;=&#39;1_5_story_PUD_all&#39;, &#39;160&#39;=&#39;2_story_PUD_1946&#39;, &#39;180&#39;=&#39;PUD_multilevel&#39;, &#39;190&#39;=&#39;2_family_conversion&#39;))</code></pre>
 <pre class="r"><code>#OverallQual, OverallCond (dejarlas como estan)
 levesl1_10 &lt;- c(&quot;Very Poor&quot;,&quot;Poor&quot;,&quot;Fair&quot;,&quot;Below Average&quot;,&quot;Average&quot;,&quot;Above Average&quot;,&quot;Good&quot;,&quot;Very Good&quot;,&quot;Excellent&quot;,&quot;Very Excellent&quot;)
 
@@ -765,7 +776,8 @@ library(forcats)
 <pre><code>## The following objects are masked from &#39;package:base&#39;:
 ## 
 ##     abbreviate, write</code></pre>
-<pre class="r"><code>v = discretize(dataset$SalePrice, method = &quot;interval&quot;, breaks = 2, onlycuts = TRUE)
+<pre class="r"><code>#v = discretize(dataset$SalePrice, breaks = 3, onlycuts = TRUE)
+v = discretize(dataset$SalePrice, method = &quot;fixed&quot;, breaks = c(-Inf,210000,Inf), onlycuts = TRUE)
 
 dataset$GrupoPrecio = cut(dataset$SalePrice,v)
 levels(dataset$GrupoPrecio) = c(&quot;Barato&quot;,&quot;Caro&quot;)

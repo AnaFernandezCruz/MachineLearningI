@@ -349,9 +349,9 @@ data(Pima.te) </code></pre>
 dataTest &lt;- readRDS(&quot;datasetTest.rds&quot;)
 dataValidation &lt;- readRDS(&quot;datasetValidation.rds&quot;)
 
-dataTrain&lt;-  readRDS(&quot;datasetTrainTransformed.rds&quot;)
-dataTest&lt;-  readRDS(&quot;datasetTestTransformed.rds&quot;)
-dataValidation&lt;-  readRDS(&quot;validationTransformed.rds&quot;)</code></pre>
+#dataTrain&lt;-  readRDS(&quot;datasetTrainTransformed.rds&quot;)
+#dataTest&lt;-  readRDS(&quot;datasetTestTransformed.rds&quot;)
+#dataValidation&lt;-  readRDS(&quot;validationTransformed.rds&quot;)</code></pre>
 <p>Procedemos a despejar de los dataset la variable objetivo original SalePrice. De la cual creamos la variable GrupoPrecio, del tipo categorica.</p>
 <pre class="r"><code>dataTrain &lt;- dataTrain %&gt;% dplyr::select(-SalePrice)
 dataTest &lt;- dataTest %&gt;% dplyr::select(-SalePrice)
@@ -373,19 +373,19 @@ YTest &lt;- dataTest$GrupoPrecio
 
 XValidation &lt;- dataValidation %&gt;% dplyr::select(-GrupoPrecio)
 YValidation &lt;- dataValidation$GrupoPrecio</code></pre>
-<pre class="r"><code>model &lt;- knn(XTrain, XTest, cl = YTrain, k=1)</code></pre>
+<pre class="r"><code>model &lt;- knn(XTrain, XTest, cl = YTrain, k=3)</code></pre>
 <pre class="r"><code>tab_test &lt;- table(model, YTest, dnn = c(&quot;Actual&quot;, &quot;Predichos&quot;))
 
 (tab_test)</code></pre>
 <pre><code>##         Predichos
 ## Actual   Barato Caro
-##   Barato    557   79
-##   Caro       66   45</code></pre>
+##   Barato    616   77
+##   Caro       48   48</code></pre>
 <pre class="r"><code>accuracy(tab_test)</code></pre>
-<pre><code>## [1] 80.58902</code></pre>
+<pre><code>## [1] 84.15716</code></pre>
 <pre class="r"><code>knn_test_error &lt;- calc_error_rate(predicted.value=model, true.value=YTest)
 (knn_test_error)</code></pre>
-<pre><code>## [1] 0.1941098</code></pre>
+<pre><code>## [1] 0.1584284</code></pre>
 <pre class="r"><code>draw_confusion_matrix(tab_test, &quot;Actual&quot;, &quot;Predichos&quot;)</code></pre>
 <p><img src="knn_files/figure-html/unnamed-chunk-1-1.png" width="672" /></p>
 <pre class="r"><code>#scores.knn &lt;- attr(model, &quot;prob&quot;)
@@ -404,26 +404,26 @@ YValidation &lt;- dataValidation$GrupoPrecio</code></pre>
 ## 
 ##         Predichos
 ## Actual   Barato Caro
-##   Barato    557   79
-##   Caro       66   45
+##   Barato    616   77
+##   Caro       48   48
 ##                                           
-##                Accuracy : 0.8059          
-##                  95% CI : (0.7757, 0.8337)
-##     No Information Rate : 0.834           
-##     P-Value [Acc &gt; NIR] : 0.9812          
+##                Accuracy : 0.8416          
+##                  95% CI : (0.8142, 0.8664)
+##     No Information Rate : 0.8416          
+##     P-Value [Acc &gt; NIR] : 0.52385         
 ##                                           
-##                   Kappa : 0.2682          
+##                   Kappa : 0.3441          
 ##                                           
-##  Mcnemar&#39;s Test P-Value : 0.3190          
+##  Mcnemar&#39;s Test P-Value : 0.01227         
 ##                                           
-##             Sensitivity : 0.8941          
-##             Specificity : 0.3629          
-##          Pos Pred Value : 0.8758          
-##          Neg Pred Value : 0.4054          
-##              Prevalence : 0.8340          
-##          Detection Rate : 0.7456          
-##    Detection Prevalence : 0.8514          
-##       Balanced Accuracy : 0.6285          
+##             Sensitivity : 0.9277          
+##             Specificity : 0.3840          
+##          Pos Pred Value : 0.8889          
+##          Neg Pred Value : 0.5000          
+##              Prevalence : 0.8416          
+##          Detection Rate : 0.7807          
+##    Detection Prevalence : 0.8783          
+##       Balanced Accuracy : 0.6559          
 ##                                           
 ##        &#39;Positive&#39; Class : Barato          
 ## </code></pre>
@@ -438,112 +438,112 @@ for(i in 1:100){
   opt &lt;- i
   cat(opt, &#39;=&#39;, k[i], &#39;&#39;)
 }</code></pre>
-<pre><code>## 1 = 80.58902 2 = 82.32932 3 = 84.33735 4 = 83.2664 5 = 84.60509 6 = 83.66801 7 = 84.60509 8 = 84.87282 9 = 85.54217 10 = 85.00669 11 = 84.47122 12 = 84.73896 13 = 83.80187 14 = 84.20348 15 = 84.87282 16 = 84.06961 17 = 84.20348 18 = 84.60509 19 = 83.53414 20 = 84.33735 21 = 84.47122 22 = 84.06961 23 = 84.33735 24 = 84.87282 25 = 84.60509 26 = 84.60509 27 = 84.47122 28 = 84.47122 29 = 84.73896 30 = 84.33735 31 = 84.47122 32 = 83.93574 33 = 84.06961 34 = 83.53414 35 = 83.93574 36 = 84.20348 37 = 84.33735 38 = 84.47122 39 = 84.06961 40 = 84.06961 41 = 84.06961 42 = 84.47122 43 = 84.06961 44 = 84.33735 45 = 84.47122 46 = 84.73896 47 = 84.60509 48 = 84.60509 49 = 84.33735 50 = 84.33735 51 = 84.47122 52 = 84.33735 53 = 84.47122 54 = 84.20348 55 = 84.33735 56 = 84.47122 57 = 84.20348 58 = 84.20348 59 = 84.20348 60 = 84.20348 61 = 84.33735 62 = 84.20348 63 = 84.06961 64 = 83.93574 65 = 83.80187 66 = 84.20348 67 = 83.80187 68 = 83.93574 69 = 84.06961 70 = 84.20348 71 = 84.06961 72 = 84.06961 73 = 84.06961 74 = 83.66801 75 = 83.93574 76 = 83.80187 77 = 84.06961 78 = 83.80187 79 = 83.80187 80 = 83.80187 81 = 83.80187 82 = 84.06961 83 = 83.80187 84 = 84.06961 85 = 83.80187 86 = 84.06961 87 = 83.93574 88 = 83.93574 89 = 84.06961 90 = 83.93574 91 = 84.06961 92 = 83.66801 93 = 84.06961 94 = 84.06961 95 = 84.06961 96 = 83.93574 97 = 83.80187 98 = 83.66801 99 = 83.66801 100 = 83.40027</code></pre>
+<pre><code>## 1 = 82.25602 2 = 83.3967 3 = 84.15716 4 = 84.15716 5 = 84.41065 6 = 85.04436 7 = 84.66413 8 = 84.41065 9 = 85.04436 10 = 86.18504 11 = 86.31179 12 = 85.1711 13 = 85.1711 14 = 85.04436 15 = 85.42459 16 = 85.42459 17 = 85.04436 18 = 84.41065 19 = 84.91762 20 = 84.41065 21 = 84.53739 22 = 84.79087 23 = 84.66413 24 = 85.1711 25 = 84.91762 26 = 84.91762 27 = 85.29785 28 = 85.29785 29 = 84.91762 30 = 84.91762 31 = 84.91762 32 = 85.29785 33 = 85.1711 34 = 84.79087 35 = 84.66413 36 = 84.79087 37 = 84.66413 38 = 84.79087 39 = 84.53739 40 = 84.79087 41 = 85.04436 42 = 85.04436 43 = 85.42459 44 = 84.91762 45 = 85.04436 46 = 84.66413 47 = 84.79087 48 = 85.04436 49 = 84.79087 50 = 84.79087 51 = 84.41065 52 = 84.79087 53 = 84.66413 54 = 84.91762 55 = 84.53739 56 = 84.66413 57 = 84.79087 58 = 84.53739 59 = 84.53739 60 = 84.2839 61 = 83.90368 62 = 83.65019 63 = 83.90368 64 = 84.03042 65 = 83.90368 66 = 83.90368 67 = 83.77693 68 = 83.90368 69 = 83.90368 70 = 83.65019 71 = 83.77693 72 = 83.90368 73 = 83.90368 74 = 83.77693 75 = 84.15716 76 = 84.03042 77 = 84.03042 78 = 84.03042 79 = 83.77693 80 = 84.15716 81 = 83.77693 82 = 84.15716 83 = 84.03042 84 = 84.15716 85 = 83.90368 86 = 84.2839 87 = 84.15716 88 = 84.41065 89 = 84.03042 90 = 84.15716 91 = 84.15716 92 = 84.03042 93 = 84.03042 94 = 83.65019 95 = 83.65019 96 = 83.77693 97 = 83.77693 98 = 83.77693 99 = 83.90368 100 = 84.15716</code></pre>
 <pre class="r"><code>plot(k, type=&quot;b&quot;, xlab=&quot;K-Value&quot;, ylab=&quot;Accuracy level&quot;)</code></pre>
 <p><img src="knn_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
 <pre class="r"><code>(k)</code></pre>
-<pre><code>##   [1] 80.58902 82.32932 84.33735 83.26640 84.60509 83.66801 84.60509 84.87282
-##   [9] 85.54217 85.00669 84.47122 84.73896 83.80187 84.20348 84.87282 84.06961
-##  [17] 84.20348 84.60509 83.53414 84.33735 84.47122 84.06961 84.33735 84.87282
-##  [25] 84.60509 84.60509 84.47122 84.47122 84.73896 84.33735 84.47122 83.93574
-##  [33] 84.06961 83.53414 83.93574 84.20348 84.33735 84.47122 84.06961 84.06961
-##  [41] 84.06961 84.47122 84.06961 84.33735 84.47122 84.73896 84.60509 84.60509
-##  [49] 84.33735 84.33735 84.47122 84.33735 84.47122 84.20348 84.33735 84.47122
-##  [57] 84.20348 84.20348 84.20348 84.20348 84.33735 84.20348 84.06961 83.93574
-##  [65] 83.80187 84.20348 83.80187 83.93574 84.06961 84.20348 84.06961 84.06961
-##  [73] 84.06961 83.66801 83.93574 83.80187 84.06961 83.80187 83.80187 83.80187
-##  [81] 83.80187 84.06961 83.80187 84.06961 83.80187 84.06961 83.93574 83.93574
-##  [89] 84.06961 83.93574 84.06961 83.66801 84.06961 84.06961 84.06961 83.93574
-##  [97] 83.80187 83.66801 83.66801 83.40027</code></pre>
+<pre><code>##   [1] 82.25602 83.39670 84.15716 84.15716 84.41065 85.04436 84.66413 84.41065
+##   [9] 85.04436 86.18504 86.31179 85.17110 85.17110 85.04436 85.42459 85.42459
+##  [17] 85.04436 84.41065 84.91762 84.41065 84.53739 84.79087 84.66413 85.17110
+##  [25] 84.91762 84.91762 85.29785 85.29785 84.91762 84.91762 84.91762 85.29785
+##  [33] 85.17110 84.79087 84.66413 84.79087 84.66413 84.79087 84.53739 84.79087
+##  [41] 85.04436 85.04436 85.42459 84.91762 85.04436 84.66413 84.79087 85.04436
+##  [49] 84.79087 84.79087 84.41065 84.79087 84.66413 84.91762 84.53739 84.66413
+##  [57] 84.79087 84.53739 84.53739 84.28390 83.90368 83.65019 83.90368 84.03042
+##  [65] 83.90368 83.90368 83.77693 83.90368 83.90368 83.65019 83.77693 83.90368
+##  [73] 83.90368 83.77693 84.15716 84.03042 84.03042 84.03042 83.77693 84.15716
+##  [81] 83.77693 84.15716 84.03042 84.15716 83.90368 84.28390 84.15716 84.41065
+##  [89] 84.03042 84.15716 84.15716 84.03042 84.03042 83.65019 83.65019 83.77693
+##  [97] 83.77693 83.77693 83.90368 84.15716</code></pre>
 <p>Una vez obtenida la k más optima podemos ver que el modelo funciona mejor.</p>
-<pre class="r"><code>model &lt;- knn(XTrain, XTest, cl = YTrain, k=8)</code></pre>
+<pre class="r"><code>model &lt;- knn(XTrain, XTest, cl = YTrain, k=11)</code></pre>
 <pre class="r"><code>tab_test &lt;- table(model, YTest, dnn = c(&quot;Actual&quot;, &quot;Predichos&quot;))
 
 (tab_test)</code></pre>
 <pre><code>##         Predichos
 ## Actual   Barato Caro
-##   Barato    588   81
-##   Caro       35   43</code></pre>
+##   Barato    636   80
+##   Caro       28   45</code></pre>
 <pre class="r"><code>draw_confusion_matrix(tab_test, &quot;Actual&quot;, &quot;Predichos&quot;)</code></pre>
 <p><img src="knn_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
 <pre class="r"><code>accuracy(tab_test)</code></pre>
-<pre><code>## [1] 84.47122</code></pre>
+<pre><code>## [1] 86.31179</code></pre>
 <pre class="r"><code>knn_test_error &lt;- calc_error_rate(predicted.value=model, true.value=YTest)
 (knn_test_error)</code></pre>
-<pre><code>## [1] 0.1552878</code></pre>
+<pre><code>## [1] 0.1368821</code></pre>
 <pre class="r"><code>cm &lt;- confusionMatrix(tab_test)
 (cm)</code></pre>
 <pre><code>## Confusion Matrix and Statistics
 ## 
 ##         Predichos
 ## Actual   Barato Caro
-##   Barato    588   81
-##   Caro       35   43
-##                                         
-##                Accuracy : 0.8447        
-##                  95% CI : (0.8167, 0.87)
-##     No Information Rate : 0.834         
-##     P-Value [Acc &gt; NIR] : 0.2319        
-##                                         
-##                   Kappa : 0.3413        
-##                                         
-##  Mcnemar&#39;s Test P-Value : 2.939e-05     
-##                                         
-##             Sensitivity : 0.9438        
-##             Specificity : 0.3468        
-##          Pos Pred Value : 0.8789        
-##          Neg Pred Value : 0.5513        
-##              Prevalence : 0.8340        
-##          Detection Rate : 0.7871        
-##    Detection Prevalence : 0.8956        
-##       Balanced Accuracy : 0.6453        
-##                                         
-##        &#39;Positive&#39; Class : Barato        
+##   Barato    636   80
+##   Caro       28   45
+##                                           
+##                Accuracy : 0.8631          
+##                  95% CI : (0.8371, 0.8863)
+##     No Information Rate : 0.8416          
+##     P-Value [Acc &gt; NIR] : 0.05178         
+##                                           
+##                   Kappa : 0.3824          
+##                                           
+##  Mcnemar&#39;s Test P-Value : 9.226e-07       
+##                                           
+##             Sensitivity : 0.9578          
+##             Specificity : 0.3600          
+##          Pos Pred Value : 0.8883          
+##          Neg Pred Value : 0.6164          
+##              Prevalence : 0.8416          
+##          Detection Rate : 0.8061          
+##    Detection Prevalence : 0.9075          
+##       Balanced Accuracy : 0.6589          
+##                                           
+##        &#39;Positive&#39; Class : Barato          
 ## </code></pre>
 <p>Utilizamos el conjunto de validación para comprobar nuestro modelo.</p>
-<pre class="r"><code>model &lt;- knn(XTrain, XValidation, cl = YTrain, k=8)</code></pre>
+<pre class="r"><code>model &lt;- knn(XTrain, XValidation, cl = YTrain, k=11)</code></pre>
 <pre class="r"><code>tab_validation &lt;- table(model, YValidation, dnn = c(&quot;Actual&quot;, &quot;Predichos&quot;))
 
 (tab_validation)</code></pre>
 <pre><code>##         Predichos
 ## Actual   Barato Caro
-##   Barato    201   32
-##   Caro       19   18</code></pre>
+##   Barato    225   36
+##   Caro       15   15</code></pre>
 <pre class="r"><code>draw_confusion_matrix(tab_validation, &quot;Actual&quot;, &quot;Predichos&quot;)</code></pre>
 <p><img src="knn_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
 <pre class="r"><code>accuracy(tab_validation)</code></pre>
-<pre><code>## [1] 81.11111</code></pre>
+<pre><code>## [1] 82.47423</code></pre>
 <pre class="r"><code>knn_validation_error &lt;- calc_error_rate(predicted.value=model, true.value=YValidation)
 (knn_validation_error)</code></pre>
-<pre><code>## [1] 0.1888889</code></pre>
+<pre><code>## [1] 0.1752577</code></pre>
 <pre class="r"><code>cm &lt;- confusionMatrix(tab_validation)
 (cm)</code></pre>
 <pre><code>## Confusion Matrix and Statistics
 ## 
 ##         Predichos
 ## Actual   Barato Caro
-##   Barato    201   32
-##   Caro       19   18
-##                                          
-##                Accuracy : 0.8111         
-##                  95% CI : (0.7592, 0.856)
-##     No Information Rate : 0.8148         
-##     P-Value [Acc &gt; NIR] : 0.59888        
-##                                          
-##                   Kappa : 0.3042         
-##                                          
-##  Mcnemar&#39;s Test P-Value : 0.09289        
-##                                          
-##             Sensitivity : 0.9136         
-##             Specificity : 0.3600         
-##          Pos Pred Value : 0.8627         
-##          Neg Pred Value : 0.4865         
-##              Prevalence : 0.8148         
-##          Detection Rate : 0.7444         
-##    Detection Prevalence : 0.8630         
-##       Balanced Accuracy : 0.6368         
-##                                          
-##        &#39;Positive&#39; Class : Barato         
+##   Barato    225   36
+##   Caro       15   15
+##                                           
+##                Accuracy : 0.8247          
+##                  95% CI : (0.7761, 0.8666)
+##     No Information Rate : 0.8247          
+##     P-Value [Acc &gt; NIR] : 0.537322        
+##                                           
+##                   Kappa : 0.2764          
+##                                           
+##  Mcnemar&#39;s Test P-Value : 0.005101        
+##                                           
+##             Sensitivity : 0.9375          
+##             Specificity : 0.2941          
+##          Pos Pred Value : 0.8621          
+##          Neg Pred Value : 0.5000          
+##              Prevalence : 0.8247          
+##          Detection Rate : 0.7732          
+##    Detection Prevalence : 0.8969          
+##       Balanced Accuracy : 0.6158          
+##                                           
+##        &#39;Positive&#39; Class : Barato          
 ## </code></pre>
 
 

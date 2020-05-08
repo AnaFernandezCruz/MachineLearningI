@@ -66,7 +66,7 @@ plot(model, dataTrain)
 
 ```{r evaluate_model}
 
-pred = predict(model, newdata = XTest)
+pred <- predict(model, newdata = XTest)
 tab_test <- table(pred, YTest, dnn = c("Actual", "Predichos"))
 
 (tab_test)
@@ -75,7 +75,6 @@ draw_confusion_matrix(tab_test, "Actual", "Predichos")
 accuracy(tab_test)
 knn_test_error <- calc_error_rate(predicted.value=model, true.value=YTest)
 (knn_test_error)
-
 
 ```
 

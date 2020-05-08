@@ -339,9 +339,6 @@ vecindario_agrupado <- vecindario_precioGaraje %>%
   summarise(mean_data = round(mean(GarageYrBlt,na.rm=TRUE),0))
 summary(vecindario_agrupado)
 
- anoMedio  <- round(mean(vecindario_precioGaraje$GarageYrBlt, na.rm = TRUE))
- 
-
 #En la variable grouped_list tenemos los vecindarios de Boston y la media del año
 #en el que fueron construidos sus garajes. Esos son los valores que usaremos para imputar.
 
@@ -359,19 +356,11 @@ for(j in 1:length(vecindario_precioGaraje$GarageYrBlt)) {
     }
     year_a_imputar = vecindario_agrupado[index_vecindario,2]
     na.rm=TRUE
-    #year_corregido<-c(year_corregido,year_a_imputar)
-    if(length( year_a_imputar ) > 0) {
-          year_corregido[length(year_corregido) + 1] <- year_a_imputar
-    } else {
-        year_corregido[length(year_corregido) + 1] <- anoMedio
-    }
+    year_corregido<-c(year_corregido,year_a_imputar)
   }else {
-    #year_corregido<-c(year_corregido,vecindario_precioGaraje$GarageYrBlt[j])
-    year_corregido[length(year_corregido) + 1] <- vecindario_precioGaraje$GarageYrBlt[j]
-    #next 
+    year_corregido<-c(year_corregido,vecindario_precioGaraje$GarageYrBlt[j])
+    next 
   }
-  #print(paste0("Current element: ", j," y length ",length(year_corregido)))
-  
 }
 
 length(year_corregido)
@@ -411,7 +400,7 @@ for(i in nombresVariablesFactores){
 
 
 dataset$MSSubClass <- as.factor(dataset$MSSubClass)
-dataset$MSSubClass<-revalue(dataset$MSSubClass, c('20'='1_story_1946_', '30'='1_story_1945_', '40'='1_story_unf_attic', '45'='1_5_story_unf', '50'='1_5_story_fin', '60'='2_story_1946_', '70'='2_story_1945_', '75'='2_5_story_all_ages', '80'='split_multi_level', '85'='split_foyer', '90'='duplex_all_style_age', '120'='1_story_PUD_1946_', '150'='1_5_story_PUD_all', '160'='2_story_PUD_1946', '180'='PUD_multilevel', '190'='2_family_conversion'))
+dataset$MSSubClass<-revalue(dataset$MSSubClass, c('20'='1_story_1946_', '30'='1_story_1945_', '40'='1_story_unf_attic', '45'='1_5_story_unf', '50'='1_5 story_fin', '60'='2_story_1946_', '70'='2_story_1945_', '75'='2_5_story_all_ages', '80'='split_multi_level', '85'='split_foyer', '90'='duplex_all_style_age', '120'='1_story_PUD_1946_', '150'='1_5_story_PUD_all', '160'='2_story_PUD_1946', '180'='PUD_multilevel', '190'='2_family_conversion'))
 
 ```
 
@@ -530,7 +519,8 @@ library(forcats)
 
 ```{r}
 library(arules)
-#v = discretize(dataset$SalePrice, breaks = 3, onlycuts = TRUE)
+#v = discretize(dataset$SalePrice, method = "interval", breaks = 2, onlycuts = TRUE)
+#v = discretize(dataset$SalePrice, method = "cluster", breaks = 2, onlycuts = TRUE)
 v = discretize(dataset$SalePrice, method = "fixed", breaks = c(-Inf,210000,Inf), onlycuts = TRUE)
 
 dataset$GrupoPrecio = cut(dataset$SalePrice,v)
@@ -658,12 +648,9 @@ preProcValuesValidation <- preProcess(validation_sin_na  %>% dplyr::select(-Over
 # quitadas del modelo 'MoSold','YrSold', no creo que tenga sentido analizarlas
 # anadida MSSubClass a ver si no da problemas
 
+var_modelo = c( 'GrLivArea','LotArea','Total_Bathrooms','Total_porch_SF','MSZoning','LandContour','LotConfig','Condition1','BldgType','HouseStyle','RoofStyle','MasVnrType','Foundation','SaleType','SaleCondition','YearBuilt','OverallQual','OverallCond','PavedDrive','Fence','BsmtFinSF1','Functional','ExterQual','BsmtQual','BsmtExposure','BsmtFinType1','BsmtUnfSF','CentralAir','KitchenQual','Fireplaces','FireplaceQu','BedroomAbvGr','KitchenAbvGr','LotShape','GarageArea','GarageCond','Neighborhood','has2ndFloor','Alley','TotalSF','GarageType','MasVnrArea','MSSubClass','BsmtFinSF2','TotalBsmtSF','LowQualFinSF','WoodDeckSF','OpenPorchSF','EnclosedPorch','PoolArea','MiscVal','GrupoPrecio', 'SalePrice')
 
-#var_modelo = c( 'GrLivArea','LotArea','Total_Bathrooms','Total_porch_SF','#MSZoning','LandContour','LotConfig','Condition1','BldgType','HouseStyle','#RoofStyle','MasVnrType','Foundation','SaleType','SaleCondition','YearBuilt#','OverallQual','OverallCond','PavedDrive','Fence','BsmtFinSF1','Functiona#l','ExterQual','BsmtQual','BsmtExposure','BsmtFinType1','BsmtUnfSF','Centr#alAir','KitchenQual','Fireplaces','FireplaceQu','BedroomAbvGr','KitchenAbv#Gr','LotShape','GarageArea','GarageCond','Neighborhood','has2ndFloor','All#ey','TotalSF','GarageType','MasVnrArea','MSSubClass')
-
-var_modelo = setdiff(setdiff(setdiff(setdiff(colnames(datasetTrain),c('SalePrice')),var_eliminar_correlacion),c('PoolArea')),c('hasPool','hasFirePlaces','has2ndFloor'))
-
-var_modelo_with_SalePrice = c(var_modelo,'SalePrice')
+var_modelo_with_SalePrice = c(var_modelo)
 
 ```
 
@@ -675,21 +662,24 @@ datasetTrainTransformed <- predict(preProcValuesDataset, datasetTrain)
 datasetTestTransformed <- predict(preProcValuesDataset, datasetTest)
 validationTransformed <- predict(preProcValuesValidation, validation_sin_na)
 
-write.csv(datasetTrain, "datasetTrain.rds")
-write.csv(datasetTest, "datasetTest.rds")
-write.csv(validation_sin_na, "datasetValidation.rds")
-write.csv(datasetTrainTransformed, "datasetTrainTransformed.rds")
-write.csv(datasetTestTransformed, "datasetTestTransformed.rds")
-write.csv(validationTransformed, "validationTransformed.rds")
 
+datasetTrain  <-  datasetTrain  %>%  dplyr::select(c(var_modelo))
+datasetTest  <-  datasetTest  %>%  dplyr::select(c(var_modelo)) 
+datasetValidation  <-  validation_sin_na  %>%  dplyr::select(c(var_modelo))
 
 saveRDS(datasetTrain, "datasetTrain.rds")
 saveRDS(datasetTest, "datasetTest.rds")
-saveRDS(validation_sin_na, "datasetValidation.rds")
+saveRDS(datasetValidation, "datasetValidation.rds")
+
 saveRDS(datasetTrainTransformed, "datasetTrainTransformed.rds")
 saveRDS(datasetTestTransformed, "datasetTestTransformed.rds")
 saveRDS(validationTransformed, "validationTransformed.rds")
 
 
+write.csv(datasetTrainTransformed, "datasetTrainTransformed.csv")
+write.csv(datasetTestTransformed, "datasetTestTransformed.csv")
+write.csv(validationTransformed, "validationTransformed.csv")
 
 ```
+
+
