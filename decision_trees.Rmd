@@ -16,18 +16,19 @@ library(rattle)
 library(tidyverse)
 library(readr)
 
+var_modelo = c( 'GrLivArea','LotArea','Total_Bathrooms','Total_porch_SF','LandContour','LotConfig','Condition1','BldgType','HouseStyle','MasVnrType','Foundation','SaleType','SaleCondition','OverallQual','OverallCond','PavedDrive','Fence','BsmtFinSF1','ExterQual','BsmtQual','BsmtExposure','BsmtFinType1','BsmtUnfSF','KitchenQual','Fireplaces','FireplaceQu','BedroomAbvGr','LotShape','GarageArea','GarageCond','Neighborhood','has2ndFloor','All#ey','TotalSF','GarageType','MasVnrArea','MSSubClass','GrupoPrecio')
+
 dataTrain <- readRDS("datasetTrain.rds") 
-myvars <- names(dataTrain) %in% c("SalePrice")
-dataTrain <- dataTrain[!myvars]
+myvars <- names(dataTrain) %in% c(var_modelo)
+dataTrain <- dataTrain[myvars]
 
 dataTest <- readRDS("datasetTest.rds")
-myvars <- names(dataTest) %in% c("SalePrice")
-dataTest <- dataTest[!myvars]
+myvars <- names(dataTest) %in% c(var_modelo)
+dataTest <- dataTest[myvars]
                        
 val <- readRDS("datasetValidation.rds")
-myvars <- names(val) %in% c("SalePrice")
-val <- val[!myvars]
-
+myvars <- names(val) %in% c(var_modelo)
+val <- val[myvars]
 set.seed(123)
 ```
 
@@ -56,7 +57,7 @@ tab1
 acierto1
 ```
 
-Un error de poco más del 7% mientras que obtenemos un accuracy del 84,79% para el dataset de test. Con estos valores podemos entender que nuestro modelo puede estar sobreentrenado y tendremos que realizar una poda del mismo. Antes de ponernos manos a la masa para realizar la poda del árbol, vamos a proceder a alterar los hiperparámetros del árbol de decisión. En este caso vamos a meter las probabilidades a priori en el árbol y ver cómo varía el resultado. Para ello, obtenemos el conteo de cuantos elementos pertenecen a cada clase y junto al total de las observaciones podemos sacar la probabilidad a priori.
+Un error de poco más del 9% mientras que obtenemos un accuracy del 83,77% para el dataset de test. Con estos valores podemos entender que nuestro modelo puede estar sobreentrenado y tendremos que realizar una poda del mismo. Antes de ponernos manos a la masa para realizar la poda del árbol, vamos a proceder a alterar los hiperparámetros del árbol de decisión. En este caso vamos a meter las probabilidades a priori en el árbol y ver cómo varía el resultado. Para ello, obtenemos el conteo de cuantos elementos pertenecen a cada clase y junto al total de las observaciones podemos sacar la probabilidad a priori.
 
 ```{r}
 library(ggplot2)
@@ -92,17 +93,17 @@ tab2
 acierto2
 ```
 
-Vemos que después de añadir las probabilidades a priori el accuracy del modelo se mantiene constante aunque el error ha aumentado sutilmente en este segundo modelo. Vamos a proceder a seguir nuestro estudio con el primer árbol que hemos entrenado ya que, a accuracys similares, el primero tiene menos error. 
+Vemos que después de añadir las probabilidades a priori el accuracy del modelo se mantiene constante aunque el error ha disminuido sutilmente en este segundo modelo. Vamos a proceder a seguir nuestro estudio con el segundo árbol que hemos entrenado ya que, a accuracys similares, el segundo tiene menos error. 
 
 Para podar el modelo usaremos las herramientas printcp y plotcp. Con estas herramientas podemos tener el número óptimo de podas. La poda la haremos para evitar el overfitting, como en nuestro caso, ya que con un accuracy de un 0.84 podemos asumir que tenemos un problema de overfitting entre el Train y el Test. Lo que buscaremos será quedarnos con el árbol más pequeño con el menor error obtenido haciendo cross validation. Utilizaremos el primer árbol, pues parece que da menos error y puede tener menos overfitting.
 
 ```{r}
 ##PODA:
-printcp(HouseTREE.1)
-plotcp(HouseTREE.1)
+printcp(HouseTREE.2)
+plotcp(HouseTREE.2)
 ```
 
-Plotcp nos devulve una representación gráfica con un resumen del error obtenido haciendo cross validation. Los valores de CP (Complexity Parameter) se dibujan en el eje x mientras que en la y tenemos el valor de la media geométrica para representar la desviación hasta  alcanzar el valor mínimo. Vamos que el error relativo es menor para un valor de cp de 0,02. Lo comprobamos:
+Plotcp nos devulve una representación gráfica con un resumen del error obtenido haciendo cross validation. Los valores de CP (Complexity Parameter) se dibujan en el eje x mientras que en la y tenemos el valor de la media geométrica para representar la desviación hasta  alcanzar el valor mínimo. Vamos que el error relativo es menor para un valor de cp de 0,012. Lo comprobamos:
 
 ```{r fig.width=30, fig.height=10}
 pruneTREE.1 = prune(HouseTREE.1,cp = HouseTREE.1$cptable[which.min(HouseTREE.1$cptable["xerror"]), "CP"])

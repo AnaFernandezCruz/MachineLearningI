@@ -1,0 +1,73 @@
+---
+title: "evaluacion"
+author: "Ana Fernández Cruz, Jesús Gallego Olivas y Miguel Ángel Sánchez Alcázar"
+output: html_document
+---
+
+Después de haber realizado el análisis de cada modelo sobre el conjunto de test de los datos se ha llegado a la conclusión de que el mejor modelo para nuestro problema es el Random Forest. Para probarlo sobre nuestros modelos lo que haremos será cargar el dataset de validación separado previamente a todo el proceso y preparar los datos para poder inferior el resultado con nuestro modelo.
+
+```{r message=FALSE}
+library(dplyr)
+
+##CARGAMOS LOS DATOS.
+validacion_model <- readRDS("datasetValidation.rds")
+
+##FILTRAMOS LAS COLUMNAS QUE NECESITA EL MODELO
+var_modelo = c( 'GrLivArea','LotArea','Total_Bathrooms','Total_porch_SF','LandContour','LotConfig','Condition1','BldgType','HouseStyle','MasVnrType','Foundation','SaleType','SaleCondition','OverallQual','OverallCond','PavedDrive','Fence','BsmtFinSF1','ExterQual','BsmtQual','BsmtExposure','BsmtFinType1','BsmtUnfSF','KitchenQual','Fireplaces','FireplaceQu','BedroomAbvGr','LotShape','GarageArea','GarageCond','Neighborhood','has2ndFloor','All#ey','TotalSF','GarageType','MasVnrArea','MSSubClass','GrupoPrecio')
+
+
+myvars <- names(validacion_model) %in% c(var_modelo)
+validacion_model <- validacion_model[myvars]
+
+```
+
+
+Cargamos el modelo, el cual tenemos guardado en formato rds.
+
+```{r}
+model <- readRDS("modelRandomForest.rds")
+```
+
+Una vez tenemos cargado el modelo entrenado, procedemos a ejecutarlo sobre los datos de validación.
+```{r echo=FALSE}
+draw_confusion_matrix <- function(tab, tab_Actual, tab_Predict){
+  confusion_matrix <- as.data.frame(tab)
+  
+  Actual <- factor(confusion_matrix[[tab_Actual]])
+  Predichos <- factor(confusion_matrix[[tab_Predict]])
+  Y      <- confusion_matrix$Freq
+  df <- data.frame(Actual, Predichos, Y)
+  
+  ggplot(data =  df, mapping = aes(x = Actual, y = Predichos)) +
+    geom_tile(aes(fill = Y), colour = "white") +
+    geom_text(aes(label = sprintf("%1.0f", Y)), vjust = 1) +
+    scale_fill_gradient(low = "blue", high = "red") +
+    theme_bw() + theme(legend.position = "none")
+}
+
+
+```
+
+Una vez hemos cargado el modelo en la variable model, guardamos en la variable "pred" los resultados de aplicar el modelo a nuestro dataset de validación.
+```{r }
+pred = predict(model, validacion_model, type = "class")
+```
+
+
+Una vez tenemos los resultados procedemos a calcular la matriz de confusión y el accuracy del modelo.
+```{r}
+tab_test_h <- table(pred, obs = validacion_model$GrupoPrecio, dnn = c("Actual", "Predichos"))
+tab_test_h
+
+##CONFUSION MATRIX
+draw_confusion_matrix(tab_test_h, "Actual", "Predichos")
+```
+En la matriz de confusión vemos que distinguimos muy bien las casas baratas (228 de 260 = 88%), mientras que las casas caras las identifica también pero no tan bien como las baratas (19 de 31 = 61%)
+
+```{r}
+##ACCURACY
+(mc <- with(validacion_model,table(pred, GrupoPrecio)))
+100 * sum(diag(mc)) / sum(mc)
+```
+
+El accuracy final sobre los datos de validación es de un 84,88 %

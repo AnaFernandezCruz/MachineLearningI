@@ -202,3 +202,9 @@ area_curva
 ```
 
 Vemos que el area bajo la curva en este bosque aleatorio es un valor cercano al 90%, por lo que tenemos un modelo bastante bueno.
+
+
+```{r}
+##GUARDAMOS EL MODELO EN FORMATO RDS:
+saveRDS(House.rf, "modelRandomForest.rds")
+```
