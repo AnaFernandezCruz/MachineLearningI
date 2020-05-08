@@ -14,17 +14,19 @@ library(rattle)
 library(tidyverse)
 library(readr)
 
+var_modelo = c( 'GrLivArea','LotArea','Total_Bathrooms','Total_porch_SF','LandContour','LotConfig','Condition1','BldgType','HouseStyle','MasVnrType','Foundation','SaleType','SaleCondition','OverallQual','OverallCond','PavedDrive','Fence','BsmtFinSF1','ExterQual','BsmtQual','BsmtExposure','BsmtFinType1','BsmtUnfSF','KitchenQual','Fireplaces','FireplaceQu','BedroomAbvGr','LotShape','GarageArea','GarageCond','Neighborhood','has2ndFloor','All#ey','TotalSF','GarageType','MasVnrArea','MSSubClass','GrupoPrecio')
+
 dataTrain <- readRDS("datasetTrain.rds") 
-myvars <- names(dataTrain) %in% c("SalePrice")
-dataTrain <- dataTrain[!myvars]
+myvars <- names(dataTrain) %in% c(var_modelo)
+dataTrain <- dataTrain[myvars]
 
 dataTest <- readRDS("datasetTest.rds")
-myvars <- names(dataTest) %in% c("SalePrice")
-dataTest <- dataTest[!myvars]
+myvars <- names(dataTest) %in% c(var_modelo)
+dataTest <- dataTest[myvars]
                        
 val <- readRDS("datasetValidation.rds")
-myvars <- names(val) %in% c("SalePrice")
-val <- val[!myvars]
+myvars <- names(val) %in% c(var_modelo)
+val <- val[myvars]
 set.seed(123)
 ```
 
@@ -39,13 +41,13 @@ plot(House.rf)
 ```
 
 
-Cuando hacemos el plot del bosque aleatorio de árboles vemos el error para cada clase (las líneas coloreadas, el orden de aparición es en el que aparecen en el print: Barato, Normal y Caro). La línea negra representa el error medio del bosque. Si queremos ver la importancia de las variables del modelo:
+Cuando hacemos el plot del bosque aleatorio de árboles vemos el error para cada clase (las líneas coloreadas, el orden de aparición es en el que aparecen en el print: Barato y Caro). La línea negra representa el error medio del bosque. Si queremos ver la importancia de las variables del modelo:
 
 ```{r}
 importance(House.rf)
 ```
 
-Lo que nos indica la columna es que cuanto más grande sea ese factor, más importante es en la decisión final del modelo.
+Lo que nos indica la columna es que cuanto más grande sea ese factor más importante es en la decisión final del modelo. En nuestro caso TotalSF o GrLivArea son variables que afectan mucho al modelo.
 
 ```{r}
 ##PROBANDO SOBRE EL TESTDATA:
@@ -61,12 +63,11 @@ House.rf$confusion[, 'class.error']
 (mc <- with(dataTest,table(predTrain, GrupoPrecio)))
 100 * sum(diag(mc)) / sum(mc)
 ```
-Vemos que tenemos un error del 0,8% para la clase "Barato", un error del 89% para la clase "Normal" y siempre nos equivocamos a la hora de predecir cuando una casa es cara.
+Vemos que tenemos un error del 5,25% para la clase "Barato", un error del 55% para la clase "Caro". Esta diferencia de errores a la hora de predecir podría estar justificada ya que la muestra de casas caras es mucho más pequeña que las de casas baratas.
 
+A continuación vamos a realizar una exploración en los hiperparámetros del modelo usando librerías específicas para ello. Los hiperparámetros que vamos a analizar son los siguientes:
 
-Si vamos con una exploración de hiperparámetros más pronfunda usaremos la función trainControl().
-
--> MTRY:
+-> MTRY: o número de variables en cada árbol.
 
 ```{r}
 library(caret)
@@ -88,13 +89,13 @@ rf_default <- train(GrupoPrecio~.,
 print(rf_default)
 ```
 
-El algoritmo usa 500 árboles y prueba con 3 valores de mtry: 2, 90 y 178. Vamos a usar mtry = 2, ya que obtenemos el valor mayor de la accuracy con ese valor para el hiperparámetro.
+El algoritmo usa 500 árboles y prueba con 3 valores de mtry: 2, 75 y 148 Vamos a usar mtry = 2, ya que obtenemos un valor del accuracy muy alto y un kappa muy pequeño. 
 
 -> MAXNODE:
 
 ```{r}
 store_maxnode <- list()
-tuneGrid <- expand.grid(.mtry = 2)
+tuneGrid <- expand.grid(.mtry = 20)
 for (maxnodes in c(10: 20)) {
     set.seed(1234)
     rf_maxnode <- train(GrupoPrecio~.,
@@ -115,7 +116,7 @@ summary(results_node)
 
 ```
 
-La Accuracy se mantiene constante, asi que usaremos el valor más pequeño:  10.
+La Accuracy aumenta suavemente, asi que usaremos el valor que nos proporciona un accuracy más grande: 20
 
 -> NUMERO DE ARBOLES:
 
@@ -131,7 +132,7 @@ for (ntree in c(250, 300, 350, 400, 450, 500, 550, 600, 800, 1000, 2000)) {
         trControl = trControl,
         importance = TRUE,
         nodesize = 14,
-        maxnodes = 10,
+        maxnodes = 20,
         ntree = ntree)
     key <- toString(ntree)
     store_maxtrees[[key]] <- rf_maxtrees
@@ -140,12 +141,13 @@ results_tree <- resamples(store_maxtrees)
 summary(results_tree)
 
 ```
+Nos vamos a quedar con el menor número de árboles posible manteniendo el accuracy más alto, por lo que ntree = 300.
 
 Con todos estos hiperparámetros obtenidos de pruebas iterativas, pasamos a entrenar el modelo:
 
 ```{r}
 library(randomForest)
-fit_rf <- randomForest(GrupoPrecio ~ . , data = dataTrain, mtry=2, maxnodes=10, ntree=250)
+fit_rf <- randomForest(GrupoPrecio ~ . , data = dataTrain, mtry=20, maxnodes=20, ntree=300)
 
 ```
 
@@ -165,11 +167,11 @@ resultado <- 100 * sum(diag(mc)) / sum(mc)
 resultado
 ```
 
-Después de ajustar estos hiperparámetros, vemos que el accuracy ha aumentado. 
+Después de ajustar estos hiperparámetros, vemos que el accuracy ha disminuido pero tenemos un modelo que predice casi perfectamente cuando una casa en Barata (error 4%), aunque se equivoca bastante más cuando es Cara (65%). El accuracy es mayor mientras que el error es menor en el primer modelo entrenado, asi que nos quedaremos con él.
 
 ```{r}
-pred = predict(fit_rf, val, type = "class")
-table = table(pred, obs = val$GrupoPrecio, dnn = c("Actual", "Predichos"))
+pred = predict(House.rf, dataTest, type = "class")
+table = table(pred, obs = dataTest$GrupoPrecio, dnn = c("Actual", "Predichos"))
 
 confusionMatrix(table)
 
@@ -194,9 +196,9 @@ draw_confusion_matrix(table, "Actual", "Predichos")
 
 
 library(pROC)
-predRoc <- predict(fit_rf, newdata=val, type="prob")
-area_curva <- multiclass.roc(val$GrupoPrecio, predRoc,)
+predRoc <- predict(House.rf, newdata=dataTest, type="prob")
+area_curva <- multiclass.roc(dataTest$GrupoPrecio, predRoc,)
 area_curva
 ```
 
-Vemos que el area bajo la curva en este bosque aleatorio no es muy alta, por lo que podemos decir que no tenemos un modelo muy bueno.
+Vemos que el area bajo la curva en este bosque aleatorio es un valor cercano al 90%, por lo que tenemos un modelo bastante bueno.
