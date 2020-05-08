@@ -196,8 +196,8 @@ draw_confusion_matrix(table, "Actual", "Predichos")
 
 
 library(pROC)
-predRoc <- predict(fit_rf, newdata=val, type="prob")
-area_curva <- multiclass.roc(val$GrupoPrecio, predRoc,)
+predRoc <- predict(House.rf, newdata=dataTest, type="prob")
+area_curva <- multiclass.roc(dataTest$GrupoPrecio, predRoc,)
 area_curva
 ```
 
