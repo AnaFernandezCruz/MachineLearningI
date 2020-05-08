@@ -20,6 +20,7 @@
 <script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
 <script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
 <script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
 <link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
 <script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
 
@@ -245,6 +246,9 @@ $(document).ready(function () {
 </style>
 
 <!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
 
 
 
@@ -314,6 +318,14 @@ $(document).ready(function () {
 
 <div class="fluid-row" id="header">
 
+<div class="btn-group pull-right">
+<button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
 
 
 <h1 class="title toc-ignore">SVM</h1>
@@ -321,83 +333,134 @@ $(document).ready(function () {
 </div>
 
 
+<p>A continuación aplicaremos un modelo svm o support vector machine a nuestro grupo de datos. El algoritmo clasifica cada dato nuevo en el grupo que corresponda, según como consiga crear hiperplanos que separen de manera lineal los grupos de datos.</p>
+<p>Cargamos las librerias y los datos que utilizaremos para el entrenamiento, con el conjunto de train, y la evaluación del modelo con el conjunto de test:</p>
 <pre class="r"><code>library(class)
-library(dplyr)</code></pre>
-<pre><code>## 
-## Attaching package: &#39;dplyr&#39;</code></pre>
-<pre><code>## The following objects are masked from &#39;package:stats&#39;:
-## 
-##     filter, lag</code></pre>
-<pre><code>## The following objects are masked from &#39;package:base&#39;:
-## 
-##     intersect, setdiff, setequal, union</code></pre>
-<pre class="r"><code>library(caret)</code></pre>
-<pre><code>## Loading required package: lattice</code></pre>
-<pre><code>## Loading required package: ggplot2</code></pre>
-<pre class="r"><code>library (ROCR)
+library(dplyr)
+library(caret)
+library (ROCR)
 library(e1071)
 source(&quot;funcs.R&quot;)</code></pre>
 <pre class="r"><code>dataTrain &lt;- readRDS(&quot;datasetTrain.rds&quot;)
 dataTest &lt;- readRDS(&quot;datasetTest.rds&quot;)</code></pre>
+<p>Procedemos a despejar de los dataset (train y test) la variable objetivo original SalePrice. De la cual ya hemos creamos la variable GrupoPrecio, del tipo categorica. Separando asi por una parte un grupo de casas baratas y otro grupo de casas caras.</p>
+<p>Nuestro modelo clasificará casas entre estos dos grupos.</p>
 <pre class="r"><code>dataTrain &lt;- dataTrain %&gt;% dplyr::select(-SalePrice)
-dataTest &lt;- dataTest %&gt;% dplyr::select(-SalePrice)
+dataTest &lt;- dataTest %&gt;% dplyr::select(-SalePrice)</code></pre>
+<p>Para este modelo se han escogido dos grupos de caracteristicas, para poder comproba como mejora si añadimos o quitamos variables al modelo. Estos dos grupos de caracteristicas las divideramos en group1 y group2.</p>
+<pre class="r"><code>group1 &lt;- c(&#39;TotalSF&#39;,&#39;LotArea&#39;,&#39;GrupoPrecio&#39;)
+group2 &lt;- c(&#39;TotalSF&#39;,&#39;LotArea&#39;,&#39;GrLivArea&#39;,&#39;GrupoPrecio&#39;)
 
-group &lt;- c(&#39;TotalSF&#39;,&#39;LotArea&#39;,&#39;GrupoPrecio&#39;)
+dataTrain1 &lt;- dataTrain %&gt;% dplyr::select(group1)
+dataTest1 &lt;- dataTest %&gt;% dplyr::select(group1)
 
-dataTrain &lt;- dataTrain %&gt;% dplyr::select(group)
-dataTest &lt;- dataTest %&gt;% dplyr::select(group)</code></pre>
-<pre class="r"><code>XTrain &lt;- dataTrain %&gt;% dplyr::select(-GrupoPrecio)
-YTrain &lt;- dataTrain$GrupoPrecio
+dataTrain2 &lt;- dataTrain %&gt;% dplyr::select(group2)
+dataTest2 &lt;- dataTest %&gt;% dplyr::select(group2)</code></pre>
+<pre class="r"><code>XTrain1 &lt;- dataTrain1 %&gt;% dplyr::select(-GrupoPrecio)
+YTrain1 &lt;- dataTrain1$GrupoPrecio
 
-XTest &lt;- dataTest %&gt;% dplyr::select(-GrupoPrecio)
-YTest &lt;- dataTest$GrupoPrecio</code></pre>
+XTest1 &lt;- dataTest1 %&gt;% dplyr::select(-GrupoPrecio)
+YTest1 &lt;- dataTest1$GrupoPrecio
+
+XTrain2 &lt;- dataTrain2 %&gt;% dplyr::select(-GrupoPrecio)
+YTrain2 &lt;- dataTrain2$GrupoPrecio
+
+XTest2 &lt;- dataTest2 %&gt;% dplyr::select(-GrupoPrecio)
+YTest2 &lt;- dataTest2$GrupoPrecio</code></pre>
+<p>A continuación, entrenamos el modelo con el conjunto de entrenamiento y evaluamos con el conjunto de test, el primer grupo de caracteristicas escogidas (group1).</p>
 <pre class="r"><code>#model &lt;- svm(formula = GrupoPrecio ~ ., data = dataTrain, kernel = &quot;linear&quot;, cost = 1, scale = TRUE)
-model &lt;- best.tune(method = svm, train.x = GrupoPrecio ~ ., data = dataTrain, ranges = list(cost = c(0.001, 0.01, 0.1, 1, 5, 10, 100)), kernel = &quot;radial&quot;, gamma = 1)
+model1 &lt;- best.tune(method = svm, train.x = GrupoPrecio ~ ., data = dataTrain1, ranges = list(cost = c(0.001, 0.01, 0.1, 1, 5, 10, 100)), kernel = &quot;radial&quot;, gamma = 1)
 
-plot(model, dataTrain)</code></pre>
+plot(model1, dataTrain1)</code></pre>
 <p><img src="svm_files/figure-html/run_model-1.png" width="672" /></p>
-<pre class="r"><code>pred &lt;- predict(model, newdata = XTest)
-tab_test &lt;- table(pred, YTest, dnn = c(&quot;Actual&quot;, &quot;Predichos&quot;))
-(tab_test)</code></pre>
+<p>Debido a que este grupo solo contiene dos caracteristicas nos permite dibujar como el modelo svm divide el plano para clasificar los nuevos registros. Visualizamos también como se comporta el modelo con el conjunto de datos de test.</p>
+<pre class="r"><code>pred1 &lt;- predict(model1, newdata = XTest1)
+tab_test1 &lt;- table(pred1, YTest1, dnn = c(&quot;Actual&quot;, &quot;Predichos&quot;))
+(tab_test1)</code></pre>
 <pre><code>##         Predichos
 ## Actual   Barato Caro
-##   Barato    647  103
-##   Caro       17   22</code></pre>
-<pre class="r"><code>draw_confusion_matrix(tab_test, &quot;Actual&quot;, &quot;Predichos&quot;)</code></pre>
-<p><img src="svm_files/figure-html/evaluate_model-1.png" width="672" /></p>
-<pre class="r"><code>accuracy(tab_test)</code></pre>
-<pre><code>## [1] 84.79087</code></pre>
-<pre class="r"><code>knn_test_error &lt;- calc_error_rate(predicted.value=pred, true.value=YTest)
-(knn_test_error)</code></pre>
-<pre><code>## [1] 0.1520913</code></pre>
-<pre class="r"><code>cm &lt;- confusionMatrix(tab_test)
-(cm)</code></pre>
+##   Barato    648  106
+##   Caro       16   19</code></pre>
+<pre class="r"><code>draw_confusion_matrix(tab_test1, &quot;Actual&quot;, &quot;Predichos&quot;)</code></pre>
+<p><img src="svm_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+<pre class="r"><code>accuracy(tab_test1)</code></pre>
+<pre><code>## [1] 84.53739</code></pre>
+<pre class="r"><code>svm_test_error1 &lt;- calc_error_rate(predicted.value=pred1, true.value=YTest1)
+(svm_test_error1)</code></pre>
+<pre><code>## [1] 0.1546261</code></pre>
+<pre class="r"><code>cm1 &lt;- confusionMatrix(tab_test1)
+(cm1)</code></pre>
 <pre><code>## Confusion Matrix and Statistics
 ## 
 ##         Predichos
 ## Actual   Barato Caro
-##   Barato    647  103
-##   Caro       17   22
+##   Barato    648  106
+##   Caro       16   19
 ##                                           
-##                Accuracy : 0.8479          
-##                  95% CI : (0.8209, 0.8723)
+##                Accuracy : 0.8454          
+##                  95% CI : (0.8182, 0.8699)
 ##     No Information Rate : 0.8416          
-##     P-Value [Acc &gt; NIR] : 0.3337          
+##     P-Value [Acc &gt; NIR] : 0.4078          
 ##                                           
-##                   Kappa : 0.2087          
+##                   Kappa : 0.1807          
 ##                                           
-##  Mcnemar&#39;s Test P-Value : 8.533e-15       
+##  Mcnemar&#39;s Test P-Value : 7.776e-16       
 ##                                           
-##             Sensitivity : 0.9744          
-##             Specificity : 0.1760          
-##          Pos Pred Value : 0.8627          
-##          Neg Pred Value : 0.5641          
+##             Sensitivity : 0.9759          
+##             Specificity : 0.1520          
+##          Pos Pred Value : 0.8594          
+##          Neg Pred Value : 0.5429          
 ##              Prevalence : 0.8416          
-##          Detection Rate : 0.8200          
-##    Detection Prevalence : 0.9506          
-##       Balanced Accuracy : 0.5752          
+##          Detection Rate : 0.8213          
+##    Detection Prevalence : 0.9556          
+##       Balanced Accuracy : 0.5640          
 ##                                           
 ##        &#39;Positive&#39; Class : Barato          
+## </code></pre>
+<p>A continuación se realizara todos los pasos anteriores pero esta vez con otro conjunto de caracteristicas. Este conjunto dispone de más caracteristicas por lo que no podremos visualizar como separa el plano de caracteristicas. Podremos ver cuales de los dos modelos SVM funciona mejor.</p>
+<pre class="r"><code>model2 &lt;- best.tune(method = svm, train.x = GrupoPrecio ~ ., data = dataTrain2, ranges = list(cost = c(0.001, 0.01, 0.1, 1, 5, 10, 100)), kernel = &quot;radial&quot;, gamma = 1)</code></pre>
+<pre class="r"><code>pred2 &lt;- predict(model2, newdata = XTest2)
+tab_test2 &lt;- table(pred2, YTest2, dnn = c(&quot;Actual&quot;, &quot;Predichos&quot;))
+(tab_test2)</code></pre>
+<pre><code>##         Predichos
+## Actual   Barato Caro
+##   Barato    649  102
+##   Caro       15   23</code></pre>
+<pre class="r"><code>draw_confusion_matrix(tab_test2, &quot;Actual&quot;, &quot;Predichos&quot;)</code></pre>
+<p><img src="svm_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
+<pre class="r"><code>accuracy(tab_test2)</code></pre>
+<pre><code>## [1] 85.1711</code></pre>
+<pre class="r"><code>svm_test_error2 &lt;- calc_error_rate(predicted.value=pred2, true.value=YTest2)
+(svm_test_error2)</code></pre>
+<pre><code>## [1] 0.148289</code></pre>
+<pre class="r"><code>cm2 &lt;- confusionMatrix(tab_test2)
+(cm2)</code></pre>
+<pre><code>## Confusion Matrix and Statistics
+## 
+##         Predichos
+## Actual   Barato Caro
+##   Barato    649  102
+##   Caro       15   23
+##                                          
+##                Accuracy : 0.8517         
+##                  95% CI : (0.825, 0.8758)
+##     No Information Rate : 0.8416         
+##     P-Value [Acc &gt; NIR] : 0.2339         
+##                                          
+##                   Kappa : 0.225          
+##                                          
+##  Mcnemar&#39;s Test P-Value : 1.855e-15      
+##                                          
+##             Sensitivity : 0.9774         
+##             Specificity : 0.1840         
+##          Pos Pred Value : 0.8642         
+##          Neg Pred Value : 0.6053         
+##              Prevalence : 0.8416         
+##          Detection Rate : 0.8226         
+##    Detection Prevalence : 0.9518         
+##       Balanced Accuracy : 0.5807         
+##                                          
+##        &#39;Positive&#39; Class : Barato         
 ## </code></pre>
 
 
@@ -433,6 +496,11 @@ $(document).ready(function () {
 </script>
 
 <!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("hide" === "show");
+});
+</script>
 
 
 <!-- dynamically load mathjax for compatibility with self-contained -->
