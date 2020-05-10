@@ -335,15 +335,16 @@ $(document).ready(function () {
 
 <p>A continuación aplicaremos un modelo knn o k nearest neighbors a nuestro grupo de datos. El algoritmo clasifica cada dato nuevo en el grupo que corresponda, según tenga “k” vecinos más cerca de un grupo o de otro. Es decir, calcula la distancia del elemento nuevo a cada uno de los existentes, y ordena dichas distancias de menor a mayor para ir seleccionando el grupo al que pertenece. Este grupo será, por tanto, el de mayor frecuencia con menores distancias.</p>
 <p>El knn es un algoritmo de aprendizaje supervisado, es decir, que a partir de un juego de datos inicial su objetivo será el de clasificar correctamente todas las instancias nuevas.</p>
-<p>Cargamos las librerias y los datos que utilizaremos para el entrenamiento, con el conjunto de train, y la evaluación del modelo con el conjunto de test:</p>
+<p>Cargamos las librerias y los datos que utilizaremos para el entrenamiento, con el conjunto de train, y la evaluación del modelo con el conjunto de test.</p>
 <pre class="r"><code>library(class)
 library(dplyr)
 library(caret)
 library (ROCR)
 library(MASS)
 library(hmeasure)
+library(data.table)
 source(&quot;funcs.R&quot;)
-data(Pima.te) </code></pre>
+data(Pima.te)</code></pre>
 <pre class="r"><code>dataTrain_origin &lt;- readRDS(&quot;datasetTrainModeloClasificador.rds&quot;)
 dataTest_origin &lt;- readRDS(&quot;datasetTestModeloClasificador.rds&quot;)</code></pre>
 <p>Procedemos a despejar de los dataset (train y test) la variable objetivo original SalePrice. De la cual ya hemos creamos la variable GrupoPrecio, del tipo categorica. Separando asi por una parte un grupo de casas baratas y otro grupo de casas caras.</p>
@@ -362,6 +363,8 @@ YTrain &lt;- dataTrain$GrupoPrecio
 
 XTest &lt;- dataTest %&gt;% dplyr::select(-GrupoPrecio)
 YTest &lt;- dataTest$GrupoPrecio</code></pre>
+<div id="entrenamiento-optimización-y-evaluación-del-modelo" class="section level3">
+<h3>ENTRENAMIENTO, OPTIMIZACIÓN Y EVALUACIÓN DEL MODELO</h3>
 <p>Entrenamos el modelo a la vez que buscamos el k más optimo para el conjunto de datos de train normalizados.</p>
 <pre class="r"><code>#Normalización
 ctrNorm &lt;- preProcess(x = XTrain, method = c(&quot;center&quot;, &quot;scale&quot;))
@@ -372,20 +375,50 @@ dataTrainNorm &lt;- predict(ctrNorm, dataTrain)
 set.seed(400)
 ctrl &lt;- trainControl(method=&quot;repeatedcv&quot;,repeats = 3)
 knn &lt;- train(GrupoPrecio ~ ., data = dataTrainNorm, method = &quot;knn&quot;, trControl = ctrl, tuneLength = 20)
-
-plot(knn)</code></pre>
+(knn)</code></pre>
+<pre><code>## k-Nearest Neighbors 
+## 
+## 1837 samples
+##   26 predictor
+##    2 classes: &#39;Barato&#39;, &#39;Caro&#39; 
+## 
+## No pre-processing
+## Resampling: Cross-Validated (10 fold, repeated 3 times) 
+## Summary of sample sizes: 1653, 1654, 1653, 1653, 1654, 1653, ... 
+## Resampling results across tuning parameters:
+## 
+##   k   Accuracy   Kappa    
+##    5  0.9261533  0.3377619
+##    7  0.9261444  0.3015029
+##    9  0.9274075  0.3157677
+##   11  0.9292251  0.3208576
+##   13  0.9304912  0.3257051
+##   15  0.9312178  0.3286805
+##   17  0.9310396  0.3117905
+##   19  0.9292271  0.2855108
+##   21  0.9310426  0.2933578
+##   23  0.9306763  0.2801516
+##   25  0.9310416  0.2734958
+##   27  0.9301319  0.2571327
+##   29  0.9281371  0.2256035
+##   31  0.9281371  0.2207408
+##   33  0.9263236  0.1765829
+##   35  0.9250525  0.1504705
+##   37  0.9252346  0.1442550
+##   39  0.9261414  0.1593522
+##   41  0.9245080  0.1270529
+##   43  0.9243268  0.1129338
+## 
+## Accuracy was used to select the optimal model using the largest value.
+## The final value used for the model was k = 15.</code></pre>
+<pre class="r"><code>plot(knn)</code></pre>
 <p><img src="knn_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
 <p>A continuación evaluamos nuestro modelo con el conjunto de test normalizados con la información de train.</p>
 <pre class="r"><code>#Normalizamos con la información de train.
 XTestNorm &lt;- predict(ctrNorm, XTest)
-
-pred &lt;- predict(knn, newdata = XTestNorm )
-
-cm &lt;- confusionMatrix(pred, YTest, mode = &quot;prec_recall&quot; )
-
-mean(pred == YTest)</code></pre>
-<pre><code>## [1] 0.9150824</code></pre>
-<pre class="r"><code>(cm)</code></pre>
+pred &lt;- predict(knn, newdata = XTestNorm )</code></pre>
+<pre class="r"><code>cm &lt;- confusionMatrix(pred, YTest, mode = &quot;prec_recall&quot; )
+(cm)</code></pre>
 <pre><code>## Confusion Matrix and Statistics
 ## 
 ##           Reference
@@ -412,15 +445,58 @@ mean(pred == YTest)</code></pre>
 ##                                           
 ##        &#39;Positive&#39; Class : Barato          
 ## </code></pre>
-<pre class="r"><code>tab_test_h &lt;- table(pred, YTest, dnn = c(&quot;Actual&quot;, &quot;Predichos&quot;))
-
-(tab_test_h)</code></pre>
-<pre><code>##         Predichos
-## Actual   Barato Caro
-##   Barato    708   49
-##   Caro       18   14</code></pre>
-<pre class="r"><code>draw_confusion_matrix(tab_test_h, &quot;Actual&quot;, &quot;Predichos&quot;)</code></pre>
+<pre class="r"><code>tab_test &lt;- table(pred, YTest, dnn = c(&quot;Actual&quot;, &quot;Predichos&quot;))
+draw_confusion_matrix(tab_test, &quot;Actual&quot;, &quot;Predichos&quot;)</code></pre>
 <p><img src="knn_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<div id="aplicamos-pca" class="section level5">
+<h5>APLICAMOS PCA</h5>
+<pre class="r"><code>dataTrain_origin_PCA &lt;- readRDS(&quot;datasetTrainModeloClasificadorPCA.rds&quot;)
+dataTest_origin_PCA &lt;- readRDS(&quot;datasetTestModeloClasificadorPCA.rds&quot;)
+
+PCATrain &lt;- as.data.table(cbind(dataTrain_origin_PCA$ind$coord, GrupoPrecio = dataTrain_origin %&gt;% dplyr::select(c(&quot;GrupoPrecio&quot;))))
+PCATest &lt;- as.data.table(cbind(dataTest_origin_PCA$ind$coord, GrupoPrecio = dataTest_origin %&gt;% dplyr::select(c(&quot;GrupoPrecio&quot;))))
+
+XPCATrain &lt;- PCATrain %&gt;% dplyr::select(-GrupoPrecio)
+YPCATrain &lt;- PCATrain$GrupoPrecio
+XPCATest &lt;- PCATest %&gt;% dplyr::select(-GrupoPrecio)
+YPCATest &lt;- PCATest$GrupoPrecio
+
+set.seed(400)
+ctrl_pca &lt;- trainControl(method=&quot;repeatedcv&quot;,repeats = 3)
+knn_pca &lt;- train(GrupoPrecio ~ ., data = PCATrain, method = &quot;knn&quot;, trControl = ctrl_pca, tuneLength = 20)
+pred_pca &lt;- predict(knn_pca, newdata = XPCATest)</code></pre>
+<p>Podemos observar que no obtenemos un mejor resultado que con el conjunto de datos original.</p>
+<pre class="r"><code>cm_pca &lt;- confusionMatrix(pred_pca, YPCATest, mode = &quot;prec_recall&quot; )
+(cm_pca)</code></pre>
+<pre><code>## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction Barato Caro
+##     Barato    712   47
+##     Caro       14   16
+##                                           
+##                Accuracy : 0.9227          
+##                  95% CI : (0.9018, 0.9403)
+##     No Information Rate : 0.9202          
+##     P-Value [Acc &gt; NIR] : 0.4289          
+##                                           
+##                   Kappa : 0.3085          
+##                                           
+##  Mcnemar&#39;s Test P-Value : 4.182e-05       
+##                                           
+##               Precision : 0.9381          
+##                  Recall : 0.9807          
+##                      F1 : 0.9589          
+##              Prevalence : 0.9202          
+##          Detection Rate : 0.9024          
+##    Detection Prevalence : 0.9620          
+##       Balanced Accuracy : 0.6173          
+##                                           
+##        &#39;Positive&#39; Class : Barato          
+## </code></pre>
+<pre class="r"><code>tab_test_pca &lt;- table(pred_pca, YPCATest, dnn = c(&quot;Actual&quot;, &quot;Predichos&quot;))
+draw_confusion_matrix(tab_test_pca, &quot;Actual&quot;, &quot;Predichos&quot;)</code></pre>
+<p><img src="knn_files/figure-html/unnamed-chunk-8-1.png" width="672" /></p>
 <pre class="r"><code>###########################################################
 
 ctrl &lt;- trainControl(method=&quot;repeatedcv&quot;,repeats = 3, classProbs = TRUE, summaryFunction = twoClassSummary)
@@ -464,7 +540,7 @@ knnFit &lt;- train(GrupoPrecio ~ ., data = dataTrain, method = &quot;knn&quot;, 
 ## ROC was used to select the optimal model using the largest value.
 ## The final value used for the model was k = 43.</code></pre>
 <pre class="r"><code>plot(knnFit, print.thres = 0.5, type=&quot;S&quot;)</code></pre>
-<p><img src="knn_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
+<p><img src="knn_files/figure-html/unnamed-chunk-9-1.png" width="672" /></p>
 <pre class="r"><code>knnPredict &lt;- predict(knnFit,newdata = dataTest )
 #Get the confusion matrix to see accuracy value and other parameter values
 confusionMatrix(knnPredict, YTest )</code></pre>
@@ -495,8 +571,10 @@ confusionMatrix(knnPredict, YTest )</code></pre>
 ##                                          
 ##        &#39;Positive&#39; Class : Barato         
 ## </code></pre>
-<pre class="r"><code>##########################################################
-library(pROC)</code></pre>
+</div>
+<div id="curva-roc" class="section level5">
+<h5>CURVA ROC</h5>
+<pre class="r"><code>library(pROC)</code></pre>
 <pre><code>## Type &#39;citation(&quot;pROC&quot;)&#39; for a citation.</code></pre>
 <pre><code>## 
 ## Attaching package: &#39;pROC&#39;</code></pre>
@@ -504,11 +582,6 @@ library(pROC)</code></pre>
 ## 
 ##     cov, smooth, var</code></pre>
 <pre class="r"><code>knnPredict &lt;- predict(knnFit, newdata = dataTest , type=&quot;prob&quot;)
-
-
-
-
-data(aSAH)
 
 knnPredict</code></pre>
 <pre><code>##        Barato       Caro
@@ -1398,7 +1471,7 @@ ROC &lt;- roc(YTest, knnPredict[,&quot;Caro&quot;], levels = c(&quot;Barato&quot
 ## Area under the curve: 0.9128</code></pre>
 <pre class="r"><code>plot(ROC, type=&quot;S&quot;, print.thres = 0.5)
 plot(knnROC, type=&quot;S&quot;, print.thres = 0.5)</code></pre>
-<p><img src="knn_files/figure-html/unnamed-chunk-8-1.png" width="672" /></p>
+<p><img src="knn_files/figure-html/unnamed-chunk-10-1.png" width="672" /></p>
 <pre class="r"><code>roc1 &lt;- roc(YTest, knnPredict[,&quot;Caro&quot;], percent=TRUE,
             # arguments for auc
             partial.auc = c(100, 90), partial.auc.correct=TRUE,
@@ -1410,7 +1483,7 @@ plot(knnROC, type=&quot;S&quot;, print.thres = 0.5)</code></pre>
             print.auc = TRUE, show.thres = TRUE)</code></pre>
 <pre><code>## Setting levels: control = Barato, case = Caro</code></pre>
 <pre><code>## Setting direction: controls &lt; cases</code></pre>
-<p><img src="knn_files/figure-html/unnamed-chunk-8-2.png" width="672" /></p>
+<p><img src="knn_files/figure-html/unnamed-chunk-10-2.png" width="672" /></p>
 <pre class="r"><code>coords(roc1, &quot;best&quot;, ret=c(&quot;threshold&quot;, &quot;specificity&quot;, &quot;1-npv&quot;))</code></pre>
 <pre><code>## Warning in coords.roc(roc1, &quot;best&quot;, ret = c(&quot;threshold&quot;, &quot;specificity&quot;, : The
 ## &#39;transpose&#39; argument to FALSE by default since pROC 1.16. Set transpose = TRUE
@@ -1419,6 +1492,8 @@ plot(knnROC, type=&quot;S&quot;, print.thres = 0.5)</code></pre>
 <pre><code>##            threshold specificity    1-npv
 ## threshold 0.03488372    74.93113 0.729927</code></pre>
 <hr />
+</div>
+</div>
 
 
 

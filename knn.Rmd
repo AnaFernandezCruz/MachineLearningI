@@ -8,9 +8,10 @@ A continuación aplicaremos un modelo knn o k nearest neighbors a nuestro grupo 
 
 El knn es un algoritmo de aprendizaje supervisado, es decir, que a partir de un juego de datos inicial su objetivo será el de clasificar correctamente todas las instancias nuevas.
 
-Cargamos las librerias y los datos que utilizaremos para el entrenamiento, con el conjunto de train, y la evaluación del modelo con el conjunto de test:
+Cargamos las librerias y los datos que utilizaremos para el entrenamiento, con el conjunto de train, y la evaluación del modelo con el conjunto de test.
 
 ```{r message = FALSE}
+
 library(class)
 library(dplyr)
 library(caret)
@@ -19,7 +20,7 @@ library(MASS)
 library(hmeasure)
 library(data.table)
 source("funcs.R")
-data(Pima.te) 
+data(Pima.te)
 
 ```
 
@@ -27,12 +28,6 @@ data(Pima.te)
 
 dataTrain_origin <- readRDS("datasetTrainModeloClasificador.rds")
 dataTest_origin <- readRDS("datasetTestModeloClasificador.rds")
-
-
-dataTrain_origin_PCA <- readRDS("datasetTrainModeloClasificadorPCA.rds")
-dataTest_origin_PCA <- readRDS("datasetTestModeloClasificadorPCA.rds")
-
-coordenadasPCATrain <- as.data.table(cbind(dataTrain_origin_PCA$ind$coord, SalePrice= dataTrain_origin %>% dplyr::select(c("SalePrice"))  ))
 
 ```
 
@@ -65,9 +60,12 @@ YTest <- dataTest$GrupoPrecio
 
 ```
 
+### ENTRENAMIENTO, OPTIMIZACIÓN Y EVALUACIÓN DEL MODELO
+
 Entrenamos el modelo a la vez que buscamos el k más optimo para el conjunto de datos de train normalizados.
 
 ```{r}
+
 #Normalización
 ctrNorm <- preProcess(x = XTrain, method = c("center", "scale"))
 
@@ -77,66 +75,92 @@ dataTrainNorm <- predict(ctrNorm, dataTrain)
 set.seed(400)
 ctrl <- trainControl(method="repeatedcv",repeats = 3)
 knn <- train(GrupoPrecio ~ ., data = dataTrainNorm, method = "knn", trControl = ctrl, tuneLength = 20)
-
+(knn)
 plot(knn)
+
 ```
 
 A continuación evaluamos nuestro modelo con el conjunto de test normalizados con la información de train.
 
 ```{r}
+
 #Normalizamos con la información de train.
 XTestNorm <- predict(ctrNorm, XTest)
-
 pred <- predict(knn, newdata = XTestNorm )
 
-cm <- confusionMatrix(pred, YTest, mode = "prec_recall" )
-
-mean(pred == YTest)
-
-(cm)
-
-
 ```
 
 
 ```{r}
+cm <- confusionMatrix(pred, YTest, mode = "prec_recall" )
+(cm)
 tab_test <- table(pred, YTest, dnn = c("Actual", "Predichos"))
 draw_confusion_matrix(tab_test, "Actual", "Predichos")
-```
-
-APLICAMOS PCA
-```{r}
 
 ```
 
+##### APLICAMOS PCA
 
 
-
------------------------------------------------------------------------------------
 ```{r}
-###########################################################
+dataTrain_origin_PCA <- readRDS("datasetTrainModeloClasificadorPCA.rds")
+dataTest_origin_PCA <- readRDS("datasetTestModeloClasificadorPCA.rds")
 
-ctrl <- trainControl(method="repeatedcv",repeats = 3, classProbs = TRUE, summaryFunction = twoClassSummary)
-knnFit <- train(GrupoPrecio ~ ., data = dataTrain, method = "knn", trControl = ctrl, preProcess = c("center","scale"), tuneLength = 20)
-knnFit
+PCATrain <- as.data.table(cbind(dataTrain_origin_PCA$ind$coord, GrupoPrecio = dataTrain_origin %>% dplyr::select(c("GrupoPrecio"))))
+PCATest <- as.data.table(cbind(dataTest_origin_PCA$ind$coord, GrupoPrecio = dataTest_origin %>% dplyr::select(c("GrupoPrecio"))))
 
-plot(knnFit, print.thres = 0.5, type="S")
+XPCATrain <- PCATrain %>% dplyr::select(-GrupoPrecio)
+YPCATrain <- PCATrain$GrupoPrecio
+XPCATest <- PCATest %>% dplyr::select(-GrupoPrecio)
+YPCATest <- PCATest$GrupoPrecio
 
-knnPredict <- predict(knnFit,newdata = dataTest )
+set.seed(400)
+ctrl_pca <- trainControl(method="repeatedcv",repeats = 3)
+knn_pca <- train(GrupoPrecio ~ ., data = PCATrain, method = "knn", trControl = ctrl_pca, tuneLength = 20)
+pred_pca <- predict(knn_pca, newdata = XPCATest)
+
+```
+
+```{r}
+cm_pca <- confusionMatrix(pred_pca, YPCATest, mode = "prec_recall" )
+(cm_pca)
+tab_test_pca <- table(pred_pca, YPCATest, dnn = c("Actual", "Predichos"))
+draw_confusion_matrix(tab_test_pca, "Actual", "Predichos")
+```
+
+
+```{r}
+
+ctrl_fit <- trainControl(method="repeatedcv", repeats = 3, classProbs = TRUE, summaryFunction = twoClassSummary)
+knn_fit <- train(GrupoPrecio ~ ., data = dataTrainNorm, method = "knn", trControl = ctrl_fit, tuneLength = 20)
+(knn_fit)
+
+plot(knn_fit, print.thres = 0.5, type="S")
+
+pred_fit <- predict(knn_fit, newdata = XTestNorm )
 #Get the confusion matrix to see accuracy value and other parameter values
-confusionMatrix(knnPredict, YTest )
+confusionMatrix(pred_fit, YTest ,mode = "prec_recall")
 
 ```
 
 ```{r}
-##########################################################
+
+cm_fit <- confusionMatrix(pred_fit, YTest, mode = "prec_recall" )
+(cm_fit)
+tab_test_fit <- table(pred_fit, YTest, dnn = c("Actual", "Predichos"))
+draw_confusion_matrix(tab_test_fit, "Actual", "Predichos")
+
+```
+
+
+
+
+##### CURVA ROC
+
+```{r}
 library(pROC)
-knnPredict <- predict(knnFit, newdata = dataTest , type="prob")
 
-
-
-
-data(aSAH)
+knnPredict <- predict(knn_fit, newdata = dataTest , type="prob")
 
 knnPredict
 a <- rev(YTest)
@@ -161,7 +185,6 @@ roc1 <- roc(YTest, knnPredict[,"Caro"], percent=TRUE,
             plot = TRUE, auc.polygon = TRUE, max.auc.polygon = TRUE, grid = TRUE,
             print.auc = TRUE, show.thres = TRUE)
 
-coords(roc1, "best", ret=c("threshold", "specificity", "1-npv"))
 
 ```
 
