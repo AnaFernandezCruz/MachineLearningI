@@ -21,8 +21,8 @@ source("funcs.R")
 
 ```{r load_data, message=FALSE, warning=FALSE, echo=TRUE}
 
-dataTrain_origin <- readRDS("datasetTrain.rds")
-dataTest_origin <- readRDS("datasetTest.rds")
+dataTrain_origin <- readRDS("datasetTrainModeloClasificador.rds")
+dataTest_origin <- readRDS("datasetTestModeloClasificador.rds")
 
 ```
 
@@ -41,12 +41,12 @@ Para este modelo se han escogido dos grupos de caracteristicas, para poder compr
 
 ```{r}
 
-group <- c('GrLivArea','LotArea','TotalSF','ExterQual','KitchenQual', 'GrupoPrecio')
+#group <- c('GrLivArea','LotArea','TotalSF','ExterQual','KitchenQual', 'GrupoPrecio')
 remove <- c('GrupoPrecio')
 col_to_factor <- colnames(dataTrain) [! colnames(dataTrain) %in% remove]
 
-dataTrain <- dataTrain %>% dplyr::select(group)
-dataTest <- dataTest %>% dplyr::select(group)
+#dataTrain <- dataTrain %>% dplyr::select(group)
+#dataTest <- dataTest %>% dplyr::select(group)
 
 dataTrain <- dataTrain %>% as_factor_all(col_to_factor)
 dataTest <- dataTest %>% as_factor_all(col_to_factor)

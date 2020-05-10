@@ -663,8 +663,6 @@ validation <- validation <- validation %>%  mutate(GrupoPrecio = ifelse(SalePric
 ```
 
 
-
-
 ```{r  message=FALSE, warning=FALSE, echo=FALSE}
 preProcValuesDataset <- preProcess(dataset_train_test_sin_outliers  %>% dplyr::select(-OverallQual, -OverallCond,-Id)    ,method = c("center", "scale"))
 
@@ -686,9 +684,6 @@ var_modelo = setdiff(setdiff(setdiff(setdiff(colnames(datasetTrain),c('SalePrice
 var_modelo_with_SalePrice = c(var_modelo,'SalePrice')
 
 ```
-
-
-
 
 
 
@@ -760,11 +755,13 @@ library(PCAmixdata)
 
 numeroDimOptimo = 50
 
-splitTrainModeloClasificador <- splitmix(datasetTrain %>% dplyr::select(-c("SalePrice",'GrupoPrecio'))%>%  dplyr::select(var_modelo_clasificador)) 
+splitTrainModeloClasificador <- splitmix(datasetTrain %>% dplyr::select(-c("SalePrice",'GrupoPrecio')) %>% dplyr::select(var_modelo_clasificador)) 
 X1TrainModeloClasificador <- splitTrainModeloClasificador$X.quanti 
 X2TrainModeloClasificador <- splitTrainModeloClasificador$X.quali 
+
 objetoPCAMIXTrainModeloClasificador <- PCAmix(X.quanti=X1TrainModeloClasificador, X.quali=X2TrainModeloClasificador,rename.level=TRUE, graph=FALSE,ndim=numeroDimOptimo)
 
+saveRDS(objetoPCAMIXTrainModeloClasificador, "datasetTrainModeloClasificadorPCA.rds")
 
 
 splitTestModeloClasificador <- splitmix(datasetTest %>% dplyr::select(-c("SalePrice",'GrupoPrecio'))%>%  dplyr::select(var_modelo_clasificador)) 
@@ -772,6 +769,6 @@ X1TestModeloClasificador <- splitTestModeloClasificador$X.quanti
 X2TestModeloClasificador <- splitTestModeloClasificador$X.quali 
 objetoPCAMIXTestModeloClasificador <- PCAmix(X.quanti=X1TestModeloClasificador, X.quali=X2TestModeloClasificador,rename.level=TRUE, graph=FALSE,ndim=numeroDimOptimo)
 
-
+saveRDS(objetoPCAMIXTestModeloClasificador, "datasetTestModeloClasificadorPCA.rds")
 
 ```

@@ -28,7 +28,7 @@ draw_confusion_matrix <- function(tab, tab_Actual, tab_Predict){
   ggplot(data =  df, mapping = aes(x = Actual, y = Predichos)) +
     geom_tile(aes(fill = Y), colour = "white") +
     geom_text(aes(label = sprintf("%1.0f", Y)), vjust = 1) +
-    scale_fill_gradient(low = "blue", high = "red") +
+    scale_fill_gradient(low = "#6599EB", high = "#4CE2B1") +
     theme_bw() + theme(legend.position = "none")
 }
 
