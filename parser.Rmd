@@ -657,7 +657,8 @@ umbralParticionMonetaria = 250000
 datasetTrain <- datasetTrain %>%  mutate(GrupoPrecio = ifelse(SalePrice >= log(umbralParticionMonetaria), "Caro", "Barato")) 
 datasetTrain$GrupoPrecio <- as.factor(datasetTrain$GrupoPrecio)
 datasetTest <- datasetTest %>%  mutate(GrupoPrecio = ifelse(SalePrice >= log(umbralParticionMonetaria), "Caro", "Barato")) 
-datasetTest$GrupoPrecio <- as.factor(datasetTes$precioCaro)
+datasetTest$GrupoPrecio <- as.factor(datasetTest$GrupoPrecio)
+validation <- validation <- validation %>%  mutate(GrupoPrecio = ifelse(SalePrice >= log(umbralParticionMonetaria), "Caro", "Barato")) 
 
 ```
 
@@ -712,6 +713,64 @@ saveRDS(validation_sin_na, "datasetValidation.rds")
 saveRDS(datasetTrainTransformed, "datasetTrainTransformed.rds")
 saveRDS(datasetTestTransformed, "datasetTestTransformed.rds")
 saveRDS(validationTransformed, "validationTransformed.rds")
+
+
+
+```
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+library(randomForest)
+excludedVars <- c('SalePrice','GrupoPrecio','TotalSF','MoSold','YrSold')
+
+set.seed(2018)
+
+dataSetTrainTestBaratos <-  dplyr::union(datasetTrain,datasetTest) %>% dplyr::filter( GrupoPrecio == 'Barato' )
+dataSetTrainTestCaros <-  dplyr::union(datasetTrain,datasetTest) %>% dplyr::filter( GrupoPrecio == 'Caro' )
+
+arbol_visualizacion_baratos <- randomForest(x=dataSetTrainTestBaratos %>% dplyr::select(-excludedVars ), y=dataSetTrainTestBaratos$SalePrice, ntree=100,importance=TRUE)
+varImportantesTest <- importance(arbol_visualizacion_baratos)
+dataframeTestImportantesBaratos <- data.frame(Variables = row.names(varImportantesTest), MSE = varImportantesTest[,1])
+dataframeTestImportantesBaratos <- dataframeTestImportantesBaratos[order(dataframeTestImportantesBaratos$MSE, decreasing = TRUE),]
+
+
+arbol_visualizacion_caros <- randomForest(x=dataSetTrainTestCaros %>% dplyr::select(-excludedVars ), y=dataSetTrainTestCaros$SalePrice, ntree=100,importance=TRUE)
+varImportantesTest <- importance(arbol_visualizacion_caros)
+dataframeTestImportantesCaros <- data.frame(Variables = row.names(varImportantesTest), MSE = varImportantesTest[,1])
+dataframeTestImportantesCaros <- dataframeTestImportantesCaros[order(dataframeTestImportantesCaros$MSE, decreasing = TRUE),]
+
+numero_variables_modelo_clasificador = 20
+
+var_modelo_clasificador =  setdiff(unique(union(dataframeTestImportantesBaratos[1:numero_variables_modelo_clasificador,1],dataframeTestImportantesCaros[1:numero_variables_modelo_clasificador,1])),var_eliminar_correlacion)
+
+
+write.csv(datasetTrain %>% dplyr::select(c(var_modelo_clasificador,c('SalePrice','GrupoPrecio')) ), "datasetTrainModeloClasificador.csv")
+write.csv(datasetTest %>% dplyr::select(c(var_modelo_clasificador,c('SalePrice','GrupoPrecio')) ) , "datasetTestModeloClasificador.csv")
+write.csv(validation_sin_na %>% dplyr::select(c(var_modelo_clasificador,c('SalePrice','GrupoPrecio')) ), "datasetValidationModeloClasificador.csv")
+
+saveRDS(datasetTrain %>% dplyr::select(c(var_modelo_clasificador,c('SalePrice','GrupoPrecio')) ), "datasetTrainModeloClasificador.rds")
+saveRDS(datasetTest %>% dplyr::select(c(var_modelo_clasificador,c('SalePrice','GrupoPrecio')) ), "datasetTestModeloClasificador.rds")
+saveRDS(validation_sin_na %>% dplyr::select(c(var_modelo_clasificador,c('SalePrice','GrupoPrecio')) ), "datasetValidationModeloClasificador.rds")
+
+
+```
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+
+library(PCAmixdata)
+
+numeroDimOptimo = 50
+
+splitTrainModeloClasificador <- splitmix(datasetTrain %>% dplyr::select(-c("SalePrice",'GrupoPrecio'))%>%  dplyr::select(var_modelo_clasificador)) 
+X1TrainModeloClasificador <- splitTrainModeloClasificador$X.quanti 
+X2TrainModeloClasificador <- splitTrainModeloClasificador$X.quali 
+objetoPCAMIXTrainModeloClasificador <- PCAmix(X.quanti=X1TrainModeloClasificador, X.quali=X2TrainModeloClasificador,rename.level=TRUE, graph=FALSE,ndim=numeroDimOptimo)
+
+
+
+splitTestModeloClasificador <- splitmix(datasetTest %>% dplyr::select(-c("SalePrice",'GrupoPrecio'))%>%  dplyr::select(var_modelo_clasificador)) 
+X1TestModeloClasificador <- splitTestModeloClasificador$X.quanti 
+X2TestModeloClasificador <- splitTestModeloClasificador$X.quali 
+objetoPCAMIXTestModeloClasificador <- PCAmix(X.quanti=X1TestModeloClasificador, X.quali=X2TestModeloClasificador,rename.level=TRUE, graph=FALSE,ndim=numeroDimOptimo)
 
 
 
