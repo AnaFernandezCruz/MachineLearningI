@@ -530,9 +530,9 @@ library(forcats)
 
 ```{r}
 library(arules)
+umbralParticionMonetaria = 250000
 #v = discretize(dataset$SalePrice, breaks = 3, onlycuts = TRUE)
-v = discretize(dataset$SalePrice, method = "fixed", breaks = c(-Inf,210000,Inf), onlycuts = TRUE)
-
+v = discretize(dataset$SalePrice, method = "fixed", breaks = c(-Inf,umbralParticionMonetaria,Inf), onlycuts = TRUE)
 dataset$GrupoPrecio = cut(dataset$SalePrice,v)
 levels(dataset$GrupoPrecio) = c("Barato","Caro")
 write.csv(dataset, "fulldatasetTransformed.csv")
@@ -646,6 +646,25 @@ dataset_sin_na_outliers <- dataset_train_test_sin_outliers[-listaPosOutliers,]
 datasetTrain <- dataset_train_test_sin_outliers %>%  filter(Id %in%  trainIds$Id)  %>% dplyr::select(-Id)
 datasetTest  <- dataset_train_test_sin_outliers %>%  filter(Id %in%  testIds$Id)  %>% dplyr::select(-Id)
 
+```
+
+
+
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+
+umbralParticionMonetaria = 250000
+datasetTrain <- datasetTrain %>%  mutate(GrupoPrecio = ifelse(SalePrice >= log(umbralParticionMonetaria), "Caro", "Barato")) 
+datasetTrain$GrupoPrecio <- as.factor(datasetTrain$GrupoPrecio)
+datasetTest <- datasetTest %>%  mutate(GrupoPrecio = ifelse(SalePrice >= log(umbralParticionMonetaria), "Caro", "Barato")) 
+datasetTest$GrupoPrecio <- as.factor(datasetTes$precioCaro)
+
+```
+
+
+
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
 preProcValuesDataset <- preProcess(dataset_train_test_sin_outliers  %>% dplyr::select(-OverallQual, -OverallCond,-Id)    ,method = c("center", "scale"))
 
 validation_sin_na <- validation %>%  na.omit() %>% dplyr::select(-Id)
@@ -668,6 +687,10 @@ var_modelo_with_SalePrice = c(var_modelo,'SalePrice')
 ```
 
 
+
+
+
+
 ```{r  message=FALSE, warning=FALSE, echo=FALSE}
 
 
@@ -675,12 +698,12 @@ datasetTrainTransformed <- predict(preProcValuesDataset, datasetTrain)
 datasetTestTransformed <- predict(preProcValuesDataset, datasetTest)
 validationTransformed <- predict(preProcValuesValidation, validation_sin_na)
 
-write.csv(datasetTrain, "datasetTrain.rds")
-write.csv(datasetTest, "datasetTest.rds")
-write.csv(validation_sin_na, "datasetValidation.rds")
-write.csv(datasetTrainTransformed, "datasetTrainTransformed.rds")
-write.csv(datasetTestTransformed, "datasetTestTransformed.rds")
-write.csv(validationTransformed, "validationTransformed.rds")
+write.csv(datasetTrain, "datasetTrain.csv")
+write.csv(datasetTest, "datasetTest.csv")
+write.csv(validation_sin_na, "datasetValidation.csv")
+write.csv(datasetTrainTransformed, "datasetTrainTransformed.csv")
+write.csv(datasetTestTransformed, "datasetTestTransformed.csv")
+write.csv(validationTransformed, "validationTransformed.csv")
 
 
 saveRDS(datasetTrain, "datasetTrain.rds")
