@@ -21,8 +21,8 @@ source("funcs.R")
 
 ```{r load_data, message=FALSE, warning=FALSE, echo=TRUE}
 
-dataTrain <- readRDS("datasetTrain.rds")
-dataTest <- readRDS("datasetTest.rds")
+dataTrain_origin <- readRDS("datasetTrain.rds")
+dataTest_origin <- readRDS("datasetTest.rds")
 
 ```
 
@@ -32,50 +32,77 @@ Nuestro modelo clasificará casas entre estos dos grupos.
 
 ```{r}
 
-dataTrain <- dataTrain %>% dplyr::select(-SalePrice)
-dataTest <- dataTest %>% dplyr::select(-SalePrice)
+dataTrain <- dataTrain_origin %>% dplyr::select(-SalePrice)
+dataTest <- dataTest_origin %>% dplyr::select(-SalePrice)
 
 ```
 
 Para este modelo se han escogido dos grupos de caracteristicas, para poder comproba como mejora si añadimos o quitamos variables al modelo. Estos dos grupos de caracteristicas las divideramos en group1 y group2.
 
 ```{r}
-group1 <- c('TotalSF','LotArea','GrupoPrecio')
-group2 <- c('TotalSF','LotArea','GrLivArea','GrupoPrecio')
 
-dataTrain1 <- dataTrain %>% dplyr::select(group1)
-dataTest1 <- dataTest %>% dplyr::select(group1)
+group <- c('GrLivArea','LotArea','TotalSF','ExterQual','KitchenQual', 'GrupoPrecio')
+remove <- c('GrupoPrecio')
+col_to_factor <- colnames(dataTrain) [! colnames(dataTrain) %in% remove]
 
-dataTrain2 <- dataTrain %>% dplyr::select(group2)
-dataTest2 <- dataTest %>% dplyr::select(group2)
+dataTrain <- dataTrain %>% dplyr::select(group)
+dataTest <- dataTest %>% dplyr::select(group)
 
+dataTrain <- dataTrain %>% as_factor_all(col_to_factor)
+dataTest <- dataTest %>% as_factor_all(col_to_factor)
 ```
 
 
 ```{r}
 
-XTrain1 <- dataTrain1 %>% dplyr::select(-GrupoPrecio)
-YTrain1 <- dataTrain1$GrupoPrecio
+XTrain <- dataTrain %>% dplyr::select(-GrupoPrecio)
+YTrain <- dataTrain$GrupoPrecio
 
-XTest1 <- dataTest1 %>% dplyr::select(-GrupoPrecio)
-YTest1 <- dataTest1$GrupoPrecio
-
-XTrain2 <- dataTrain2 %>% dplyr::select(-GrupoPrecio)
-YTrain2 <- dataTrain2$GrupoPrecio
-
-XTest2 <- dataTest2 %>% dplyr::select(-GrupoPrecio)
-YTest2 <- dataTest2$GrupoPrecio
+XTest <- dataTest %>% dplyr::select(-GrupoPrecio)
+YTest <- dataTest$GrupoPrecio
 
 ```
 
+```{r}
+svmfit = svm(GrupoPrecio ~ ., data = dataTrain, kernel = "linear", cost = 10, scale = FALSE)
+(svmfit$index)
+summary(svmfit)
+
+svmfit_ajust = svm(GrupoPrecio ~ ., data = dataTrain, kernel = "linear", cost = 0.1, scale = FALSE)
+(svmfit_ajust$index)
+summary(svmfit_ajust)
+
+
+tune.out = tune(svm, GrupoPrecio ~ ., data = dataTrain, kernel = "linear", ranges = list(cost = c(0.001, 0.01, 0.1, 1, 5, 10, 100)))
+(tune.out$index)
+summary(tune.out)
+bestmod = tune.out$best.model
+summary(bestmod)
+
+
+```
+
+```{r}
+ypred <- predict(bestmod, dataTest)
+table(predict = ypred, truth = YTest)
+
+```
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------------------------------------
 A continuación, entrenamos el modelo con el conjunto de entrenamiento y evaluamos con el conjunto de test, el primer grupo de caracteristicas escogidas (group1).
 
 ```{r run_model}
 
 #model <- svm(formula = GrupoPrecio ~ ., data = dataTrain, kernel = "linear", cost = 1, scale = TRUE)
-model1 <- best.tune(method = svm, train.x = GrupoPrecio ~ ., data = dataTrain1, ranges = list(cost = c(0.001, 0.01, 0.1, 1, 5, 10, 100)), kernel = "radial", gamma = 1)
-
-plot(model1, dataTrain1)
+svm <- best.tune(method = svm, train.x = GrupoPrecio ~ ., data = dataTrain, ranges = list(cost = c(0.001, 0.01, 0.1, 1, 5, 10, 100)), kernel = "linear")
+#svm <- best.tune(method = svm, train.x = GrupoPrecio ~ ., data = dataTrain, ranges = list(cost = c(0.001, 0.01, 0.1, 1, 5, 10, 100)), kernel = "radial", gamma = 1)
 
 ```
 
@@ -83,16 +110,16 @@ Debido a que este grupo solo contiene dos caracteristicas nos permite dibujar co
 
 ```{r}
 
-pred1 <- predict(model1, newdata = XTest1)
-tab_test1 <- table(pred1, YTest1, dnn = c("Actual", "Predichos"))
-(tab_test1)
-draw_confusion_matrix(tab_test1, "Actual", "Predichos")
+pred <- predict(svm, newdata = XTest)
+tab_test <- table(pred, YTest, dnn = c("Actual", "Predichos"))
+(tab_test)
+draw_confusion_matrix(tab_test, "Actual", "Predichos")
 
-accuracy(tab_test1)
-svm_test_error1 <- calc_error_rate(predicted.value=pred1, true.value=YTest1)
-(svm_test_error1)
+accuracy(tab_test)
+svm_test_error <- calc_error_rate(predicted.value=pred, true.value=YTest)
+(svm_test_error)
 
-cm1 <- confusionMatrix(tab_test1)
+cm1 <- confusionMatrix(tab_test)
 (cm1)
 ```
 

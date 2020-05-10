@@ -13,23 +13,37 @@ source("funcs.R")
 
 ```{r load_data, message=FALSE, warning=FALSE, echo=TRUE}
 
-dataTrain <- readRDS("datasetTrain.rds")
-dataTest <- readRDS("datasetTest.rds")
+dataTrain_origin <- readRDS("datasetTrain.rds")
+dataTest_origin <- readRDS("datasetTest.rds")
 
 ```
 
 
 ```{r choose_features}
 
-dataTrain <- dataTrain %>% dplyr::select(-SalePrice)
-dataTest <- dataTest %>% dplyr::select(-SalePrice)
+dataTrain <- dataTrain_origin %>% dplyr::select(-SalePrice)
+dataTest <- dataTest_origin %>% dplyr::select(-SalePrice)
 
-group <- c('TotalSF','LotArea','GrLivArea','GrupoPrecio')
+
+```
+
+
+```{r}
+#group <- c('GrLivArea','LotArea','TotalSF','MSSubClass','Neighborhood','BedroomAbvGr','BldgType','OverallCond','TotalBsmtSF', 'GrupoPrecio')
+group <- c('GrLivArea','LotArea','TotalSF','ExterQual','KitchenQual', 'GrupoPrecio')
+remove <- c('GrupoPrecio')
+col_to_factor <- colnames(dataTrain) [! colnames(dataTrain) %in% remove]
 
 dataTrain <- dataTrain %>% dplyr::select(group)
 dataTest <- dataTest %>% dplyr::select(group)
 
+dataTrain <- dataTrain %>% as_factor_all(col_to_factor)
+dataTest <- dataTest %>% as_factor_all(col_to_factor)
 ```
+
+
+
+
 
 
 ```{r process_data }
@@ -41,12 +55,34 @@ YTrain <- dataTrain$GrupoPrecio
 XTest <- dataTest %>% dplyr::select(-GrupoPrecio)
 YTest <- dataTest$GrupoPrecio
 
-#XTrain<- as.data.frame(lapply(XTrain, normalize_standar,4,5))
-#XTest<- as.data.frame(lapply(XTest,normalize_standar,3,4))
+```
+
+```{r}
+glm = glm(GrupoPrecio ~ ., family = binomial, data = dataTrain)
+summary(glm)
+
+round(exp(cbind(Estimate = coef(glm), confint(glm))),2)
+
+
+glm_del = update(glm, . ~ . - KitchenQual - ExterQual) 
+
+anova(glm_del, glm, test = "Chisq")
+
+
+head(predict(glm))
+
 
 ```
 
 
+```{r}
+
+```
+
+
+
+
+--------------------------------------------------------------------
 ```{r run_model}
 
 model <- glm(GrupoPrecio ~ ., family=binomial(link='logit'),data=dataTrain)

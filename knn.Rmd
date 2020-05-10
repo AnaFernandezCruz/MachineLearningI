@@ -24,8 +24,8 @@ data(Pima.te)
 
 ```{r load_data, message=FALSE, warning=FALSE, echo=TRUE}
 
-dataTrain <- readRDS("datasetTrain.rds")
-dataTest <- readRDS("datasetTest.rds")
+dataTrain_origin <- readRDS("datasetTrain.rds")
+dataTest_origin <- readRDS("datasetTest.rds")
 
 ```
 
@@ -35,8 +35,8 @@ Nuestro modelo clasificará casas entre estos dos grupos.
 
 ```{r}
 
-dataTrain <- dataTrain %>% dplyr::select(-SalePrice)
-dataTest <- dataTest %>% dplyr::select(-SalePrice)
+dataTrain <- dataTrain_origin %>% dplyr::select(-SalePrice)
+dataTest <- dataTest_origin %>% dplyr::select(-SalePrice)
 
 ```
 
@@ -45,10 +45,16 @@ Para este modelo se han elegido un grupo de caracteristica del dataset original.
 A continuación preparamos los dataset para entrenar el modelo y posteriormente evaluar como se comporta con el conjunto de test.
 
 ```{r}
-group <- c('TotalSF','LotArea','GrLivArea','GrupoPrecio')
+#group <- c('GrLivArea','LotArea','TotalSF','MSSubClass','Neighborhood','BedroomAbvGr','BldgType','OverallCond','TotalBsmtSF', 'GrupoPrecio')
+group <- c('GrLivArea','LotArea','TotalSF','ExterQual','KitchenQual', 'GrupoPrecio')
+remove <- c('GrupoPrecio')
+col_to_factor <- colnames(dataTrain) [! colnames(dataTrain) %in% remove]
 
 dataTrain <- dataTrain %>% dplyr::select(group)
 dataTest <- dataTest %>% dplyr::select(group)
+
+dataTrain <- dataTrain %>% as_factor_all(col_to_factor)
+dataTest <- dataTest %>% as_factor_all(col_to_factor)
 
 ```
 
@@ -62,6 +68,67 @@ YTest <- dataTest$GrupoPrecio
 
 ```
 
+```{r}
+
+proccess <- preProcess(x = XTrain, method = c("center", "scale"))
+
+#proccess <- preProcess(x = XTrain, method = c("range"))
+
+transformed <- predict(proccess, XTest)
+
+(proccess)
+##TRAIN
+set.seed(400)
+ctrl <- trainControl(method="repeatedcv",repeats = 3)
+knn <- train(GrupoPrecio ~ ., data = dataTrain, method = "knn", trControl = ctrl, preProcess = c("center","scale"), tuneLength = 20)
+#knn <- train(GrupoPrecio ~ ., data = dataTrain, method = "knn", trControl = ctrl, preProcess = c("range"), tuneLength = 20)
+knn
+
+plot(knn)
+
+
+
+knnPredict <- predict(knn,newdata = XTest )
+
+confusionMatrix(knnPredict, YTest, mode = "prec_recall" ) ### ME gustaa
+
+mean(knnPredict == YTest)
+```
+
+```{r}
+###########################################################
+
+ctrl <- trainControl(method="repeatedcv",repeats = 3,classProbs=TRUE,summaryFunction = twoClassSummary)
+knnFit <- train(GrupoPrecio ~ ., data = dataTrain, method = "knn", trControl = ctrl, preProcess = c("center","scale"), tuneLength = 20)
+knnFit
+
+plot(knnFit, print.thres = 0.5, type="S")
+
+knnPredict <- predict(knnFit,newdata = dataTest )
+#Get the confusion matrix to see accuracy value and other parameter values
+confusionMatrix(knnPredict, YTest )
+
+```
+
+```{r}
+##########################################################
+library(pROC)
+knnPredict <- predict(knnFit, newdata = dataTest , type="prob")
+
+knnPredict
+rev(YTest)
+knnROC <- roc(YTest, knnPredict[,"Caro"], levels = c("Barato","Caro"))
+knnROC
+
+plot(knnROC, type="S", print.thres = 0.5)
+
+```
+
+
+
+
+
+-----------------------------------------------------------------------------
 Inciamos el modelo entrenado con el conjunto de entrenamiento y evaluando como se comporta con el mismo. Si los grupos estan bien separados con una k mayor que uno deberia de dar un porcentaje de acierto alto, porque se evalua contra el mismo conjutno que usamos para entrenar el modelo.
 
 

@@ -31,3 +31,14 @@ draw_confusion_matrix <- function(tab, tab_Actual, tab_Predict){
     scale_fill_gradient(low = "blue", high = "red") +
     theme_bw() + theme(legend.position = "none")
 }
+
+as_factor_all <- function(df, group_factor){
+  for (i in colnames(df)){
+   if(i %in% group_factor && class(df[[i]]) == "factor"){
+      df[[i]] = as.integer(as.factor(df[[i]]))
+    }
+  }
+  
+  
+  return(df)
+}
