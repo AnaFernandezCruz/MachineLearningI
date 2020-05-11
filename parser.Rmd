@@ -727,11 +727,15 @@ varImportantesTest <- importance(arbol_visualizacion_baratos)
 dataframeTestImportantesBaratos <- data.frame(Variables = row.names(varImportantesTest), MSE = varImportantesTest[,1])
 dataframeTestImportantesBaratos <- dataframeTestImportantesBaratos[order(dataframeTestImportantesBaratos$MSE, decreasing = TRUE),]
 
+saveRDS(dataframeTestImportantesBaratos, "dataframeTestImportantesBaratos.rds")
 
 arbol_visualizacion_caros <- randomForest(x=dataSetTrainTestCaros %>% dplyr::select(-excludedVars ), y=dataSetTrainTestCaros$SalePrice, ntree=100,importance=TRUE)
 varImportantesTest <- importance(arbol_visualizacion_caros)
 dataframeTestImportantesCaros <- data.frame(Variables = row.names(varImportantesTest), MSE = varImportantesTest[,1])
 dataframeTestImportantesCaros <- dataframeTestImportantesCaros[order(dataframeTestImportantesCaros$MSE, decreasing = TRUE),]
+
+saveRDS(dataframeTestImportantesCaros, "dataframeTestImportantesCaros.rds")
+
 
 numero_variables_modelo_clasificador = 20
 
