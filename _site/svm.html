@@ -339,129 +339,280 @@ $(document).ready(function () {
 library(dplyr)
 library(caret)
 library (ROCR)
-library(e1071)
+library(kernlab)
+library(data.table)
+library(MLeval)
 source(&quot;funcs.R&quot;)</code></pre>
-<pre class="r"><code>dataTrain &lt;- readRDS(&quot;datasetTrain.rds&quot;)
-dataTest &lt;- readRDS(&quot;datasetTest.rds&quot;)</code></pre>
+<pre class="r"><code>dataTrain_origin &lt;- readRDS(&quot;datasetTrainModeloClasificador.rds&quot;)
+dataTest_origin &lt;- readRDS(&quot;datasetTestModeloClasificador.rds&quot;)</code></pre>
 <p>Procedemos a despejar de los dataset (train y test) la variable objetivo original SalePrice. De la cual ya hemos creamos la variable GrupoPrecio, del tipo categorica. Separando asi por una parte un grupo de casas baratas y otro grupo de casas caras.</p>
 <p>Nuestro modelo clasificará casas entre estos dos grupos.</p>
-<pre class="r"><code>dataTrain &lt;- dataTrain %&gt;% dplyr::select(-SalePrice)
-dataTest &lt;- dataTest %&gt;% dplyr::select(-SalePrice)</code></pre>
+<pre class="r"><code>dataTrain &lt;- dataTrain_origin %&gt;% dplyr::select(-SalePrice)
+dataTest &lt;- dataTest_origin %&gt;% dplyr::select(-SalePrice)</code></pre>
 <p>Para este modelo se han escogido dos grupos de caracteristicas, para poder comproba como mejora si añadimos o quitamos variables al modelo. Estos dos grupos de caracteristicas las divideramos en group1 y group2.</p>
-<pre class="r"><code>group1 &lt;- c(&#39;TotalSF&#39;,&#39;LotArea&#39;,&#39;GrupoPrecio&#39;)
-group2 &lt;- c(&#39;TotalSF&#39;,&#39;LotArea&#39;,&#39;GrLivArea&#39;,&#39;GrupoPrecio&#39;)
+<pre class="r"><code>remove &lt;- c(&#39;GrupoPrecio&#39;)
+col_to_factor &lt;- colnames(dataTrain) [! colnames(dataTrain) %in% remove]
 
-dataTrain1 &lt;- dataTrain %&gt;% dplyr::select(group1)
-dataTest1 &lt;- dataTest %&gt;% dplyr::select(group1)
+dataTrain &lt;- dataTrain %&gt;% as_factor_all(col_to_factor)
+dataTest &lt;- dataTest %&gt;% as_factor_all(col_to_factor)
 
-dataTrain2 &lt;- dataTrain %&gt;% dplyr::select(group2)
-dataTest2 &lt;- dataTest %&gt;% dplyr::select(group2)</code></pre>
-<pre class="r"><code>XTrain1 &lt;- dataTrain1 %&gt;% dplyr::select(-GrupoPrecio)
-YTrain1 &lt;- dataTrain1$GrupoPrecio
+XTrain &lt;- dataTrain %&gt;% dplyr::select(-GrupoPrecio)
+YTrain &lt;- dataTrain$GrupoPrecio
 
-XTest1 &lt;- dataTest1 %&gt;% dplyr::select(-GrupoPrecio)
-YTest1 &lt;- dataTest1$GrupoPrecio
+XTest &lt;- dataTest %&gt;% dplyr::select(-GrupoPrecio)
+YTest &lt;- dataTest$GrupoPrecio</code></pre>
+<div id="entrenamiento-optimización-y-evaluación-del-modelo" class="section level3">
+<h3>ENTRENAMIENTO, OPTIMIZACIÓN Y EVALUACIÓN DEL MODELO</h3>
+<p>Entrenamos el modelo a la vez que buscamos el k más optimo para el conjunto de datos de train normalizados.</p>
+<pre class="r"><code>#Normalización
+ctrNorm &lt;- preProcess(x = XTrain, method = c(&quot;center&quot;, &quot;scale&quot;))
 
-XTrain2 &lt;- dataTrain2 %&gt;% dplyr::select(-GrupoPrecio)
-YTrain2 &lt;- dataTrain2$GrupoPrecio
+dataTrainNorm &lt;- predict(ctrNorm, dataTrain)
 
-XTest2 &lt;- dataTest2 %&gt;% dplyr::select(-GrupoPrecio)
-YTest2 &lt;- dataTest2$GrupoPrecio</code></pre>
-<p>A continuación, entrenamos el modelo con el conjunto de entrenamiento y evaluamos con el conjunto de test, el primer grupo de caracteristicas escogidas (group1).</p>
-<pre class="r"><code>#model &lt;- svm(formula = GrupoPrecio ~ ., data = dataTrain, kernel = &quot;linear&quot;, cost = 1, scale = TRUE)
-model1 &lt;- best.tune(method = svm, train.x = GrupoPrecio ~ ., data = dataTrain1, ranges = list(cost = c(0.001, 0.01, 0.1, 1, 5, 10, 100)), kernel = &quot;radial&quot;, gamma = 1)
+#Entrenamiento y busqueda de k más optimo
+set.seed(400)
+ctrl &lt;-  trainControl(&quot;repeatedcv&quot;, repeats=3,classProbs = TRUE, summaryFunction = twoClassSummary, savePredictions = TRUE)
+svm &lt;- train(GrupoPrecio ~ ., data = dataTrainNorm, method = &quot;svmRadial&quot;, trControl = ctrl, metric=&quot;ROC&quot;, tuneLength = 20)
+(svm)</code></pre>
+<pre><code>## Support Vector Machines with Radial Basis Function Kernel 
+## 
+## 1837 samples
+##   26 predictor
+##    2 classes: &#39;Barato&#39;, &#39;Caro&#39; 
+## 
+## No pre-processing
+## Resampling: Cross-Validated (10 fold, repeated 3 times) 
+## Summary of sample sizes: 1653, 1654, 1653, 1653, 1654, 1653, ... 
+## Resampling results across tuning parameters:
+## 
+##   C          ROC        Sens       Spec     
+##        0.25  0.9237108  0.9811370  0.2380952
+##        0.50  0.9236686  0.9801613  0.2523810
+##        1.00  0.9250302  0.9813366  0.2380952
+##        2.00  0.9255969  0.9807460  0.2428571
+##        4.00  0.9255887  0.9821221  0.2476190
+##        8.00  0.9231878  0.9842847  0.2785714
+##       16.00  0.9200163  0.9842905  0.2428571
+##       32.00  0.9175483  0.9870391  0.1785714
+##       64.00  0.9092392  0.9856654  0.1476190
+##      128.00  0.9047687  0.9850725  0.1452381
+##      256.00  0.9025312  0.9850702  0.1595238
+##      512.00  0.8959466  0.9854600  0.1404762
+##     1024.00  0.8918405  0.9819295  0.1309524
+##     2048.00  0.8918124  0.9836953  0.1214286
+##     4096.00  0.8918124  0.9825177  0.1333333
+##     8192.00  0.8918124  0.9825189  0.1214286
+##    16384.00  0.8918124  0.9833043  0.1261905
+##    32768.00  0.8918124  0.9831048  0.1214286
+##    65536.00  0.8918124  0.9819295  0.1404762
+##   131072.00  0.8918124  0.9833020  0.1285714
+## 
+## Tuning parameter &#39;sigma&#39; was held constant at a value of 0.02999033
+## ROC was used to select the optimal model using the largest value.
+## The final values used for the model were sigma = 0.02999033 and C = 2.</code></pre>
+<pre class="r"><code>plot(svm)</code></pre>
+<p><img src="svm_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<pre class="r"><code>set.seed(400)
 
-plot(model1, dataTrain1)</code></pre>
-<p><img src="svm_files/figure-html/run_model-1.png" width="672" /></p>
-<p>Debido a que este grupo solo contiene dos caracteristicas nos permite dibujar como el modelo svm divide el plano para clasificar los nuevos registros. Visualizamos también como se comporta el modelo con el conjunto de datos de test.</p>
-<pre class="r"><code>pred1 &lt;- predict(model1, newdata = XTest1)
-tab_test1 &lt;- table(pred1, YTest1, dnn = c(&quot;Actual&quot;, &quot;Predichos&quot;))
-(tab_test1)</code></pre>
-<pre><code>##         Predichos
-## Actual   Barato Caro
-##   Barato    648  106
-##   Caro       16   19</code></pre>
-<pre class="r"><code>draw_confusion_matrix(tab_test1, &quot;Actual&quot;, &quot;Predichos&quot;)</code></pre>
-<p><img src="svm_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
-<pre class="r"><code>accuracy(tab_test1)</code></pre>
-<pre><code>## [1] 84.53739</code></pre>
-<pre class="r"><code>svm_test_error1 &lt;- calc_error_rate(predicted.value=pred1, true.value=YTest1)
-(svm_test_error1)</code></pre>
-<pre><code>## [1] 0.1546261</code></pre>
-<pre class="r"><code>cm1 &lt;- confusionMatrix(tab_test1)
-(cm1)</code></pre>
+grid &lt;- expand.grid(sigma = c(.02, .029, 0.31), C = c(1.75, 1.9, 2, 2.1, 2.25))
+
+svm &lt;- train(GrupoPrecio ~ ., data = dataTrainNorm, method = &quot;svmRadial&quot;, trControl = ctrl, metric=&quot;ROC&quot;, tuneGrid = grid)
+(svm)</code></pre>
+<pre><code>## Support Vector Machines with Radial Basis Function Kernel 
+## 
+## 1837 samples
+##   26 predictor
+##    2 classes: &#39;Barato&#39;, &#39;Caro&#39; 
+## 
+## No pre-processing
+## Resampling: Cross-Validated (10 fold, repeated 3 times) 
+## Summary of sample sizes: 1653, 1654, 1653, 1653, 1654, 1653, ... 
+## Resampling results across tuning parameters:
+## 
+##   sigma  C     ROC        Sens       Spec      
+##   0.020  1.75  0.9309417  0.9817345  0.21666667
+##   0.020  1.90  0.9307888  0.9817345  0.22619048
+##   0.020  2.00  0.9308732  0.9807507  0.24285714
+##   0.020  2.10  0.9308313  0.9815396  0.22380952
+##   0.020  2.25  0.9307754  0.9811440  0.22380952
+##   0.029  1.75  0.9266198  0.9801601  0.24523810
+##   0.029  1.90  0.9264945  0.9807495  0.23571429
+##   0.029  2.00  0.9265510  0.9805523  0.24285714
+##   0.029  2.10  0.9262847  0.9797691  0.26428571
+##   0.029  2.25  0.9262715  0.9805511  0.24761905
+##   0.310  1.75  0.8736074  0.9860541  0.09761905
+##   0.310  1.90  0.8729880  0.9886066  0.08571429
+##   0.310  2.00  0.8723688  0.9866423  0.09761905
+##   0.310  2.10  0.8717792  0.9874278  0.09523810
+##   0.310  2.25  0.8711477  0.9868372  0.10000000
+## 
+## ROC was used to select the optimal model using the largest value.
+## The final values used for the model were sigma = 0.02 and C = 1.75.</code></pre>
+<pre class="r"><code>plot(svm)</code></pre>
+<p><img src="svm_files/figure-html/unnamed-chunk-4-2.png" width="672" /></p>
+<pre class="r"><code>XTestNorm &lt;- predict(ctrNorm, XTest)
+pred &lt;- predict(svm, newdata = XTestNorm )
+cm &lt;- confusionMatrix(pred, YTest, mode = &quot;prec_recall&quot; )
+(cm)</code></pre>
 <pre><code>## Confusion Matrix and Statistics
 ## 
-##         Predichos
-## Actual   Barato Caro
-##   Barato    648  106
-##   Caro       16   19
-##                                           
-##                Accuracy : 0.8454          
-##                  95% CI : (0.8182, 0.8699)
-##     No Information Rate : 0.8416          
-##     P-Value [Acc &gt; NIR] : 0.4078          
-##                                           
-##                   Kappa : 0.1807          
-##                                           
-##  Mcnemar&#39;s Test P-Value : 7.776e-16       
-##                                           
-##             Sensitivity : 0.9759          
-##             Specificity : 0.1520          
-##          Pos Pred Value : 0.8594          
-##          Neg Pred Value : 0.5429          
-##              Prevalence : 0.8416          
-##          Detection Rate : 0.8213          
-##    Detection Prevalence : 0.9556          
-##       Balanced Accuracy : 0.5640          
-##                                           
-##        &#39;Positive&#39; Class : Barato          
-## </code></pre>
-<p>A continuación se realizara todos los pasos anteriores pero esta vez con otro conjunto de caracteristicas. Este conjunto dispone de más caracteristicas por lo que no podremos visualizar como separa el plano de caracteristicas. Podremos ver cuales de los dos modelos SVM funciona mejor.</p>
-<pre class="r"><code>model2 &lt;- best.tune(method = svm, train.x = GrupoPrecio ~ ., data = dataTrain2, ranges = list(cost = c(0.001, 0.01, 0.1, 1, 5, 10, 100)), kernel = &quot;radial&quot;, gamma = 1)</code></pre>
-<pre class="r"><code>pred2 &lt;- predict(model2, newdata = XTest2)
-tab_test2 &lt;- table(pred2, YTest2, dnn = c(&quot;Actual&quot;, &quot;Predichos&quot;))
-(tab_test2)</code></pre>
-<pre><code>##         Predichos
-## Actual   Barato Caro
-##   Barato    649  102
-##   Caro       15   23</code></pre>
-<pre class="r"><code>draw_confusion_matrix(tab_test2, &quot;Actual&quot;, &quot;Predichos&quot;)</code></pre>
-<p><img src="svm_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
-<pre class="r"><code>accuracy(tab_test2)</code></pre>
-<pre><code>## [1] 85.1711</code></pre>
-<pre class="r"><code>svm_test_error2 &lt;- calc_error_rate(predicted.value=pred2, true.value=YTest2)
-(svm_test_error2)</code></pre>
-<pre><code>## [1] 0.148289</code></pre>
-<pre class="r"><code>cm2 &lt;- confusionMatrix(tab_test2)
-(cm2)</code></pre>
-<pre><code>## Confusion Matrix and Statistics
-## 
-##         Predichos
-## Actual   Barato Caro
-##   Barato    649  102
-##   Caro       15   23
+##           Reference
+## Prediction Barato Caro
+##     Barato    711   48
+##     Caro       15   15
 ##                                          
-##                Accuracy : 0.8517         
-##                  95% CI : (0.825, 0.8758)
-##     No Information Rate : 0.8416         
-##     P-Value [Acc &gt; NIR] : 0.2339         
+##                Accuracy : 0.9202         
+##                  95% CI : (0.899, 0.9381)
+##     No Information Rate : 0.9202         
+##     P-Value [Acc &gt; NIR] : 0.5335         
 ##                                          
-##                   Kappa : 0.225          
+##                   Kappa : 0.2858         
 ##                                          
-##  Mcnemar&#39;s Test P-Value : 1.855e-15      
+##  Mcnemar&#39;s Test P-Value : 5.539e-05      
 ##                                          
-##             Sensitivity : 0.9774         
-##             Specificity : 0.1840         
-##          Pos Pred Value : 0.8642         
-##          Neg Pred Value : 0.6053         
-##              Prevalence : 0.8416         
-##          Detection Rate : 0.8226         
-##    Detection Prevalence : 0.9518         
-##       Balanced Accuracy : 0.5807         
+##               Precision : 0.9368         
+##                  Recall : 0.9793         
+##                      F1 : 0.9576         
+##              Prevalence : 0.9202         
+##          Detection Rate : 0.9011         
+##    Detection Prevalence : 0.9620         
+##       Balanced Accuracy : 0.6087         
 ##                                          
 ##        &#39;Positive&#39; Class : Barato         
 ## </code></pre>
+<pre class="r"><code>tab_test &lt;- table(pred, YTest, dnn = c(&quot;Actual&quot;, &quot;Predichos&quot;))
+draw_confusion_matrix(tab_test, &quot;Actual&quot;, &quot;Predichos&quot;)</code></pre>
+<p><img src="svm_files/figure-html/unnamed-chunk-4-3.png" width="672" /></p>
+<pre class="r"><code>dataTrain_origin_PCA &lt;- readRDS(&quot;datasetTrainModeloClasificadorPCA.rds&quot;)
+dataTest_origin_PCA &lt;- readRDS(&quot;datasetTestModeloClasificadorPCA.rds&quot;)
+
+PCATrain &lt;- as.data.table(cbind(dataTrain_origin_PCA$ind$coord, GrupoPrecio = dataTrain_origin %&gt;% dplyr::select(c(&quot;GrupoPrecio&quot;))))
+PCATest &lt;- as.data.table(cbind(dataTest_origin_PCA$ind$coord, GrupoPrecio = dataTest_origin %&gt;% dplyr::select(c(&quot;GrupoPrecio&quot;))))
+
+XPCATrain &lt;- PCATrain %&gt;% dplyr::select(-GrupoPrecio)
+YPCATrain &lt;- PCATrain$GrupoPrecio
+XPCATest &lt;- PCATest %&gt;% dplyr::select(-GrupoPrecio)
+YPCATest &lt;- PCATest$GrupoPrecio
+
+set.seed(400)
+ctrl &lt;-  trainControl(&quot;repeatedcv&quot;, repeats=3,classProbs = TRUE, summaryFunction = twoClassSummary, savePredictions = TRUE)
+
+svm_pca &lt;- train(GrupoPrecio ~ ., data = PCATrain, method = &quot;svmRadial&quot;, trControl = ctrl, metric=&quot;ROC&quot;, tuneLength = 20)
+(svm_pca)</code></pre>
+<pre><code>## Support Vector Machines with Radial Basis Function Kernel 
+## 
+## 1837 samples
+##   50 predictor
+##    2 classes: &#39;Barato&#39;, &#39;Caro&#39; 
+## 
+## No pre-processing
+## Resampling: Cross-Validated (10 fold, repeated 3 times) 
+## Summary of sample sizes: 1653, 1654, 1653, 1653, 1654, 1653, ... 
+## Resampling results across tuning parameters:
+## 
+##   C          ROC        Sens       Spec      
+##        0.25  0.9127971  0.9891960  0.11904762
+##        0.50  0.9127690  0.9862525  0.16428571
+##        1.00  0.9130213  0.9874289  0.14523810
+##        2.00  0.9141733  0.9876273  0.17619048
+##        4.00  0.9130521  0.9862571  0.19047619
+##        8.00  0.9122950  0.9858626  0.19523810
+##       16.00  0.9110591  0.9852732  0.18095238
+##       32.00  0.9057999  0.9854670  0.18333333
+##       64.00  0.9019705  0.9870414  0.14285714
+##      128.00  0.8925566  0.9862594  0.13333333
+##      256.00  0.8847603  0.9886158  0.11190476
+##      512.00  0.8796586  0.9893932  0.10476190
+##     1024.00  0.8744767  0.9889976  0.11190476
+##     2048.00  0.8663282  0.9886077  0.10714286
+##     4096.00  0.8572275  0.9888061  0.10714286
+##     8192.00  0.8497135  0.9888050  0.08571429
+##    16384.00  0.8471059  0.9913540  0.09285714
+##    32768.00  0.8455735  0.9872271  0.10000000
+##    65536.00  0.8455735  0.9876262  0.09285714
+##   131072.00  0.8455735  0.9876239  0.10714286
+## 
+## Tuning parameter &#39;sigma&#39; was held constant at a value of 0.0165934
+## ROC was used to select the optimal model using the largest value.
+## The final values used for the model were sigma = 0.0165934 and C = 2.</code></pre>
+<pre class="r"><code>plot(svm_pca)</code></pre>
+<p><img src="svm_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+<pre class="r"><code>grid &lt;- expand.grid(sigma = c(.01, .016, 0.2), C = c(1.75, 1.9, 2, 2.1, 2.25))
+
+svm_pca &lt;- train(GrupoPrecio ~ ., data = PCATrain, method = &quot;svmRadial&quot;, trControl = ctrl, metric=&quot;ROC&quot;, tuneGrid = grid)
+(svm_pca)</code></pre>
+<pre><code>## Support Vector Machines with Radial Basis Function Kernel 
+## 
+## 1837 samples
+##   50 predictor
+##    2 classes: &#39;Barato&#39;, &#39;Caro&#39; 
+## 
+## No pre-processing
+## Resampling: Cross-Validated (10 fold, repeated 3 times) 
+## Summary of sample sizes: 1654, 1653, 1653, 1653, 1653, 1654, ... 
+## Resampling results across tuning parameters:
+## 
+##   sigma  C     ROC        Sens       Spec     
+##   0.010  1.75  0.9155625  0.9870426  0.1166667
+##   0.010  1.90  0.9156325  0.9850795  0.1404762
+##   0.010  2.00  0.9157450  0.9850772  0.1476190
+##   0.010  2.10  0.9157870  0.9868465  0.1428571
+##   0.010  2.25  0.9158987  0.9860587  0.1357143
+##   0.016  1.75  0.9127850  0.9862606  0.1809524
+##   0.016  1.90  0.9128271  0.9858649  0.1785714
+##   0.016  2.00  0.9127156  0.9862594  0.1833333
+##   0.016  2.10  0.9128992  0.9848834  0.1904762
+##   0.016  2.25  0.9125210  0.9852767  0.1833333
+##   0.200  1.75  0.8214961  0.9897888  0.1309524
+##   0.200  1.90  0.8210337  0.9895928  0.1309524
+##   0.200  2.00  0.8200797  0.9888061  0.1333333
+##   0.200  2.10  0.8187591  0.9897888  0.1190476
+##   0.200  2.25  0.8157833  0.9891983  0.1214286
+## 
+## ROC was used to select the optimal model using the largest value.
+## The final values used for the model were sigma = 0.01 and C = 2.25.</code></pre>
+<pre class="r"><code>plot(svm_pca)</code></pre>
+<p><img src="svm_files/figure-html/unnamed-chunk-5-2.png" width="672" /></p>
+<pre class="r"><code>pred_pca &lt;- predict(svm_pca, newdata = XPCATest)
+
+cm_pca &lt;- confusionMatrix(pred_pca, YPCATest, mode = &quot;prec_recall&quot; )
+(cm_pca)</code></pre>
+<pre><code>## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction Barato Caro
+##     Barato    709   49
+##     Caro       17   14
+##                                           
+##                Accuracy : 0.9163          
+##                  95% CI : (0.8948, 0.9347)
+##     No Information Rate : 0.9202          
+##     P-Value [Acc &gt; NIR] : 0.6822946       
+##                                           
+##                   Kappa : 0.2588          
+##                                           
+##  Mcnemar&#39;s Test P-Value : 0.0001357       
+##                                           
+##               Precision : 0.9354          
+##                  Recall : 0.9766          
+##                      F1 : 0.9555          
+##              Prevalence : 0.9202          
+##          Detection Rate : 0.8986          
+##    Detection Prevalence : 0.9607          
+##       Balanced Accuracy : 0.5994          
+##                                           
+##        &#39;Positive&#39; Class : Barato          
+## </code></pre>
+<pre class="r"><code>tab_test_pca &lt;- table(pred_pca, YPCATest, dnn = c(&quot;Actual&quot;, &quot;Predichos&quot;))
+draw_confusion_matrix(tab_test_pca, &quot;Actual&quot;, &quot;Predichos&quot;)</code></pre>
+<p><img src="svm_files/figure-html/unnamed-chunk-5-3.png" width="672" /></p>
+</div>
+<div id="evaluación" class="section level3">
+<h3>EVALUACIÓN</h3>
+<pre class="r"><code>res &lt;- evalm(list(svm_pca,svm),gnames = c(&#39;svm_pca&#39;,&#39;svm&#39;))</code></pre>
+<p><img src="svm_files/figure-html/unnamed-chunk-6-1.png" width="672" /><img src="svm_files/figure-html/unnamed-chunk-6-2.png" width="672" /><img src="svm_files/figure-html/unnamed-chunk-6-3.png" width="672" /><img src="svm_files/figure-html/unnamed-chunk-6-4.png" width="672" /></p>
+<pre class="r"><code>saveRDS(svm, &quot;svm.rds&quot;)</code></pre>
+</div>
 
 
 

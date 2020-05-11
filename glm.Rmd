@@ -2,52 +2,39 @@
 title: "GLM"
 ---
 
-```{r load_libraries}
+```{r message = FALSE}
 library(class)
 library(dplyr)
 library(caret)
 library (ROCR)
+library(kernlab)
 source("funcs.R")
 ```
 
 
 ```{r load_data, message=FALSE, warning=FALSE, echo=TRUE}
 
-dataTrain_origin <- readRDS("datasetTrain.rds")
-dataTest_origin <- readRDS("datasetTest.rds")
-
-```
-
-
-```{r choose_features}
-
-dataTrain <- dataTrain_origin %>% dplyr::select(-SalePrice)
-dataTest <- dataTest_origin %>% dplyr::select(-SalePrice)
-
+dataTrain_origin <- readRDS("datasetTrainModeloClasificador.rds")
+dataTest_origin <- readRDS("datasetTestModeloClasificador.rds")
 
 ```
 
 
 ```{r}
-#group <- c('GrLivArea','LotArea','TotalSF','MSSubClass','Neighborhood','BedroomAbvGr','BldgType','OverallCond','TotalBsmtSF', 'GrupoPrecio')
-group <- c('GrLivArea','LotArea','TotalSF','ExterQual','KitchenQual', 'GrupoPrecio')
-remove <- c('GrupoPrecio')
-col_to_factor <- colnames(dataTrain) [! colnames(dataTrain) %in% remove]
 
-dataTrain <- dataTrain %>% dplyr::select(group)
-dataTest <- dataTest %>% dplyr::select(group)
+dataTrain <- dataTrain_origin %>% dplyr::select(-SalePrice)
+dataTest <- dataTest_origin %>% dplyr::select(-SalePrice)
 
-dataTrain <- dataTrain %>% as_factor_all(col_to_factor)
-dataTest <- dataTest %>% as_factor_all(col_to_factor)
 ```
 
 
+```{r}
 
+remove <- c('GrupoPrecio')
+col_to_factor <- colnames(dataTrain) [! colnames(dataTrain) %in% remove]
 
-
-
-```{r process_data }
-
+dataTrain <- dataTrain %>% as_factor_all(col_to_factor)
+dataTest <- dataTest %>% as_factor_all(col_to_factor)
 
 XTrain <- dataTrain %>% dplyr::select(-GrupoPrecio)
 YTrain <- dataTrain$GrupoPrecio
@@ -58,51 +45,27 @@ YTest <- dataTest$GrupoPrecio
 ```
 
 ```{r}
-glm = glm(GrupoPrecio ~ ., family = binomial, data = dataTrain)
-summary(glm)
 
-round(exp(cbind(Estimate = coef(glm), confint(glm))),2)
+#Normalización
+ctrNorm <- preProcess(x = XTrain, method = c("center", "scale"))
 
+dataTrainNorm <- predict(ctrNorm, dataTrain)
 
-glm_del = update(glm, . ~ . - KitchenQual - ExterQual) 
-
-anova(glm_del, glm, test = "Chisq")
-
-
-head(predict(glm))
-
-
-```
+#Entrenamiento y busqueda de k más optimo
+set.seed(400)
+ctrl <-  trainControl(method = "repeatedcv", repeats=3, savePredictions = TRUE)
+glm <- train(GrupoPrecio ~ ., data = dataTrainNorm, method = "glm", trControl = ctrl, family = "binomial")
+(glm)
 
 
-```{r}
+XTestNorm <- predict(ctrNorm, XTest)
+pred <- predict(glm, newdata = XTestNorm )
 
-```
-
-
-
-
---------------------------------------------------------------------
-```{r run_model}
-
-model <- glm(GrupoPrecio ~ ., family=binomial(link='logit'),data=dataTrain)
-summary(model)
-
-pred <- predict(model, newdata = XTest,type='response')
-pred <- ifelse(pred > 0.5,1,0)
-misClasificError <- mean(pred != YTest)
-(misClasificError)
-```
-
-```{r evaluate_model}
-
+cm <- confusionMatrix(pred, YTest, mode = "prec_recall" )
+(cm)
 tab_test <- table(pred, YTest, dnn = c("Actual", "Predichos"))
-
-(tab_test)
-
-accuracy(tab_test)
-knn_test_error <- calc_error_rate(predicted.value=model, true.value=YTest)
-(knn_test_error)
-
 draw_confusion_matrix(tab_test, "Actual", "Predichos")
+
+saveRDS(glm, "glm.rds")
 ```
+

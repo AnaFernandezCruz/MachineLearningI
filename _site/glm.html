@@ -322,87 +322,89 @@ $(document).ready(function () {
 
 
 <pre class="r"><code>library(class)
-library(dplyr)</code></pre>
-<pre><code>## 
-## Attaching package: &#39;dplyr&#39;</code></pre>
-<pre><code>## The following objects are masked from &#39;package:stats&#39;:
-## 
-##     filter, lag</code></pre>
-<pre><code>## The following objects are masked from &#39;package:base&#39;:
-## 
-##     intersect, setdiff, setequal, union</code></pre>
-<pre class="r"><code>library(caret)</code></pre>
-<pre><code>## Loading required package: lattice</code></pre>
-<pre><code>## Loading required package: ggplot2</code></pre>
-<pre class="r"><code>library (ROCR)
+library(dplyr)
+library(caret)
+library (ROCR)
+library(kernlab)
 source(&quot;funcs.R&quot;)</code></pre>
-<pre class="r"><code>dataTrain &lt;- readRDS(&quot;datasetTrain.rds&quot;)
-dataTest &lt;- readRDS(&quot;datasetTest.rds&quot;)</code></pre>
-<pre class="r"><code>dataTrain &lt;- dataTrain %&gt;% dplyr::select(-SalePrice)
-dataTest &lt;- dataTest %&gt;% dplyr::select(-SalePrice)
+<pre class="r"><code>dataTrain_origin &lt;- readRDS(&quot;datasetTrainModeloClasificador.rds&quot;)
+dataTest_origin &lt;- readRDS(&quot;datasetTestModeloClasificador.rds&quot;)</code></pre>
+<pre class="r"><code>dataTrain &lt;- dataTrain_origin %&gt;% dplyr::select(-SalePrice)
+dataTest &lt;- dataTest_origin %&gt;% dplyr::select(-SalePrice)</code></pre>
+<pre class="r"><code>remove &lt;- c(&#39;GrupoPrecio&#39;)
+col_to_factor &lt;- colnames(dataTrain) [! colnames(dataTrain) %in% remove]
 
-group &lt;- c(&#39;TotalSF&#39;,&#39;LotArea&#39;,&#39;GrLivArea&#39;,&#39;GrupoPrecio&#39;)
+dataTrain &lt;- dataTrain %&gt;% as_factor_all(col_to_factor)
+dataTest &lt;- dataTest %&gt;% as_factor_all(col_to_factor)
 
-dataTrain &lt;- dataTrain %&gt;% dplyr::select(group)
-dataTest &lt;- dataTest %&gt;% dplyr::select(group)</code></pre>
-<pre class="r"><code>XTrain &lt;- dataTrain %&gt;% dplyr::select(-GrupoPrecio)
+XTrain &lt;- dataTrain %&gt;% dplyr::select(-GrupoPrecio)
 YTrain &lt;- dataTrain$GrupoPrecio
 
 XTest &lt;- dataTest %&gt;% dplyr::select(-GrupoPrecio)
-YTest &lt;- dataTest$GrupoPrecio
+YTest &lt;- dataTest$GrupoPrecio</code></pre>
+<pre class="r"><code>#Normalización
+ctrNorm &lt;- preProcess(x = XTrain, method = c(&quot;center&quot;, &quot;scale&quot;))
 
-#XTrain&lt;- as.data.frame(lapply(XTrain, normalize_standar,4,5))
-#XTest&lt;- as.data.frame(lapply(XTest,normalize_standar,3,4))</code></pre>
-<pre class="r"><code>model &lt;- glm(GrupoPrecio ~ ., family=binomial(link=&#39;logit&#39;),data=dataTrain)
-summary(model)</code></pre>
-<pre><code>## 
-## Call:
-## glm(formula = GrupoPrecio ~ ., family = binomial(link = &quot;logit&quot;), 
-##     data = dataTrain)
+dataTrainNorm &lt;- predict(ctrNorm, dataTrain)
+
+#Entrenamiento y busqueda de k más optimo
+set.seed(400)
+ctrl &lt;-  trainControl(method = &quot;repeatedcv&quot;, repeats=3, savePredictions = TRUE)
+glm &lt;- train(GrupoPrecio ~ ., data = dataTrainNorm, method = &quot;glm&quot;, trControl = ctrl, family = &quot;binomial&quot;)</code></pre>
+<pre><code>## Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+
+## Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+
+## Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred</code></pre>
+<pre class="r"><code>(glm)</code></pre>
+<pre><code>## Generalized Linear Model 
 ## 
-## Deviance Residuals: 
-##     Min       1Q   Median       3Q      Max  
-## -5.1294  -0.3602  -0.2372  -0.1593   2.4506  
+## 1837 samples
+##   26 predictor
+##    2 classes: &#39;Barato&#39;, &#39;Caro&#39; 
 ## 
-## Coefficients:
-##               Estimate Std. Error z value Pr(&gt;|z|)    
-## (Intercept) -7.719e+00  4.372e-01 -17.654  &lt; 2e-16 ***
-## TotalSF      1.421e-03  2.267e-04   6.270 3.62e-10 ***
-## LotArea      2.141e-05  9.608e-06   2.228   0.0259 *  
-## GrLivArea    4.971e-04  3.284e-04   1.514   0.1301    
-## ---
-## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## No pre-processing
+## Resampling: Cross-Validated (10 fold, repeated 3 times) 
+## Summary of sample sizes: 1653, 1654, 1653, 1653, 1654, 1653, ... 
+## Resampling results:
 ## 
-## (Dispersion parameter for binomial family taken to be 1)
+##   Accuracy   Kappa    
+##   0.9172478  0.2292191</code></pre>
+<pre class="r"><code>XTestNorm &lt;- predict(ctrNorm, XTest)
+pred &lt;- predict(glm, newdata = XTestNorm )
+
+cm &lt;- confusionMatrix(pred, YTest, mode = &quot;prec_recall&quot; )
+(cm)</code></pre>
+<pre><code>## Confusion Matrix and Statistics
 ## 
-##     Null deviance: 1022.16  on 1740  degrees of freedom
-## Residual deviance:  748.39  on 1737  degrees of freedom
-## AIC: 756.39
-## 
-## Number of Fisher Scoring iterations: 6</code></pre>
-<pre class="r"><code>pred &lt;- predict(model, newdata = XTest,type=&#39;response&#39;)
-pred &lt;- ifelse(pred &gt; 0.5,1,0)
-misClasificError &lt;- mean(pred != YTest)
-(misClasificError)</code></pre>
-<pre><code>## [1] 1</code></pre>
+##           Reference
+## Prediction Barato Caro
+##     Barato    706   45
+##     Caro       20   18
+##                                           
+##                Accuracy : 0.9176          
+##                  95% CI : (0.8962, 0.9358)
+##     No Information Rate : 0.9202          
+##     P-Value [Acc &gt; NIR] : 0.634836        
+##                                           
+##                   Kappa : 0.3153          
+##                                           
+##  Mcnemar&#39;s Test P-Value : 0.002912        
+##                                           
+##               Precision : 0.9401          
+##                  Recall : 0.9725          
+##                      F1 : 0.9560          
+##              Prevalence : 0.9202          
+##          Detection Rate : 0.8948          
+##    Detection Prevalence : 0.9518          
+##       Balanced Accuracy : 0.6291          
+##                                           
+##        &#39;Positive&#39; Class : Barato          
+## </code></pre>
 <pre class="r"><code>tab_test &lt;- table(pred, YTest, dnn = c(&quot;Actual&quot;, &quot;Predichos&quot;))
-
-(tab_test)</code></pre>
-<pre><code>##       Predichos
-## Actual Barato Caro
-##      0    670   56
-##      1     11   10</code></pre>
-<pre class="r"><code>accuracy(tab_test)</code></pre>
-<pre><code>## [1] 91.03079</code></pre>
-<pre class="r"><code>knn_test_error &lt;- calc_error_rate(predicted.value=model, true.value=YTest)</code></pre>
-<pre><code>## Warning in `!=.default`(true.value, predicted.value): longitud de objeto mayor
-## no es múltiplo de la longitud de uno menor</code></pre>
-<pre><code>## Warning in is.na(e1) | is.na(e2): longitud de objeto mayor no es múltiplo de la
-## longitud de uno menor</code></pre>
-<pre class="r"><code>(knn_test_error)</code></pre>
-<pre><code>## [1] 1</code></pre>
-<pre class="r"><code>draw_confusion_matrix(tab_test, &quot;Actual&quot;, &quot;Predichos&quot;)</code></pre>
-<p><img src="glm_files/figure-html/evaluate_model-1.png" width="672" /></p>
+draw_confusion_matrix(tab_test, &quot;Actual&quot;, &quot;Predichos&quot;)</code></pre>
+<p><img src="glm_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<pre class="r"><code>saveRDS(glm, &quot;glm.rds&quot;)</code></pre>
 
 
 

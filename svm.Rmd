@@ -14,7 +14,9 @@ library(class)
 library(dplyr)
 library(caret)
 library (ROCR)
-library(e1071)
+library(kernlab)
+library(data.table)
+library(MLeval)
 source("funcs.R")
 ```
 
@@ -41,19 +43,11 @@ Para este modelo se han escogido dos grupos de caracteristicas, para poder compr
 
 ```{r}
 
-#group <- c('GrLivArea','LotArea','TotalSF','ExterQual','KitchenQual', 'GrupoPrecio')
 remove <- c('GrupoPrecio')
 col_to_factor <- colnames(dataTrain) [! colnames(dataTrain) %in% remove]
 
-#dataTrain <- dataTrain %>% dplyr::select(group)
-#dataTest <- dataTest %>% dplyr::select(group)
-
 dataTrain <- dataTrain %>% as_factor_all(col_to_factor)
 dataTest <- dataTest %>% as_factor_all(col_to_factor)
-```
-
-
-```{r}
 
 XTrain <- dataTrain %>% dplyr::select(-GrupoPrecio)
 YTrain <- dataTrain$GrupoPrecio
@@ -63,89 +57,82 @@ YTest <- dataTest$GrupoPrecio
 
 ```
 
-```{r}
-svmfit = svm(GrupoPrecio ~ ., data = dataTrain, kernel = "linear", cost = 10, scale = FALSE)
-(svmfit$index)
-summary(svmfit)
+### ENTRENAMIENTO, OPTIMIZACIÓN Y EVALUACIÓN DEL MODELO
 
-svmfit_ajust = svm(GrupoPrecio ~ ., data = dataTrain, kernel = "linear", cost = 0.1, scale = FALSE)
-(svmfit_ajust$index)
-summary(svmfit_ajust)
-
-
-tune.out = tune(svm, GrupoPrecio ~ ., data = dataTrain, kernel = "linear", ranges = list(cost = c(0.001, 0.01, 0.1, 1, 5, 10, 100)))
-(tune.out$index)
-summary(tune.out)
-bestmod = tune.out$best.model
-summary(bestmod)
-
-
-```
-
-```{r}
-ypred <- predict(bestmod, dataTest)
-table(predict = ypred, truth = YTest)
-
-```
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------------------------------------
-A continuación, entrenamos el modelo con el conjunto de entrenamiento y evaluamos con el conjunto de test, el primer grupo de caracteristicas escogidas (group1).
-
-```{r run_model}
-
-#model <- svm(formula = GrupoPrecio ~ ., data = dataTrain, kernel = "linear", cost = 1, scale = TRUE)
-svm <- best.tune(method = svm, train.x = GrupoPrecio ~ ., data = dataTrain, ranges = list(cost = c(0.001, 0.01, 0.1, 1, 5, 10, 100)), kernel = "linear")
-#svm <- best.tune(method = svm, train.x = GrupoPrecio ~ ., data = dataTrain, ranges = list(cost = c(0.001, 0.01, 0.1, 1, 5, 10, 100)), kernel = "radial", gamma = 1)
-
-```
-
-Debido a que este grupo solo contiene dos caracteristicas nos permite dibujar como el modelo svm divide el plano para clasificar los nuevos registros. Visualizamos también como se comporta el modelo con el conjunto de datos de test.
+Entrenamos el modelo a la vez que buscamos el k más optimo para el conjunto de datos de train normalizados.
 
 ```{r}
 
-pred <- predict(svm, newdata = XTest)
+#Normalización
+ctrNorm <- preProcess(x = XTrain, method = c("center", "scale"))
+
+dataTrainNorm <- predict(ctrNorm, dataTrain)
+
+#Entrenamiento y busqueda de k más optimo
+set.seed(400)
+ctrl <-  trainControl("repeatedcv", repeats=3,classProbs = TRUE, summaryFunction = twoClassSummary, savePredictions = TRUE)
+svm <- train(GrupoPrecio ~ ., data = dataTrainNorm, method = "svmRadial", trControl = ctrl, metric="ROC", tuneLength = 20)
+(svm)
+plot(svm)
+
+set.seed(400)
+
+grid <- expand.grid(sigma = c(.02, .029, 0.31), C = c(1.75, 1.9, 2, 2.1, 2.25))
+
+svm <- train(GrupoPrecio ~ ., data = dataTrainNorm, method = "svmRadial", trControl = ctrl, metric="ROC", tuneGrid = grid)
+(svm)
+plot(svm)
+
+XTestNorm <- predict(ctrNorm, XTest)
+pred <- predict(svm, newdata = XTestNorm )
+cm <- confusionMatrix(pred, YTest, mode = "prec_recall" )
+(cm)
 tab_test <- table(pred, YTest, dnn = c("Actual", "Predichos"))
-(tab_test)
 draw_confusion_matrix(tab_test, "Actual", "Predichos")
-
-accuracy(tab_test)
-svm_test_error <- calc_error_rate(predicted.value=pred, true.value=YTest)
-(svm_test_error)
-
-cm1 <- confusionMatrix(tab_test)
-(cm1)
 ```
 
-A continuación se realizara todos los pasos anteriores pero esta vez con otro conjunto de caracteristicas. Este conjunto dispone de más caracteristicas por lo que no podremos visualizar como separa el plano de caracteristicas. 
-Podremos ver cuales de los dos modelos SVM funciona mejor.
 
 ```{r}
 
-model2 <- best.tune(method = svm, train.x = GrupoPrecio ~ ., data = dataTrain2, ranges = list(cost = c(0.001, 0.01, 0.1, 1, 5, 10, 100)), kernel = "radial", gamma = 1)
+dataTrain_origin_PCA <- readRDS("datasetTrainModeloClasificadorPCA.rds")
+dataTest_origin_PCA <- readRDS("datasetTestModeloClasificadorPCA.rds")
 
-saveRDS(model, "model2SVM.rds")
+PCATrain <- as.data.table(cbind(dataTrain_origin_PCA$ind$coord, GrupoPrecio = dataTrain_origin %>% dplyr::select(c("GrupoPrecio"))))
+PCATest <- as.data.table(cbind(dataTest_origin_PCA$ind$coord, GrupoPrecio = dataTest_origin %>% dplyr::select(c("GrupoPrecio"))))
+
+XPCATrain <- PCATrain %>% dplyr::select(-GrupoPrecio)
+YPCATrain <- PCATrain$GrupoPrecio
+XPCATest <- PCATest %>% dplyr::select(-GrupoPrecio)
+YPCATest <- PCATest$GrupoPrecio
+
+set.seed(400)
+ctrl <-  trainControl("repeatedcv", repeats=3,classProbs = TRUE, summaryFunction = twoClassSummary, savePredictions = TRUE)
+
+svm_pca <- train(GrupoPrecio ~ ., data = PCATrain, method = "svmRadial", trControl = ctrl, metric="ROC", tuneLength = 20)
+(svm_pca)
+plot(svm_pca)
+
+
+grid <- expand.grid(sigma = c(.01, .016, 0.2), C = c(1.75, 1.9, 2, 2.1, 2.25))
+
+svm_pca <- train(GrupoPrecio ~ ., data = PCATrain, method = "svmRadial", trControl = ctrl, metric="ROC", tuneGrid = grid)
+(svm_pca)
+plot(svm_pca)
+
+pred_pca <- predict(svm_pca, newdata = XPCATest)
+
+cm_pca <- confusionMatrix(pred_pca, YPCATest, mode = "prec_recall" )
+(cm_pca)
+tab_test_pca <- table(pred_pca, YPCATest, dnn = c("Actual", "Predichos"))
+draw_confusion_matrix(tab_test_pca, "Actual", "Predichos")
+
 ```
 
-```{r}
-pred2 <- predict(model2, newdata = XTest2)
-tab_test2 <- table(pred2, YTest2, dnn = c("Actual", "Predichos"))
-(tab_test2)
-draw_confusion_matrix(tab_test2, "Actual", "Predichos")
+### EVALUACIÓN
 
-accuracy(tab_test2)
-svm_test_error2 <- calc_error_rate(predicted.value=pred2, true.value=YTest2)
-(svm_test_error2)
+```{r , message=FALSE, warning=FALSE, echo=TRUE}
+res <- evalm(list(svm_pca,svm),gnames = c('svm_pca','svm'))
 
-cm2 <- confusionMatrix(tab_test2)
-(cm2)
+saveRDS(svm, "svm.rds")
 ```
-
-
 
