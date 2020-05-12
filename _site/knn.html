@@ -20,7 +20,6 @@
 <script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
 <script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
 <script src="site_libs/navigation-1.1/tabsets.js"></script>
-<script src="site_libs/navigation-1.1/codefolding.js"></script>
 <link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
 <script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
 
@@ -246,9 +245,6 @@ $(document).ready(function () {
 </style>
 
 <!-- code folding -->
-<style type="text/css">
-.code-folding-btn { margin-bottom: 4px; }
-</style>
 
 
 
@@ -283,11 +279,14 @@ $(document).ready(function () {
 </li>
 <li class="dropdown">
   <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
-    Aprendizaje supervisado
+    Clasificadores
      
     <span class="caret"></span>
   </a>
   <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="GAMLogit.html">GAM</a>
+    </li>
     <li>
       <a href="glm.html">GLM</a>
     </li>
@@ -306,7 +305,10 @@ $(document).ready(function () {
   </ul>
 </li>
 <li>
-  <a href="GAM.html">GAM</a>
+  <a href="GAM.html">GAM - regresión</a>
+</li>
+<li>
+  <a href="evaluacion.html">Evaluación</a>
 </li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
@@ -317,14 +319,6 @@ $(document).ready(function () {
 </div><!--/.navbar -->
 
 <div class="fluid-row" id="header">
-
-<div class="btn-group pull-right">
-<button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
-<ul class="dropdown-menu" style="min-width: 50px;">
-<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
-<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
-</ul>
-</div>
 
 
 
@@ -344,6 +338,7 @@ library(MASS)
 library(hmeasure)
 library(data.table)
 library(MLeval)
+library(DMwR)
 source(&quot;funcs.R&quot;)
 data(Pima.te)</code></pre>
 <pre class="r"><code>dataTrain_origin &lt;- readRDS(&quot;datasetTrainModeloClasificador.rds&quot;)
@@ -366,7 +361,7 @@ XTest &lt;- dataTest %&gt;% dplyr::select(-GrupoPrecio)
 YTest &lt;- dataTest$GrupoPrecio</code></pre>
 <div id="entrenamiento-optimización-y-evaluación-del-modelo" class="section level3">
 <h3>ENTRENAMIENTO, OPTIMIZACIÓN Y EVALUACIÓN DEL MODELO</h3>
-<p>Entrenamos el modelo a la vez que buscamos el k más optimo para el conjunto de datos de train normalizados. A continuación evaluamos nuestro modelo con el conjunto de test normalizados con la información de train.</p>
+<p>Entrenamos el modelo a la vez que buscamos el k más optimo para el conjunto de datos de train normalizados. A continuación evaluamos nuestro modelo con el conjunto de test normalizados con la información de train. Al tener un dataset desbalanceado se ha utilizado el parametros “smote” para equilibrar la clase minoritaria.</p>
 <pre class="r"><code>#Normalización
 ctrNorm &lt;- preProcess(x = XTrain, method = c(&quot;center&quot;, &quot;scale&quot;))
 
@@ -374,7 +369,7 @@ dataTrainNorm &lt;- predict(ctrNorm, dataTrain)
 
 #Entrenamiento y busqueda de k más optimo
 set.seed(400)
-ctrl &lt;- trainControl(method=&quot;repeatedcv&quot;, repeats = 3, classProbs = TRUE, summaryFunction = twoClassSummary, savePredictions = TRUE)
+ctrl &lt;- trainControl(method=&quot;repeatedcv&quot;, repeats = 3, classProbs = TRUE, summaryFunction = twoClassSummary, savePredictions = TRUE, sampling = &quot;smote&quot;)
 knn &lt;- train(GrupoPrecio ~ ., data = dataTrainNorm, method = &quot;knn&quot;, trControl = ctrl, tuneLength = 30)</code></pre>
 <pre><code>## Warning in train.default(x, y, weights = w, ...): The metric &quot;Accuracy&quot; was not
 ## in the result set. ROC will be used instead.</code></pre>
@@ -382,48 +377,50 @@ knn &lt;- train(GrupoPrecio ~ ., data = dataTrainNorm, method = &quot;knn&quot;,
 <pre><code>## k-Nearest Neighbors 
 ## 
 ## 1837 samples
-##   26 predictor
+##   25 predictor
 ##    2 classes: &#39;Barato&#39;, &#39;Caro&#39; 
 ## 
 ## No pre-processing
 ## Resampling: Cross-Validated (10 fold, repeated 3 times) 
 ## Summary of sample sizes: 1653, 1654, 1653, 1653, 1654, 1653, ... 
+## Addtional sampling using SMOTE
+## 
 ## Resampling results across tuning parameters:
 ## 
-##   k   ROC        Sens       Spec      
-##    5  0.8400397  0.9781993  0.29523810
-##    7  0.8767752  0.9811382  0.25952381
-##    9  0.9039852  0.9817253  0.26904762
-##   11  0.9122755  0.9842812  0.26190476
-##   13  0.9170407  0.9858487  0.26190476
-##   15  0.9193636  0.9866342  0.25952381
-##   17  0.9204341  0.9880114  0.24047619
-##   19  0.9194293  0.9880125  0.21904762
-##   21  0.9228137  0.9893874  0.22380952
-##   23  0.9245883  0.9903690  0.20714286
-##   25  0.9257244  0.9915501  0.19761905
-##   27  0.9249395  0.9917461  0.18333333
-##   29  0.9277105  0.9913528  0.16190476
-##   31  0.9309312  0.9919411  0.15476190
-##   33  0.9308468  0.9927277  0.12142857
-##   35  0.9317570  0.9927277  0.10476190
-##   37  0.9317156  0.9935143  0.09761905
-##   39  0.9319748  0.9937104  0.10714286
-##   41  0.9335930  0.9937104  0.08571429
-##   43  0.9351690  0.9943010  0.07619048
-##   45  0.9363796  0.9944970  0.07142857
-##   47  0.9365199  0.9948880  0.06428571
-##   49  0.9358207  0.9952825  0.06428571
-##   51  0.9350563  0.9948892  0.06428571
-##   53  0.9347691  0.9958742  0.04523810
-##   55  0.9353218  0.9956782  0.04047619
-##   57  0.9357485  0.9962664  0.03809524
-##   59  0.9355316  0.9968581  0.03333333
-##   61  0.9361345  0.9966609  0.02857143
-##   63  0.9359722  0.9972503  0.03095238
+##   k   ROC        Sens       Spec     
+##    5  0.8936146  0.8554252  0.8000000
+##    7  0.9115997  0.8521035  0.8380952
+##    9  0.9161142  0.8485486  0.8666667
+##   11  0.9237519  0.8467850  0.8952381
+##   13  0.9216420  0.8487562  0.8761905
+##   15  0.9249291  0.8483502  0.9000000
+##   17  0.9255189  0.8479626  0.8880952
+##   19  0.9272363  0.8426639  0.9023810
+##   21  0.9308650  0.8473756  0.8976190
+##   23  0.9314613  0.8477619  0.9023810
+##   25  0.9301348  0.8450226  0.8857143
+##   27  0.9297287  0.8485602  0.8857143
+##   29  0.9281153  0.8473872  0.8857143
+##   31  0.9308153  0.8460053  0.8904762
+##   33  0.9285128  0.8440388  0.8809524
+##   35  0.9250750  0.8460135  0.8690476
+##   37  0.9270559  0.8456120  0.8738095
+##   39  0.9272573  0.8446293  0.8880952
+##   41  0.9283448  0.8436443  0.8833333
+##   43  0.9266317  0.8477724  0.8833333
+##   45  0.9281090  0.8477805  0.8952381
+##   47  0.9265410  0.8399211  0.8880952
+##   49  0.9259172  0.8430537  0.8880952
+##   51  0.9298674  0.8416963  0.8809524
+##   53  0.9268113  0.8387435  0.8857143
+##   55  0.9292863  0.8420745  0.8857143
+##   57  0.9271916  0.8391356  0.8809524
+##   59  0.9269699  0.8379371  0.8880952
+##   61  0.9263803  0.8420803  0.8928571
+##   63  0.9285934  0.8350157  0.8928571
 ## 
 ## ROC was used to select the optimal model using the largest value.
-## The final value used for the model was k = 47.</code></pre>
+## The final value used for the model was k = 23.</code></pre>
 <pre class="r"><code>plot(knn)</code></pre>
 <p><img src="knn_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
 <pre class="r"><code>#Normalizamos con la información de train.
@@ -436,25 +433,25 @@ cm &lt;- confusionMatrix(pred, YTest, mode = &quot;prec_recall&quot; )
 ## 
 ##           Reference
 ## Prediction Barato Caro
-##     Barato    719   57
-##     Caro        7    6
+##     Barato    606    7
+##     Caro      120   56
 ##                                          
-##                Accuracy : 0.9189         
-##                  95% CI : (0.8976, 0.937)
+##                Accuracy : 0.839          
+##                  95% CI : (0.8115, 0.864)
 ##     No Information Rate : 0.9202         
-##     P-Value [Acc &gt; NIR] : 0.585          
+##     P-Value [Acc &gt; NIR] : 1              
 ##                                          
-##                   Kappa : 0.1342         
+##                   Kappa : 0.3978         
 ##                                          
-##  Mcnemar&#39;s Test P-Value : 9.068e-10      
+##  Mcnemar&#39;s Test P-Value : &lt;2e-16         
 ##                                          
-##               Precision : 0.9265         
-##                  Recall : 0.9904         
-##                      F1 : 0.9574         
+##               Precision : 0.9886         
+##                  Recall : 0.8347         
+##                      F1 : 0.9052         
 ##              Prevalence : 0.9202         
-##          Detection Rate : 0.9113         
-##    Detection Prevalence : 0.9835         
-##       Balanced Accuracy : 0.5428         
+##          Detection Rate : 0.7681         
+##    Detection Prevalence : 0.7769         
+##       Balanced Accuracy : 0.8618         
 ##                                          
 ##        &#39;Positive&#39; Class : Barato         
 ## </code></pre>
@@ -475,7 +472,7 @@ XPCATest &lt;- PCATest %&gt;% dplyr::select(-GrupoPrecio)
 YPCATest &lt;- PCATest$GrupoPrecio
 
 set.seed(400)
-ctrl_pca &lt;- trainControl(method=&quot;repeatedcv&quot;,repeats = 3,classProbs = TRUE, summaryFunction = twoClassSummary, savePredictions = TRUE)
+ctrl_pca &lt;- trainControl(method=&quot;repeatedcv&quot;,repeats = 3,classProbs = TRUE, summaryFunction = twoClassSummary, savePredictions = TRUE, sampling = &quot;smote&quot;)
 knn_pca &lt;- train(GrupoPrecio ~ ., data = PCATrain, method = &quot;knn&quot;, trControl = ctrl_pca, tuneLength = 30)</code></pre>
 <pre><code>## Warning in train.default(x, y, weights = w, ...): The metric &quot;Accuracy&quot; was not
 ## in the result set. ROC will be used instead.</code></pre>
@@ -489,42 +486,44 @@ knn_pca &lt;- train(GrupoPrecio ~ ., data = PCATrain, method = &quot;knn&quot;, 
 ## No pre-processing
 ## Resampling: Cross-Validated (10 fold, repeated 3 times) 
 ## Summary of sample sizes: 1653, 1654, 1653, 1653, 1654, 1653, ... 
+## Addtional sampling using SMOTE
+## 
 ## Resampling results across tuning parameters:
 ## 
-##   k   ROC        Sens       Spec      
-##    5  0.8412379  0.9738810  0.21904762
-##    7  0.8706548  0.9778153  0.22619048
-##    9  0.8803959  0.9801694  0.19047619
-##   11  0.8929267  0.9825247  0.20238095
-##   13  0.8961235  0.9834992  0.18809524
-##   15  0.8942155  0.9844820  0.18571429
-##   17  0.8973935  0.9846780  0.18333333
-##   19  0.9016498  0.9854647  0.17142857
-##   21  0.9030207  0.9864497  0.15238095
-##   23  0.9051251  0.9884140  0.14761905
-##   25  0.9076684  0.9888026  0.15476190
-##   27  0.9071224  0.9884116  0.14523810
-##   29  0.9066801  0.9880137  0.14285714
-##   31  0.9075557  0.9868395  0.14523810
-##   33  0.9068684  0.9866423  0.14285714
-##   35  0.9051864  0.9862490  0.12857143
-##   37  0.9045340  0.9884105  0.11428571
-##   39  0.9026327  0.9895893  0.10000000
-##   41  0.9029672  0.9897877  0.08809524
-##   43  0.9037768  0.9917519  0.07380952
-##   45  0.9046942  0.9945017  0.07380952
-##   47  0.9046087  0.9950876  0.06428571
-##   49  0.9043474  0.9946966  0.06428571
-##   51  0.9034490  0.9950899  0.05714286
-##   53  0.9028450  0.9952872  0.04761905
-##   55  0.9022860  0.9952883  0.03333333
-##   57  0.9019546  0.9947001  0.03571429
-##   59  0.9021642  0.9954867  0.03333333
-##   61  0.9011967  0.9954844  0.03809524
-##   63  0.9020660  0.9952860  0.02619048
+##   k   ROC        Sens       Spec     
+##    5  0.8938721  0.8444332  0.8142857
+##    7  0.9056860  0.8450249  0.8452381
+##    9  0.9098713  0.8353846  0.8523810
+##   11  0.9079793  0.8326465  0.8452381
+##   13  0.9064945  0.8304734  0.8428571
+##   15  0.9066471  0.8324365  0.8309524
+##   17  0.9057588  0.8338137  0.8404762
+##   19  0.9068216  0.8300928  0.8452381
+##   21  0.9063745  0.8277294  0.8357143
+##   23  0.9057847  0.8336269  0.8261905
+##   25  0.9076173  0.8310732  0.8238095
+##   27  0.9079391  0.8387377  0.8238095
+##   29  0.9062419  0.8395150  0.8095238
+##   31  0.9071260  0.8399025  0.8214286
+##   33  0.9077156  0.8397169  0.8119048
+##   35  0.9087294  0.8377515  0.8238095
+##   37  0.9081627  0.8428634  0.8023810
+##   39  0.9081157  0.8395197  0.7976190
+##   41  0.9079702  0.8402970  0.8119048
+##   43  0.9109866  0.8414921  0.8166667
+##   45  0.9113493  0.8430734  0.8095238
+##   47  0.9080827  0.8440457  0.8047619
+##   49  0.9111256  0.8462049  0.8238095
+##   51  0.9115650  0.8479673  0.8000000
+##   53  0.9098791  0.8487644  0.8119048
+##   55  0.9118369  0.8467838  0.8238095
+##   57  0.9140251  0.8489581  0.8119048
+##   59  0.9153156  0.8493561  0.8166667
+##   61  0.9142587  0.8489732  0.8309524
+##   63  0.9131831  0.8472027  0.8309524
 ## 
 ## ROC was used to select the optimal model using the largest value.
-## The final value used for the model was k = 25.</code></pre>
+## The final value used for the model was k = 59.</code></pre>
 <pre class="r"><code>plot(knn_pca)</code></pre>
 <p><img src="knn_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
 <pre class="r"><code>pred_pca &lt;- predict(knn_pca, newdata = XPCATest)
@@ -535,25 +534,25 @@ cm_pca &lt;- confusionMatrix(pred_pca, YPCATest, mode = &quot;prec_recall&quot; 
 ## 
 ##           Reference
 ## Prediction Barato Caro
-##     Barato    712   47
-##     Caro       14   16
+##     Barato    625   19
+##     Caro      101   44
 ##                                           
-##                Accuracy : 0.9227          
-##                  95% CI : (0.9018, 0.9403)
+##                Accuracy : 0.8479          
+##                  95% CI : (0.8209, 0.8723)
 ##     No Information Rate : 0.9202          
-##     P-Value [Acc &gt; NIR] : 0.4289          
+##     P-Value [Acc &gt; NIR] : 1               
 ##                                           
-##                   Kappa : 0.3085          
+##                   Kappa : 0.3508          
 ##                                           
-##  Mcnemar&#39;s Test P-Value : 4.182e-05       
+##  Mcnemar&#39;s Test P-Value : 1.422e-13       
 ##                                           
-##               Precision : 0.9381          
-##                  Recall : 0.9807          
-##                      F1 : 0.9589          
+##               Precision : 0.9705          
+##                  Recall : 0.8609          
+##                      F1 : 0.9124          
 ##              Prevalence : 0.9202          
-##          Detection Rate : 0.9024          
-##    Detection Prevalence : 0.9620          
-##       Balanced Accuracy : 0.6173          
+##          Detection Rate : 0.7921          
+##    Detection Prevalence : 0.8162          
+##       Balanced Accuracy : 0.7796          
 ##                                           
 ##        &#39;Positive&#39; Class : Barato          
 ## </code></pre>
@@ -564,9 +563,12 @@ draw_confusion_matrix(tab_test_pca, &quot;Actual&quot;, &quot;Predichos&quot;)</
 </div>
 <div id="evaluación" class="section level3">
 <h3>EVALUACIÓN</h3>
-<pre class="r"><code>res &lt;- evalm(list(knn_pca,knn),gnames = c(&#39;knn_pca&#39;,&#39;knn&#39;))</code></pre>
-<p><img src="knn_files/figure-html/unnamed-chunk-6-1.png" width="672" /><img src="knn_files/figure-html/unnamed-chunk-6-2.png" width="672" /><img src="knn_files/figure-html/unnamed-chunk-6-3.png" width="672" /><img src="knn_files/figure-html/unnamed-chunk-6-4.png" width="672" /></p>
-<pre class="r"><code>saveRDS(knn_pca, &quot;knn.rds&quot;)</code></pre>
+<p><img src="knn_files/figure-html/unnamed-chunk-6-1.png" width="1728" /></p>
+<p><img src="knn_files/figure-html/unnamed-chunk-7-1.png" width="1728" /></p>
+<p><img src="knn_files/figure-html/unnamed-chunk-8-1.png" width="1728" /></p>
+<p><img src="knn_files/figure-html/unnamed-chunk-9-1.png" width="1728" /></p>
+<pre class="r"><code>saveRDS(knn_pca, &quot;knn_pca.rds&quot;)
+saveRDS(knn, &quot;knn.rds&quot;)</code></pre>
 </div>
 
 
@@ -602,11 +604,6 @@ $(document).ready(function () {
 </script>
 
 <!-- code folding -->
-<script>
-$(document).ready(function () {
-  window.initializeCodeFolding("hide" === "show");
-});
-</script>
 
 
 <!-- dynamically load mathjax for compatibility with self-contained -->

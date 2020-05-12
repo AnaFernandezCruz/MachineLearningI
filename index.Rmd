@@ -1,5 +1,8 @@
 ---
 title: "MACHINE LEARNING"
+author: "Ana Fernández Cruz, Jesús Gallego Olivas y Miguel Ángel Sánchez Alcázar"
+output: html_document
+
 ---
 
 ```{r setup, include=FALSE}

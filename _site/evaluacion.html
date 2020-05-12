@@ -9,10 +9,9 @@
 <meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
 
-<meta name="author" content="Ana Fernández Cruz, Jesús Gallego Olivas y Miguel Ángel Sánchez Alcázar" />
 
 
-<title>MACHINE LEARNING</title>
+<title>Evaluación final</title>
 
 <script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -323,26 +322,44 @@ $(document).ready(function () {
 
 
 
-<h1 class="title toc-ignore">MACHINE LEARNING</h1>
-<h4 class="author">Ana Fernández Cruz, Jesús Gallego Olivas y Miguel Ángel Sánchez Alcázar</h4>
+<h1 class="title toc-ignore">Evaluación final</h1>
 
 </div>
 
 
-<p>En primer lugar cargaremos los datasets obtenidos en las fases anteriores del modelado de datos.</p>
-<p>En esta parte de la práctica, intentaremos evaluar cuáles son las variables que más influyen en el precio de una casa. Además, como nuestro objetivo es obtener las variables que son más significativas para distinguir las casas que consideramos “baratas” de las consideradas como “caras”, intentaremos realizar el alterior análisis restringidos a las poblaciones de cada una de las familias de casas. Como se verá en el posterior análisis de los clusters que forman estas casas, pondremos el umbral de decisión para distinguir casas baratas de caras en un precio de unos 250000 dólares.</p>
-<p>Para hacer una primera estimación de las variables a utilizar en nuestros modelos, generaremos varios ramdon-forest intentando predecir la variable “SalePrice” con los dataset obtenidos en el paso anterior (casas baratas, casas caras y todas las casas). Comenzaremos por realizar este proceso sobre el conjunto de todas las casas y dibujaremos un gráfico resultado de generar el random-forest que nuestra una idea de lo importante que es una variable en el resultado final. Esta importancia muestra de forma aproximada (en valor medio para todos los árboles generados en el random-forest) el efecto en la precisión de la regresión (a través de su RMS) al eliminar la varible del conjunto de variables del modelo. El resultado es el siguiente:</p>
-<p><img src="index_files/figure-html/unnamed-chunk-2-1.png" width="672" /></p>
-<p>En el se muestran que las variables que tienen más impacto a la hora de decidir el precio de una casa son las que tienen que ver en primer lugar con las diversas áreas de las zonas en las que se descompone una casas, el vecindario, el tipo de casa, el año de construcción, el numero medio de habitaciones, el numero de baños. Las variables que describen calidades y propiedades de los materiales de construcción, características del garage y del sótano, la condición de la casa evaluada por quien construyó el dataset tienen menos importancia y casi todas contribuyen de la misma forma al incremento en la precisión del proceso de regresión del precio.</p>
-<p>Ahora realizaremos el mismo proceso pero haciendo que el random forest intente clasificar la división entre precios caros y baratos que hemos hecho de momento artificialmente:</p>
-<p><img src="index_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
-<p>En el caso del análisis de la división entre casas baratas y caras muestra que la variable más importante es el vecindario, seguida por las superficies del sótano, el tipo de casa, el tipo de materiales utilizados en las fachadas, las calidades en las cocinas y la calidad general de la casa evaluada por el vendedor. Las diversas superficies de habitaciones, pisos parecen en este caso menos significativas, así como el año de construcción. Todas estas variables tenemos que tenerlas muy en cuenta a la hora de construir el modelo de predicción.</p>
-<p>Realizaremos ahora el mismo procedimiento pero sobre únicamente la población de casas baratas. El resultado es el siguiente:</p>
-<p><img src="index_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
-<p>En este primer modelo, a diferencia del anterior, cobran más importancia las variables que modelan el vecindario, el estilo arquitectónico de la casa, características del entorno urbano en el que se encuentran, características como el numero de baños, etc. Cobra aquí mucha más importancia la variable ‘LotArea’ frente a la superficie habitable de la casa.</p>
-<pre><code>Ahora realizaremos el procedimiento anterior sobre las casas clasificadas como &quot;caras&quot;:</code></pre>
-<p><img src="index_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
-<p>En este tipo de casas cobra más importancia el area habitable de la misma, el área y calidades del sótano y la variable ‘OverallQual’, que es una medida de la calidad de los materiales utilizados en la construccion. Otras variables importantes son el número de baños y el número de coches que caben en el garaje (correlacionado con la superficie el mismo). Las calidades de los distintos tipos de habitáculos dentro de una casa cobran más importancia que las superficies de las mismas. Las variables que tienen que ver con los vecindarios en los que están, el estilo arquitectónico, etc. tienen mucha menos imporancia en este tipo de casas, lo que indican claramente que están situadas en unos pocos vecindarios dentro del dataset. El año de construcción y el tamaño del “Lot” tampoco parecen tener mucha importancia, lo que indica que todas estas casas tienen estas características muy similares.</p>
+<p>Procedemos a cargar, evaluar y comparar todos los clasificadores diseñados para nuestro dataset. Una vez evaluados eligiremos cual se comporta mejor y clasificaremos el conjunto de evaluación comprobando definitivamente como de bueno es nuestro clasificador.</p>
+<pre class="r"><code>library(MLeval)
+source(&quot;funcs.R&quot;)
+
+knn &lt;- readRDS(&quot;knn.rds&quot;)
+knn_pca &lt;- readRDS(&quot;knn_pca.rds&quot;)
+svm &lt;- readRDS(&quot;svm.rds&quot;)
+svm_pca &lt;- readRDS(&quot;svm_pca.rds&quot;)
+glm &lt;- readRDS(&quot;glm.rds&quot;)
+rf &lt;- readRDS(&quot;randomforest_nopca.rds&quot;)
+dt &lt;- readRDS(&quot;house_tree_nopca.rds&quot;)</code></pre>
+<p><img src="evaluacion_files/figure-html/unnamed-chunk-2-1.png" width="1728" /></p>
+<p><img src="evaluacion_files/figure-html/unnamed-chunk-3-1.png" width="1728" /></p>
+<p><img src="evaluacion_files/figure-html/unnamed-chunk-4-1.png" width="1728" /></p>
+<p><img src="evaluacion_files/figure-html/unnamed-chunk-5-1.png" width="1728" /></p>
+<p>Después de haber realizado el análisis de evaluación de cada modelo, llegamos a la conclusión que el mejor de los modelos es ___. A continuación usaremos el conjunto de datos de validación y evaluaremos como de bueno es el modelo.</p>
+<pre class="r"><code>#dataValidation_origin &lt;- readRDS(&quot;datasetValidationModeloClasificador.rds&quot;)
+#dataValidation &lt;- dataValidation_origin %&gt;% dplyr::select(-SalePrice)
+
+
+#remove &lt;- c(&#39;GrupoPrecio&#39;)
+#col_to_factor &lt;- colnames(dataValidation) [! colnames(dataValidation) %in% remove]
+#dataValidation &lt;- dataValidation %&gt;% as_factor_all(col_to_factor)
+
+
+#XValidation &lt;- dataValidation %&gt;% dplyr::select(-GrupoPrecio)
+#YValidation &lt;- dataValidation$GrupoPrecio</code></pre>
+<pre class="r"><code>#pred &lt;- predict(svm, newdata = XValidation)
+
+#cm &lt;- confusionMatrix(pred, YValidation, mode = &quot;prec_recall&quot; )
+#(cm_pca)
+#tab_test &lt;- table(pred, YValidation, dnn = c(&quot;Actual&quot;, &quot;Predichos&quot;))
+#draw_confusion_matrix(tab_test, &quot;Actual&quot;, &quot;Predichos&quot;)</code></pre>
 
 
 

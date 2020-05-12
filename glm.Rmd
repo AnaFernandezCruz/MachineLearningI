@@ -1,5 +1,6 @@
 ---
 title: "GLM"
+output: html_document
 ---
 
 ```{r message = FALSE}
@@ -45,6 +46,8 @@ YTest <- dataTest$GrupoPrecio
 
 ```
 
+### ENTRENAMIENTO, OPTIMIZACIÓN Y EVALUACIÓN DEL MODELO
+
 ```{r}
 
 #Normalización
@@ -67,6 +70,31 @@ cm <- confusionMatrix(pred, YTest, mode = "prec_recall" )
 tab_test <- table(pred, YTest, dnn = c("Actual", "Predichos"))
 draw_confusion_matrix(tab_test, "Actual", "Predichos")
 
+```
+
+```{r ,echo=FALSE,message=FALSE, warning=FALSE, fig.height=18, fig.width=18, multi.col=T}
+res <-evalm(list(glm),gnames = c('glm'),rlinethick=0.8,fsize=30, showplots = TRUE , bins=20, plots = c("prg"))
+
+```
+
+```{r ,echo=FALSE,message=FALSE, warning=FALSE, fig.height=18, fig.width=18, multi.col=T}
+res <-evalm(list(glm),gnames = c('glm'),rlinethick=0.8,fsize=30, showplots = TRUE , bins=20, plots = c("pr"))
+
+```
+
+```{r ,echo=FALSE,message=FALSE, warning=FALSE, fig.height=18, fig.width=18, multi.col=T}
+res <-evalm(list(glm),gnames = c('glm'),rlinethick=0.8,fsize=30, showplots = TRUE , bins=20, plots = c("r"))
+
+```
+
+```{r ,echo=FALSE,message=FALSE, warning=FALSE, fig.height=18, fig.width=18, multi.col=T}
+res <-evalm(list(glm),gnames = c('glm'),rlinethick=0.8,fsize=30, showplots = TRUE , bins=20, plots = c("cc"))
+
+```
+
+```{r , message=FALSE, warning=FALSE, echo=TRUE}
+
 saveRDS(glm, "glm.rds")
+
 ```
 

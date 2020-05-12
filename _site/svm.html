@@ -20,7 +20,6 @@
 <script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
 <script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
 <script src="site_libs/navigation-1.1/tabsets.js"></script>
-<script src="site_libs/navigation-1.1/codefolding.js"></script>
 <link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
 <script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
 
@@ -246,9 +245,6 @@ $(document).ready(function () {
 </style>
 
 <!-- code folding -->
-<style type="text/css">
-.code-folding-btn { margin-bottom: 4px; }
-</style>
 
 
 
@@ -283,11 +279,14 @@ $(document).ready(function () {
 </li>
 <li class="dropdown">
   <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
-    Aprendizaje supervisado
+    Clasificadores
      
     <span class="caret"></span>
   </a>
   <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="GAMLogit.html">GAM</a>
+    </li>
     <li>
       <a href="glm.html">GLM</a>
     </li>
@@ -306,7 +305,10 @@ $(document).ready(function () {
   </ul>
 </li>
 <li>
-  <a href="GAM.html">GAM</a>
+  <a href="GAM.html">GAM - regresión</a>
+</li>
+<li>
+  <a href="evaluacion.html">Evaluación</a>
 </li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
@@ -317,14 +319,6 @@ $(document).ready(function () {
 </div><!--/.navbar -->
 
 <div class="fluid-row" id="header">
-
-<div class="btn-group pull-right">
-<button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
-<ul class="dropdown-menu" style="min-width: 50px;">
-<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
-<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
-</ul>
-</div>
 
 
 
@@ -342,6 +336,7 @@ library (ROCR)
 library(kernlab)
 library(data.table)
 library(MLeval)
+library(DMwR)
 source(&quot;funcs.R&quot;)</code></pre>
 <pre class="r"><code>dataTrain_origin &lt;- readRDS(&quot;datasetTrainModeloClasificador.rds&quot;)
 dataTest_origin &lt;- readRDS(&quot;datasetTestModeloClasificador.rds&quot;)</code></pre>
@@ -363,7 +358,7 @@ XTest &lt;- dataTest %&gt;% dplyr::select(-GrupoPrecio)
 YTest &lt;- dataTest$GrupoPrecio</code></pre>
 <div id="entrenamiento-optimización-y-evaluación-del-modelo" class="section level3">
 <h3>ENTRENAMIENTO, OPTIMIZACIÓN Y EVALUACIÓN DEL MODELO</h3>
-<p>Entrenamos el modelo a la vez que buscamos el k más optimo para el conjunto de datos de train normalizados.</p>
+<p>Entrenamos el modelo a la vez que buscamos los hiperparametros más optimos. Se hace un pre entreno para conseguir esos hiperparametros, una vez tengamos una aproximación inicial, volveremos a entrenar ofreciendole al modelo una serie de posibles valores optimos cercanos a la aproximación incial. Con esto se puede observar que el modelo mejora ligeramente.</p>
 <pre class="r"><code>#Normalización
 ctrNorm &lt;- preProcess(x = XTrain, method = c(&quot;center&quot;, &quot;scale&quot;))
 
@@ -371,83 +366,91 @@ dataTrainNorm &lt;- predict(ctrNorm, dataTrain)
 
 #Entrenamiento y busqueda de k más optimo
 set.seed(400)
-ctrl &lt;-  trainControl(&quot;repeatedcv&quot;, repeats=3,classProbs = TRUE, summaryFunction = twoClassSummary, savePredictions = TRUE)
-svm &lt;- train(GrupoPrecio ~ ., data = dataTrainNorm, method = &quot;svmRadial&quot;, trControl = ctrl, metric=&quot;ROC&quot;, tuneLength = 20)
-(svm)</code></pre>
+ctrl &lt;-  trainControl(&quot;repeatedcv&quot;, repeats=3,classProbs = TRUE, summaryFunction = twoClassSummary, savePredictions = TRUE, sampling = &quot;smote&quot;)
+svm &lt;- train(GrupoPrecio ~ ., data = dataTrainNorm, method = &quot;svmRadial&quot;, trControl = ctrl, tuneLength = 20)</code></pre>
+<pre><code>## Warning in train.default(x, y, weights = w, ...): The metric &quot;Accuracy&quot; was not
+## in the result set. ROC will be used instead.</code></pre>
+<pre class="r"><code>(svm)</code></pre>
 <pre><code>## Support Vector Machines with Radial Basis Function Kernel 
 ## 
 ## 1837 samples
-##   26 predictor
+##   25 predictor
 ##    2 classes: &#39;Barato&#39;, &#39;Caro&#39; 
 ## 
 ## No pre-processing
 ## Resampling: Cross-Validated (10 fold, repeated 3 times) 
 ## Summary of sample sizes: 1653, 1654, 1653, 1653, 1654, 1653, ... 
+## Addtional sampling using SMOTE
+## 
 ## Resampling results across tuning parameters:
 ## 
 ##   C          ROC        Sens       Spec     
-##        0.25  0.9237108  0.9811370  0.2380952
-##        0.50  0.9236686  0.9801613  0.2523810
-##        1.00  0.9250302  0.9813366  0.2380952
-##        2.00  0.9255969  0.9807460  0.2428571
-##        4.00  0.9255887  0.9821221  0.2476190
-##        8.00  0.9231878  0.9842847  0.2785714
-##       16.00  0.9200163  0.9842905  0.2428571
-##       32.00  0.9175483  0.9870391  0.1785714
-##       64.00  0.9092392  0.9856654  0.1476190
-##      128.00  0.9047687  0.9850725  0.1452381
-##      256.00  0.9025312  0.9850702  0.1595238
-##      512.00  0.8959466  0.9854600  0.1404762
-##     1024.00  0.8918405  0.9819295  0.1309524
-##     2048.00  0.8918124  0.9836953  0.1214286
-##     4096.00  0.8918124  0.9825177  0.1333333
-##     8192.00  0.8918124  0.9825189  0.1214286
-##    16384.00  0.8918124  0.9833043  0.1261905
-##    32768.00  0.8918124  0.9831048  0.1214286
-##    65536.00  0.8918124  0.9819295  0.1404762
-##   131072.00  0.8918124  0.9833020  0.1285714
+##        0.25  0.9355400  0.8955076  0.8000000
+##        0.50  0.9351852  0.8996334  0.7880952
+##        1.00  0.9353839  0.9014004  0.7928571
+##        2.00  0.9338345  0.9055308  0.7690476
+##        4.00  0.9257991  0.9051410  0.7285714
+##        8.00  0.9248623  0.9104362  0.7000000
+##       16.00  0.9145040  0.9100487  0.6404762
+##       32.00  0.9101858  0.9096450  0.6309524
+##       64.00  0.9002872  0.9078895  0.6190476
+##      128.00  0.8885313  0.9055285  0.5666667
+##      256.00  0.8899570  0.9010106  0.5785714
+##      512.00  0.8849785  0.9037475  0.6023810
+##     1024.00  0.8904565  0.9014039  0.6190476
+##     2048.00  0.8880699  0.9031593  0.6000000
+##     4096.00  0.8854863  0.9000418  0.6047619
+##     8192.00  0.8862028  0.9090741  0.5619048
+##    16384.00  0.8875043  0.9053428  0.6119048
+##    32768.00  0.8928911  0.9014016  0.6309524
+##    65536.00  0.8843824  0.9017937  0.6047619
+##   131072.00  0.8883665  0.9008214  0.6380952
 ## 
-## Tuning parameter &#39;sigma&#39; was held constant at a value of 0.02999033
+## Tuning parameter &#39;sigma&#39; was held constant at a value of 0.03035357
 ## ROC was used to select the optimal model using the largest value.
-## The final values used for the model were sigma = 0.02999033 and C = 2.</code></pre>
+## The final values used for the model were sigma = 0.03035357 and C = 0.25.</code></pre>
 <pre class="r"><code>plot(svm)</code></pre>
 <p><img src="svm_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
 <pre class="r"><code>set.seed(400)
 
-grid &lt;- expand.grid(sigma = c(.02, .029, 0.31), C = c(1.75, 1.9, 2, 2.1, 2.25))
+grid &lt;- expand.grid(sigma = c(.019, .02, 0.21), C = c(1.75, 2, 2.25, 2.5, 2.75))
 
-svm &lt;- train(GrupoPrecio ~ ., data = dataTrainNorm, method = &quot;svmRadial&quot;, trControl = ctrl, metric=&quot;ROC&quot;, tuneGrid = grid)
-(svm)</code></pre>
+svm &lt;- train(GrupoPrecio ~ ., data = dataTrainNorm, method = &quot;svmRadial&quot;, trControl = ctrl, tuneGrid = grid)</code></pre>
+<pre><code>## Warning in train.default(x, y, weights = w, ...): The metric &quot;Accuracy&quot; was not
+## in the result set. ROC will be used instead.</code></pre>
+<pre class="r"><code>(svm)</code></pre>
 <pre><code>## Support Vector Machines with Radial Basis Function Kernel 
 ## 
 ## 1837 samples
-##   26 predictor
+##   25 predictor
 ##    2 classes: &#39;Barato&#39;, &#39;Caro&#39; 
 ## 
 ## No pre-processing
 ## Resampling: Cross-Validated (10 fold, repeated 3 times) 
 ## Summary of sample sizes: 1653, 1654, 1653, 1653, 1654, 1653, ... 
+## Addtional sampling using SMOTE
+## 
 ## Resampling results across tuning parameters:
 ## 
-##   sigma  C     ROC        Sens       Spec      
-##   0.020  1.75  0.9309417  0.9817345  0.21666667
-##   0.020  1.90  0.9307888  0.9817345  0.22619048
-##   0.020  2.00  0.9308732  0.9807507  0.24285714
-##   0.020  2.10  0.9308313  0.9815396  0.22380952
-##   0.020  2.25  0.9307754  0.9811440  0.22380952
-##   0.029  1.75  0.9266198  0.9801601  0.24523810
-##   0.029  1.90  0.9264945  0.9807495  0.23571429
-##   0.029  2.00  0.9265510  0.9805523  0.24285714
-##   0.029  2.10  0.9262847  0.9797691  0.26428571
-##   0.029  2.25  0.9262715  0.9805511  0.24761905
-##   0.310  1.75  0.8736074  0.9860541  0.09761905
-##   0.310  1.90  0.8729880  0.9886066  0.08571429
-##   0.310  2.00  0.8723688  0.9866423  0.09761905
-##   0.310  2.10  0.8717792  0.9874278  0.09523810
-##   0.310  2.25  0.8711477  0.9868372  0.10000000
+##   sigma  C     ROC        Sens       Spec     
+##   0.019  1.75  0.9351817  0.8943346  0.8023810
+##   0.019  2.00  0.9345076  0.8958951  0.8095238
+##   0.019  2.25  0.9347947  0.8994338  0.8071429
+##   0.019  2.50  0.9318094  0.8986483  0.7690476
+##   0.019  2.75  0.9355543  0.8990463  0.8047619
+##   0.020  1.75  0.9347933  0.8953092  0.8095238
+##   0.020  2.00  0.9357093  0.8986611  0.8095238
+##   0.020  2.25  0.9346422  0.9002274  0.7785714
+##   0.020  2.50  0.9346342  0.8984546  0.7904762
+##   0.020  2.75  0.9358654  0.9014016  0.7857143
+##   0.210  1.75  0.8888824  0.9418656  0.3976190
+##   0.210  2.00  0.8791238  0.9424574  0.3904762
+##   0.210  2.25  0.8753200  0.9428530  0.4095238
+##   0.210  2.50  0.8809182  0.9434320  0.4023810
+##   0.210  2.75  0.8806980  0.9406811  0.4023810
 ## 
 ## ROC was used to select the optimal model using the largest value.
-## The final values used for the model were sigma = 0.02 and C = 1.75.</code></pre>
+## The final values used for the model were sigma = 0.02 and C = 2.75.</code></pre>
 <pre class="r"><code>plot(svm)</code></pre>
 <p><img src="svm_files/figure-html/unnamed-chunk-4-2.png" width="672" /></p>
 <pre class="r"><code>XTestNorm &lt;- predict(ctrNorm, XTest)
@@ -458,31 +461,31 @@ cm &lt;- confusionMatrix(pred, YTest, mode = &quot;prec_recall&quot; )
 ## 
 ##           Reference
 ## Prediction Barato Caro
-##     Barato    711   48
-##     Caro       15   15
-##                                          
-##                Accuracy : 0.9202         
-##                  95% CI : (0.899, 0.9381)
-##     No Information Rate : 0.9202         
-##     P-Value [Acc &gt; NIR] : 0.5335         
-##                                          
-##                   Kappa : 0.2858         
-##                                          
-##  Mcnemar&#39;s Test P-Value : 5.539e-05      
-##                                          
-##               Precision : 0.9368         
-##                  Recall : 0.9793         
-##                      F1 : 0.9576         
-##              Prevalence : 0.9202         
-##          Detection Rate : 0.9011         
-##    Detection Prevalence : 0.9620         
-##       Balanced Accuracy : 0.6087         
-##                                          
-##        &#39;Positive&#39; Class : Barato         
+##     Barato    637   12
+##     Caro       89   51
+##                                           
+##                Accuracy : 0.872           
+##                  95% CI : (0.8466, 0.8945)
+##     No Information Rate : 0.9202          
+##     P-Value [Acc &gt; NIR] : 1               
+##                                           
+##                   Kappa : 0.4409          
+##                                           
+##  Mcnemar&#39;s Test P-Value : 3.961e-14       
+##                                           
+##               Precision : 0.9815          
+##                  Recall : 0.8774          
+##                      F1 : 0.9265          
+##              Prevalence : 0.9202          
+##          Detection Rate : 0.8074          
+##    Detection Prevalence : 0.8226          
+##       Balanced Accuracy : 0.8435          
+##                                           
+##        &#39;Positive&#39; Class : Barato          
 ## </code></pre>
 <pre class="r"><code>tab_test &lt;- table(pred, YTest, dnn = c(&quot;Actual&quot;, &quot;Predichos&quot;))
 draw_confusion_matrix(tab_test, &quot;Actual&quot;, &quot;Predichos&quot;)</code></pre>
-<p><img src="svm_files/figure-html/unnamed-chunk-4-3.png" width="672" /></p>
+<p><img src="svm_files/figure-html/unnamed-chunk-4-3.png" width="672" /> ##### APLICAMOS PCA</p>
 <pre class="r"><code>dataTrain_origin_PCA &lt;- readRDS(&quot;datasetTrainModeloClasificadorPCA.rds&quot;)
 dataTest_origin_PCA &lt;- readRDS(&quot;datasetTestModeloClasificadorPCA.rds&quot;)
 
@@ -495,7 +498,7 @@ XPCATest &lt;- PCATest %&gt;% dplyr::select(-GrupoPrecio)
 YPCATest &lt;- PCATest$GrupoPrecio
 
 set.seed(400)
-ctrl &lt;-  trainControl(&quot;repeatedcv&quot;, repeats=3,classProbs = TRUE, summaryFunction = twoClassSummary, savePredictions = TRUE)
+ctrl &lt;-  trainControl(&quot;repeatedcv&quot;, repeats=3,classProbs = TRUE, summaryFunction = twoClassSummary, savePredictions = TRUE, sampling = &quot;smote&quot;)
 
 svm_pca &lt;- train(GrupoPrecio ~ ., data = PCATrain, method = &quot;svmRadial&quot;, trControl = ctrl, metric=&quot;ROC&quot;, tuneLength = 20)
 (svm_pca)</code></pre>
@@ -508,33 +511,35 @@ svm_pca &lt;- train(GrupoPrecio ~ ., data = PCATrain, method = &quot;svmRadial&q
 ## No pre-processing
 ## Resampling: Cross-Validated (10 fold, repeated 3 times) 
 ## Summary of sample sizes: 1653, 1654, 1653, 1653, 1654, 1653, ... 
+## Addtional sampling using SMOTE
+## 
 ## Resampling results across tuning parameters:
 ## 
-##   C          ROC        Sens       Spec      
-##        0.25  0.9127971  0.9891960  0.11904762
-##        0.50  0.9127690  0.9862525  0.16428571
-##        1.00  0.9130213  0.9874289  0.14523810
-##        2.00  0.9141733  0.9876273  0.17619048
-##        4.00  0.9130521  0.9862571  0.19047619
-##        8.00  0.9122950  0.9858626  0.19523810
-##       16.00  0.9110591  0.9852732  0.18095238
-##       32.00  0.9057999  0.9854670  0.18333333
-##       64.00  0.9019705  0.9870414  0.14285714
-##      128.00  0.8925566  0.9862594  0.13333333
-##      256.00  0.8847603  0.9886158  0.11190476
-##      512.00  0.8796586  0.9893932  0.10476190
-##     1024.00  0.8744767  0.9889976  0.11190476
-##     2048.00  0.8663282  0.9886077  0.10714286
-##     4096.00  0.8572275  0.9888061  0.10714286
-##     8192.00  0.8497135  0.9888050  0.08571429
-##    16384.00  0.8471059  0.9913540  0.09285714
-##    32768.00  0.8455735  0.9872271  0.10000000
-##    65536.00  0.8455735  0.9876262  0.09285714
-##   131072.00  0.8455735  0.9876239  0.10714286
+##   C          ROC        Sens       Spec     
+##        0.25  0.9095067  0.8833310  0.7476190
+##        0.50  0.9195121  0.8927521  0.7785714
+##        1.00  0.9184479  0.9008029  0.7428571
+##        2.00  0.9227706  0.9035457  0.7380952
+##        4.00  0.9184789  0.9090579  0.7285714
+##        8.00  0.9178594  0.9153301  0.6952381
+##       16.00  0.9082234  0.9127903  0.6714286
+##       32.00  0.9086831  0.9141768  0.6642857
+##       64.00  0.9057485  0.9124040  0.6571429
+##      128.00  0.8807692  0.9114074  0.6095238
+##      256.00  0.8892742  0.9119933  0.5952381
+##      512.00  0.8745705  0.9114027  0.5547619
+##     1024.00  0.8748917  0.9076795  0.5642857
+##     2048.00  0.8683785  0.9033426  0.5785714
+##     4096.00  0.8642166  0.8961028  0.5785714
+##     8192.00  0.8486391  0.8923761  0.5404762
+##    16384.00  0.8650941  0.8968918  0.5500000
+##    32768.00  0.8504844  0.8917740  0.5714286
+##    65536.00  0.8610935  0.8970635  0.5976190
+##   131072.00  0.8540460  0.8892168  0.5857143
 ## 
-## Tuning parameter &#39;sigma&#39; was held constant at a value of 0.0165934
+## Tuning parameter &#39;sigma&#39; was held constant at a value of 0.01691573
 ## ROC was used to select the optimal model using the largest value.
-## The final values used for the model were sigma = 0.0165934 and C = 2.</code></pre>
+## The final values used for the model were sigma = 0.01691573 and C = 2.</code></pre>
 <pre class="r"><code>plot(svm_pca)</code></pre>
 <p><img src="svm_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
 <pre class="r"><code>grid &lt;- expand.grid(sigma = c(.01, .016, 0.2), C = c(1.75, 1.9, 2, 2.1, 2.25))
@@ -549,28 +554,30 @@ svm_pca &lt;- train(GrupoPrecio ~ ., data = PCATrain, method = &quot;svmRadial&q
 ## 
 ## No pre-processing
 ## Resampling: Cross-Validated (10 fold, repeated 3 times) 
-## Summary of sample sizes: 1654, 1653, 1653, 1653, 1653, 1654, ... 
+## Summary of sample sizes: 1653, 1653, 1654, 1653, 1654, 1653, ... 
+## Addtional sampling using SMOTE
+## 
 ## Resampling results across tuning parameters:
 ## 
 ##   sigma  C     ROC        Sens       Spec     
-##   0.010  1.75  0.9155625  0.9870426  0.1166667
-##   0.010  1.90  0.9156325  0.9850795  0.1404762
-##   0.010  2.00  0.9157450  0.9850772  0.1476190
-##   0.010  2.10  0.9157870  0.9868465  0.1428571
-##   0.010  2.25  0.9158987  0.9860587  0.1357143
-##   0.016  1.75  0.9127850  0.9862606  0.1809524
-##   0.016  1.90  0.9128271  0.9858649  0.1785714
-##   0.016  2.00  0.9127156  0.9862594  0.1833333
-##   0.016  2.10  0.9128992  0.9848834  0.1904762
-##   0.016  2.25  0.9125210  0.9852767  0.1833333
-##   0.200  1.75  0.8214961  0.9897888  0.1309524
-##   0.200  1.90  0.8210337  0.9895928  0.1309524
-##   0.200  2.00  0.8200797  0.9888061  0.1333333
-##   0.200  2.10  0.8187591  0.9897888  0.1190476
-##   0.200  2.25  0.8157833  0.9891983  0.1214286
+##   0.010  1.75  0.9224077  0.8978710  0.7785714
+##   0.010  1.90  0.9215635  0.8982620  0.7690476
+##   0.010  2.00  0.9196723  0.9008214  0.7809524
+##   0.010  2.10  0.9212278  0.9012101  0.7809524
+##   0.010  2.25  0.9194851  0.9021940  0.7690476
+##   0.016  1.75  0.9209103  0.9031674  0.7571429
+##   0.016  1.90  0.9260179  0.9006103  0.7761905
+##   0.016  2.00  0.9233861  0.9039575  0.7523810
+##   0.016  2.10  0.9249620  0.9025803  0.7476190
+##   0.016  2.25  0.9235534  0.9039552  0.7595238
+##   0.200  1.75  0.8420787  0.9385149  0.4595238
+##   0.200  1.90  0.8463834  0.9396995  0.4619048
+##   0.200  2.00  0.8388075  0.9379336  0.4619048
+##   0.200  2.10  0.8467862  0.9393050  0.4547619
+##   0.200  2.25  0.8426602  0.9383293  0.4666667
 ## 
 ## ROC was used to select the optimal model using the largest value.
-## The final values used for the model were sigma = 0.01 and C = 2.25.</code></pre>
+## The final values used for the model were sigma = 0.016 and C = 1.9.</code></pre>
 <pre class="r"><code>plot(svm_pca)</code></pre>
 <p><img src="svm_files/figure-html/unnamed-chunk-5-2.png" width="672" /></p>
 <pre class="r"><code>pred_pca &lt;- predict(svm_pca, newdata = XPCATest)
@@ -581,25 +588,25 @@ cm_pca &lt;- confusionMatrix(pred_pca, YPCATest, mode = &quot;prec_recall&quot; 
 ## 
 ##           Reference
 ## Prediction Barato Caro
-##     Barato    709   49
-##     Caro       17   14
+##     Barato    685   32
+##     Caro       41   31
 ##                                           
-##                Accuracy : 0.9163          
-##                  95% CI : (0.8948, 0.9347)
+##                Accuracy : 0.9075          
+##                  95% CI : (0.8851, 0.9268)
 ##     No Information Rate : 0.9202          
-##     P-Value [Acc &gt; NIR] : 0.6822946       
+##     P-Value [Acc &gt; NIR] : 0.9138          
 ##                                           
-##                   Kappa : 0.2588          
+##                   Kappa : 0.4089          
 ##                                           
-##  Mcnemar&#39;s Test P-Value : 0.0001357       
+##  Mcnemar&#39;s Test P-Value : 0.3491          
 ##                                           
-##               Precision : 0.9354          
-##                  Recall : 0.9766          
-##                      F1 : 0.9555          
+##               Precision : 0.9554          
+##                  Recall : 0.9435          
+##                      F1 : 0.9494          
 ##              Prevalence : 0.9202          
-##          Detection Rate : 0.8986          
-##    Detection Prevalence : 0.9607          
-##       Balanced Accuracy : 0.5994          
+##          Detection Rate : 0.8682          
+##    Detection Prevalence : 0.9087          
+##       Balanced Accuracy : 0.7178          
 ##                                           
 ##        &#39;Positive&#39; Class : Barato          
 ## </code></pre>
@@ -609,9 +616,14 @@ draw_confusion_matrix(tab_test_pca, &quot;Actual&quot;, &quot;Predichos&quot;)</
 </div>
 <div id="evaluación" class="section level3">
 <h3>EVALUACIÓN</h3>
+<p><img src="svm_files/figure-html/unnamed-chunk-6-1.png" width="1728" /></p>
+<p><img src="svm_files/figure-html/unnamed-chunk-7-1.png" width="1728" /></p>
+<p><img src="svm_files/figure-html/unnamed-chunk-8-1.png" width="1728" /></p>
+<p><img src="svm_files/figure-html/unnamed-chunk-9-1.png" width="1728" /></p>
 <pre class="r"><code>res &lt;- evalm(list(svm_pca,svm),gnames = c(&#39;svm_pca&#39;,&#39;svm&#39;))</code></pre>
-<p><img src="svm_files/figure-html/unnamed-chunk-6-1.png" width="672" /><img src="svm_files/figure-html/unnamed-chunk-6-2.png" width="672" /><img src="svm_files/figure-html/unnamed-chunk-6-3.png" width="672" /><img src="svm_files/figure-html/unnamed-chunk-6-4.png" width="672" /></p>
-<pre class="r"><code>saveRDS(svm, &quot;svm.rds&quot;)</code></pre>
+<p><img src="svm_files/figure-html/unnamed-chunk-10-1.png" width="672" /><img src="svm_files/figure-html/unnamed-chunk-10-2.png" width="672" /><img src="svm_files/figure-html/unnamed-chunk-10-3.png" width="672" /><img src="svm_files/figure-html/unnamed-chunk-10-4.png" width="672" /></p>
+<pre class="r"><code>saveRDS(svm, &quot;svm.rds&quot;)
+saveRDS(svm_pca, &quot;svm_pca.rds&quot;)</code></pre>
 </div>
 
 
@@ -647,11 +659,6 @@ $(document).ready(function () {
 </script>
 
 <!-- code folding -->
-<script>
-$(document).ready(function () {
-  window.initializeCodeFolding("hide" === "show");
-});
-</script>
 
 
 <!-- dynamically load mathjax for compatibility with self-contained -->

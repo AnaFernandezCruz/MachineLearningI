@@ -1,13 +1,13 @@
 ---
-title: "evaluacion"
-author: "Ana Fernández Cruz, Jesús Gallego Olivas y Miguel Ángel Sánchez Alcázar"
+title: "Evaluación final"
 output: html_document
 ---
 
+Procedemos a cargar, evaluar y comparar todos los clasificadores diseñados para nuestro dataset. Una vez evaluados eligiremos cual se comporta mejor y clasificaremos el conjunto de evaluación comprobando definitivamente como de bueno es nuestro clasificador. 
 
 ```{r}
-source("funcs.R")
 library(MLeval)
+source("funcs.R")
 
 knn <- readRDS("knn.rds")
 knn_pca <- readRDS("knn_pca.rds")
@@ -18,117 +18,54 @@ rf <- readRDS("randomforest_nopca.rds")
 dt <- readRDS("house_tree_nopca.rds")
 ```
 
+
+```{r ,echo=FALSE,message=FALSE, warning=FALSE, fig.height=18, fig.width=18}
+res <- evalm(list(svm, svm_pca, knn, knn_pca, glm, rf, dt), gnames = c('svm','svm_pca','knn', 'knn_pca', 'glm','rf', 'dt'),rlinethick=0.8,fsize=30, showplots = TRUE , bins=20, plots = c("prg"))
+
+```
+
+```{r ,echo=FALSE,message=FALSE, warning=FALSE, fig.height=18, fig.width=18}
+res <- evalm(list(svm, svm_pca, knn, knn_pca, glm, rf, dt), gnames = c('svm','svm_pca','knn', 'knn_pca', 'glm','rf', 'dt'),rlinethick=0.8,fsize=30, optimise="MCC", showplots = TRUE , bins=20, plots = c("pr"))
+
+```
+
+```{r ,echo=FALSE,message=FALSE, warning=FALSE, fig.height=18, fig.width=18}
+res <- evalm(list(svm, svm_pca, knn, knn_pca, glm, rf, dt), gnames = c('svm','svm_pca','knn', 'knn_pca', 'glm','rf', 'dt'),rlinethick=0.8,fsize=30, optimise="MCC", showplots = TRUE , bins=20, plots = c("r"))
+
+```
+
+```{r ,echo=FALSE,message=FALSE, warning=FALSE, fig.height=18, fig.width=18}
+res <- evalm(list(svm, svm_pca, knn, knn_pca, glm, rf, dt), gnames = c('svm','svm_pca','knn', 'knn_pca', 'glm','rf', 'dt'),rlinethick=0.8,fsize=30, optimise="MCC", showplots = TRUE , bins=20, plots = c("cc"))
+
+```
+
+Después de haber realizado el análisis de evaluación de cada modelo, llegamos a la conclusión que el mejor de los modelos es ___. A continuación usaremos el conjunto de datos de validación y evaluaremos como de bueno es el modelo.
+
 ```{r}
 
-res <- evalm(list(svm, knn_pca, glm, rf, dt), gnames = c('svm','knn_pca', 'glm','rf', 'dt'),rlinethick=0.8,fsize=8, optimise="MCC", showplots = TRUE , bins=20, plots=c("r","prg"))
+#dataValidation_origin <- readRDS("datasetValidationModeloClasificador.rds")
+#dataValidation <- dataValidation_origin %>% dplyr::select(-SalePrice)
 
-```
 
-Después de haber realizado el análisis de cada modelo sobre el conjunto de test de los datos se ha llegado a la conclusión de que el mejor modelo para nuestro problema es el Random Forest. Para probarlo sobre nuestros modelos lo que haremos será cargar el dataset de validación separado previamente a todo el proceso y preparar los datos para poder inferior el resultado con nuestro modelo.
+#remove <- c('GrupoPrecio')
+#col_to_factor <- colnames(dataValidation) [! colnames(dataValidation) %in% remove]
+#dataValidation <- dataValidation %>% as_factor_all(col_to_factor)
 
-```{r}
 
-dataValidation_origin <- readRDS("datasetValidationModeloClasificador.rds")
-
-dataValidation <- dataValidation_origin %>% dplyr::select(-SalePrice)
-
-XValidation <- dataValidation %>% dplyr::select(-GrupoPrecio)
-YValidation <- dataValidation$GrupoPrecio
+#XValidation <- dataValidation %>% dplyr::select(-GrupoPrecio)
+#YValidation <- dataValidation$GrupoPrecio
 
 
 ```
 
 
 ```{r}
-pred <- predict(svm_pca, newdata = XValidation)
 
-cm <- confusionMatrix(pred, YValidation, mode = "prec_recall" )
-(cm_pca)
-tab_test <- table(pred, YValidation, dnn = c("Actual", "Predichos"))
-draw_confusion_matrix(tab_test, "Actual", "Predichos")
+#pred <- predict(svm, newdata = XValidation)
 
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-------------------------------------
-
-
-```{r message=FALSE}
-library(dplyr)
-
-##CARGAMOS LOS DATOS.
-validacion_model <- readRDS("datasetValidation.rds")
-
-##FILTRAMOS LAS COLUMNAS QUE NECESITA EL MODELO
-var_modelo = c( 'GrLivArea','LotArea','Total_Bathrooms','Total_porch_SF','LandContour','LotConfig','Condition1','BldgType','HouseStyle','MasVnrType','Foundation','SaleType','SaleCondition','OverallQual','OverallCond','PavedDrive','Fence','BsmtFinSF1','ExterQual','BsmtQual','BsmtExposure','BsmtFinType1','BsmtUnfSF','KitchenQual','Fireplaces','FireplaceQu','BedroomAbvGr','LotShape','GarageArea','GarageCond','Neighborhood','has2ndFloor','All#ey','TotalSF','GarageType','MasVnrArea','MSSubClass','GrupoPrecio')
-
-
-myvars <- names(validacion_model) %in% c(var_modelo)
-validacion_model <- validacion_model[myvars]
+#cm <- confusionMatrix(pred, YValidation, mode = "prec_recall" )
+#(cm_pca)
+#tab_test <- table(pred, YValidation, dnn = c("Actual", "Predichos"))
+#draw_confusion_matrix(tab_test, "Actual", "Predichos")
 
 ```
-
-
-Cargamos el modelo, el cual tenemos guardado en formato rds.
-
-```{r}
-model <- readRDS("modelRandomForest.rds")
-```
-
-Una vez tenemos cargado el modelo entrenado, procedemos a ejecutarlo sobre los datos de validación.
-```{r echo=FALSE}
-draw_confusion_matrix <- function(tab, tab_Actual, tab_Predict){
-  confusion_matrix <- as.data.frame(tab)
-  
-  Actual <- factor(confusion_matrix[[tab_Actual]])
-  Predichos <- factor(confusion_matrix[[tab_Predict]])
-  Y      <- confusion_matrix$Freq
-  df <- data.frame(Actual, Predichos, Y)
-  
-  ggplot(data =  df, mapping = aes(x = Actual, y = Predichos)) +
-    geom_tile(aes(fill = Y), colour = "white") +
-    geom_text(aes(label = sprintf("%1.0f", Y)), vjust = 1) +
-    scale_fill_gradient(low = "blue", high = "red") +
-    theme_bw() + theme(legend.position = "none")
-}
-
-
-```
-
-Una vez hemos cargado el modelo en la variable model, guardamos en la variable "pred" los resultados de aplicar el modelo a nuestro dataset de validación.
-```{r }
-pred = predict(model, validacion_model, type = "class")
-```
-
-
-Una vez tenemos los resultados procedemos a calcular la matriz de confusión y el accuracy del modelo.
-```{r}
-tab_test_h <- table(pred, obs = validacion_model$GrupoPrecio, dnn = c("Actual", "Predichos"))
-tab_test_h
-
-##CONFUSION MATRIX
-draw_confusion_matrix(tab_test_h, "Actual", "Predichos")
-```
-En la matriz de confusión vemos que distinguimos muy bien las casas baratas (228 de 260 = 88%), mientras que las casas caras las identifica también pero no tan bien como las baratas (19 de 31 = 61%)
-
-```{r}
-##ACCURACY
-(mc <- with(validacion_model,table(pred, GrupoPrecio)))
-100 * sum(diag(mc)) / sum(mc)
-```
-
-El accuracy final sobre los datos de validación es de un 84,88 %

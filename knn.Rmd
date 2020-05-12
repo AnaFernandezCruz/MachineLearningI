@@ -1,6 +1,6 @@
 ---
 title: "K Nearest Neighbors - KNN"
-
+output: html_document
 ---
 A continuación aplicaremos un modelo knn o k nearest neighbors a nuestro grupo de datos. El algoritmo clasifica cada dato nuevo en el grupo que corresponda, según tenga "k" vecinos más cerca de un grupo o de otro. Es decir, calcula la distancia del elemento nuevo a cada uno de los existentes, y ordena dichas distancias de menor a mayor para ir seleccionando el grupo al que pertenece. Este grupo será, por tanto, el de mayor frecuencia con menores distancias.
 
@@ -21,6 +21,7 @@ library(MLeval)
 library(DMwR)
 source("funcs.R")
 data(Pima.te)
+set.seed(400)
 
 ```
 
@@ -72,8 +73,7 @@ ctrNorm <- preProcess(x = XTrain, method = c("center", "scale"))
 dataTrainNorm <- predict(ctrNorm, dataTrain)
 
 #Entrenamiento y busqueda de k más optimo
-set.seed(400)
-ctrl <- trainControl(method="repeatedcv", repeats = 3, classProbs = TRUE, summaryFunction = twoClassSummary, metric="ROC", savePredictions = TRUE, sampling = "smote")
+ctrl <- trainControl(method="repeatedcv", repeats = 3, classProbs = TRUE, summaryFunction = twoClassSummary, savePredictions = TRUE, sampling = "smote")
 knn <- train(GrupoPrecio ~ ., data = dataTrainNorm, method = "knn", trControl = ctrl, tuneLength = 30)
 (knn)
 plot(knn)
@@ -104,8 +104,7 @@ YPCATrain <- PCATrain$GrupoPrecio
 XPCATest <- PCATest %>% dplyr::select(-GrupoPrecio)
 YPCATest <- PCATest$GrupoPrecio
 
-set.seed(400)
-ctrl_pca <- trainControl(method="repeatedcv",repeats = 3,classProbs = TRUE, summaryFunction = twoClassSummary, metric="ROC", savePredictions = TRUE, sampling = "smote")
+ctrl_pca <- trainControl(method="repeatedcv",repeats = 3,classProbs = TRUE, summaryFunction = twoClassSummary, savePredictions = TRUE, sampling = "smote")
 knn_pca <- train(GrupoPrecio ~ ., data = PCATrain, method = "knn", trControl = ctrl_pca, tuneLength = 30)
 (knn_pca)
 plot(knn_pca)
@@ -120,12 +119,29 @@ draw_confusion_matrix(tab_test_pca, "Actual", "Predichos")
 
 ### EVALUACIÓN
 
+
+```{r ,echo=FALSE,message=FALSE, warning=FALSE, fig.height=18, fig.width=18, multi.col=T}
+res <-evalm(list(knn_pca,knn),gnames = c('knn_pca','knn'),rlinethick=0.8,fsize=30, showplots = TRUE , bins=20, plots = c("prg"))
+
+```
+
+```{r ,echo=FALSE,message=FALSE, warning=FALSE, fig.height=18, fig.width=18, multi.col=T}
+res <-evalm(list(knn_pca,knn),gnames = c('knn_pca','knn'),rlinethick=0.8,fsize=30, showplots = TRUE , bins=20, plots = c("pr"))
+
+```
+
+```{r ,echo=FALSE,message=FALSE, warning=FALSE, fig.height=18, fig.width=18, multi.col=T}
+res <-evalm(list(knn_pca,knn),gnames = c('knn_pca','knn'),rlinethick=0.8,fsize=30, showplots = TRUE , bins=20, plots = c("r"))
+
+```
+
+```{r ,echo=FALSE,message=FALSE, warning=FALSE, fig.height=18, fig.width=18, multi.col=T}
+res <-evalm(list(knn_pca,knn),gnames = c('knn_pca','knn'),rlinethick=0.8,fsize=30, showplots = TRUE , bins=20, plots = c("cc"))
+
+```
+
+
 ```{r , message=FALSE, warning=FALSE, echo=TRUE}
-res <- evalm(list(knn_pca,knn),gnames = c('knn_pca','knn'))
-
-
-#test1 <- evalm(pred,plots = 'r',rlinethick=0.8,fsize=8,bins=8)
-
 
 saveRDS(knn_pca, "knn_pca.rds")
 saveRDS(knn, "knn.rds")
