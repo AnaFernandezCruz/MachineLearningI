@@ -7,190 +7,159 @@ output:
 
 En este punto vamos a aplicar los árboles de decisión a nuestro modelo. Los árboles de decisión se componen del nodo raíz, que es del que partes, y respondiendo preguntas con "si" o "no", nos iremos moviendo por los nodos interiores hasta llegar a las hojas o nodos terminales. Nuestro objetivo es tener un árbol de decisión que use el menor número de preguntas posible.
 
-Para empezar, cargamos nuestros datos.
+Para empezar, cargamos nuestros datos. Los datos que vamos a utilizar es el dataframe antes de pasarlo por PCA. Esto es debido a que el fuerte del árbol de decisión es la explicatividad del mismo y el poder ver gráficamente las elecciones que va haciendo, como si fuera el quién es quién. Si lo hacemos con las dimensiones nuevas que nos proporciona el PCA perderíamos esta utilidad de los árboles de decisión ya que las dimensiones que nos proporciona el PCA no tienen sentido a nuestros ojos.
 
 ```{r message = FALSE}
+library(class)
+library(dplyr)
+library(caret)
+library (ROCR)
+library(MASS)
+library(DMwR)
+library(hmeasure)
+library(data.table)
 library(rpart)
-library(rpart.plot)
-library(rattle)
-library(tidyverse)
-library(readr)
+dataTrain <- readRDS("datasetTrainModeloClasificador.rds") 
+myvars <- names(dataTrain) %in% c('SalePrice')
+dataTrain <- dataTrain[!myvars]
 
-var_modelo = c( 'GrLivArea','LotArea','Total_Bathrooms','Total_porch_SF','LandContour','LotConfig','Condition1','BldgType','HouseStyle','MasVnrType','Foundation','SaleType','SaleCondition','OverallQual','OverallCond','PavedDrive','Fence','BsmtFinSF1','ExterQual','BsmtQual','BsmtExposure','BsmtFinType1','BsmtUnfSF','KitchenQual','Fireplaces','FireplaceQu','BedroomAbvGr','LotShape','GarageArea','GarageCond','Neighborhood','has2ndFloor','All#ey','TotalSF','GarageType','MasVnrArea','MSSubClass','GrupoPrecio')
+dataTest <- readRDS("datasetTestModeloClasificador.rds")
+myvars <- names(dataTest) %in% c('SalePrice')
+dataTest <- dataTest[!myvars]
 
-dataTrain <- readRDS("datasetTrain.rds") 
-myvars <- names(dataTrain) %in% c(var_modelo)
-dataTrain <- dataTrain[myvars]
-
-dataTest <- readRDS("datasetTest.rds")
-myvars <- names(dataTest) %in% c(var_modelo)
-dataTest <- dataTest[myvars]
-                       
-val <- readRDS("datasetValidation.rds")
-myvars <- names(val) %in% c(var_modelo)
-val <- val[myvars]
 set.seed(123)
 ```
 
-Definimos el árbol de decisión: para ello, como no conocemos ninguna relación con el resto de variables, no escribiremos ninguna fórmula. El árbol que obtenemos es el siguiente:
-```{r fig.width=30, fig.height=10}
-HouseTREE.1 = rpart(GrupoPrecio ~ ., data = dataTrain)
+Definimos el árbol de decisión: para ello, como no conocemos ninguna relación con el resto de variables, no escribiremos ninguna fórmula. El árbol de decisiones lo vamos a entrenar usando la librería Caret.
+Caret proporciona una herramienta que se llama trainControl, la cual controla los matices computacionales de la función train.
 
-par(mfrow = c(1, 1), xpd = NA) # otherwise on some devices the text is clipped
-fancyRpartPlot(HouseTREE.1, sub = "")
+```{r message = FALSE, warning=FALSE}
 
+house.tree1 <- train(
+                    x = dataTrain[, names(dataTrain) != "GrupoPrecio"],
+                    y = dataTrain$GrupoPrecio,
+                    method = "rpart",
+                    parms = list(split = "information"),
+                    trControl = trainControl(search = "random",
+                                             method = "cv",
+                                             classProbs = TRUE, 
+                                             summaryFunction = twoClassSummary,
+                                             savePredictions = TRUE,
+                                             sampling = "smote")
+                    )
+
+house.tree1
 ```
+Si nos fijamos en el resultado que obtenemos cuando hacemos un print del árbol, vemos que nos CARET nos da información sobre el valor CP o Complexity Parameter. Este parámetro de complejidad se utilizaría en otras bibliotecas para decidir en que punto podar o no el árbol, pero hemos decidido usar CARET puesto que cuando ejecutas el código para generar el modelo ya evalúa los distintos valores de CP y se queda con un valor u otro para que tu modelo ya esté optimizado y no tengas que hacer nada más. En este caso, el valor del parámetro de complejidad ha sido elegido en función del valor de la curva ROC como bien nos informa la biblioteca.
+
+El árbol estará más podado conforme el parámetro de complejidad sea más pequeño, por lo que en nuestro la biblioteca ha decidido quedarse con un árbol menos podado pero que nos da mayor porcentaje de accuracy (o acierto) en nuestro modelo.
+
+
+```{r message = FALSE, warning=FALSE}
+library(rattle)
+fancyRpartPlot(house.tree1$finalModel)
+```
+
 Podemos observar como los tipos de casas se han ido dividiendo según las decisiones tomadas en cada uno de los nodos del árbol. También podemos ver como en los nodos terminales aparece la distribución de la variable GrupoPrecios, así que podemos hacer una estimación del error de clasficación del árbol con las herramientas vistas en clase. Para ello:
 
-```{r}
-##CÁLCULO DEL ERROR A LA HORA DE CLASIFICAR:
-table(pred = predict(HouseTREE.1, type = "class"), obs = dataTrain$GrupoPrecio)
-n = dim(dataTrain)[1]
-error1 = 100 * sum(predict(HouseTREE.1, type = "class") != dataTrain$GrupoPrecio)/n
-error1
+```{r message = FALSE, warning=FALSE}
+##MATRIZ CONFUSION
+house.pred <- predict(house.tree1, newdata = dataTest)
+table1 <- table(house.pred, dataTest$GrupoPrecio)
+table1
 
-##RESULTADO EN EL DATASET DE PRUEBA:
-tab1 = table(pred = predict(HouseTREE.1, dataTest, type = "class"), obs = dataTest$GrupoPrecio)
-ntest1 = nrow(dataTest)
-acierto1 = sum(diag(tab1))/ntest1
-tab1
-acierto1
+
+cm_nopca <- confusionMatrix(house.pred, dataTest$GrupoPrecio, mode = "prec_recall" )
+cm_nopca
+
+##CÁLCULO DEL ERROR
+error.rate_nopca = mean(house.pred != dataTest$GrupoPrecio)
+error.rate_nopca
 ```
 
-Un error de poco más del 9% mientras que obtenemos un accuracy del 83,77% para el dataset de test. Con estos valores podemos entender que nuestro modelo puede estar sobreentrenado y tendremos que realizar una poda del mismo. Antes de ponernos manos a la masa para realizar la poda del árbol, vamos a proceder a alterar los hiperparámetros del árbol de decisión. En este caso vamos a meter las probabilidades a priori en el árbol y ver cómo varía el resultado. Para ello, obtenemos el conteo de cuantos elementos pertenecen a cada clase y junto al total de las observaciones podemos sacar la probabilidad a priori.
+Como hemos dicho anteriormente, uno de los principales beneficios de los árboles de decisión es la explicatividad que tienen. Si usamos las transformaciones proporcionadas del análisis del PCA existe la posibilidad de que el modelo mejor y perdamos esa explicatividad: vamos a comprobarlo.
 
-```{r}
-library(ggplot2)
-ggplot(data.frame(dataTrain), aes(x=dataTrain$GrupoPrecio)) + geom_bar()
-
-as.data.frame(table(dataTrain$GrupoPrecio))
-
-length(dataTrain$GrupoPrecio)
-```
-Teniendo esta información, metemos la probabilidad a priori.
-```{r fig.width=30, fig.height=10}
-##AJUSTE HIPERPARÁMETROS:
-prob1 = 1581 / 1837
-prob2 = 256 / 1837
-
-HouseTREE.2 = rpart(GrupoPrecio ~ ., data = dataTrain, parms = list(prior = c(prob1,prob2), split = "information"))
-par(mfrow = c(1, 1), xpd = NA) # otherwise on some devices the text is clipped
-fancyRpartPlot(HouseTREE.2, sub = "")
-```
-Los resultados obtenidos son los siguientes:
-```{r}
-##CÁLCULO DEL ERROR A LA HORA DE CLASIFICAR:
-table(pred = predict(HouseTREE.2, type = "class"), obs = dataTrain$GrupoPrecio)
-n = dim(dataTrain)[1]
-error2 = 100 * sum(predict(HouseTREE.2, type = "class") != dataTrain$GrupoPrecio)/n
-error2
-
-##RESULTADO EN EL DATASET DE PRUEBA:
-tab2 = table(pred = predict(HouseTREE.2, dataTest, type = "class"), obs = dataTest$GrupoPrecio)
-ntest2 = nrow(dataTest)
-acierto2 = sum(diag(tab1))/ntest2
-tab2
-acierto2
-```
-
-Vemos que después de añadir las probabilidades a priori el accuracy del modelo se mantiene constante aunque el error ha disminuido sutilmente en este segundo modelo. Vamos a proceder a seguir nuestro estudio con el segundo árbol que hemos entrenado ya que, a accuracys similares, el segundo tiene menos error. 
-
-Para podar el modelo usaremos las herramientas printcp y plotcp. Con estas herramientas podemos tener el número óptimo de podas. La poda la haremos para evitar el overfitting, como en nuestro caso, ya que con un accuracy de un 0.84 podemos asumir que tenemos un problema de overfitting entre el Train y el Test. Lo que buscaremos será quedarnos con el árbol más pequeño con el menor error obtenido haciendo cross validation. Utilizaremos el primer árbol, pues parece que da menos error y puede tener menos overfitting.
+Cargamos los datos:
 
 ```{r}
-##PODA:
-printcp(HouseTREE.2)
-plotcp(HouseTREE.2)
+dataTrain_origin_PCA <- readRDS("datasetTrainModeloClasificadorPCA.rds")
+dataTest_origin_PCA <- readRDS("datasetTestModeloClasificadorPCA.rds") 
+
+PCATrain <- as.data.table(cbind(dataTrain_origin_PCA$ind$coord, GrupoPrecio = dataTrain %>% dplyr::select(c("GrupoPrecio"))))
+PCATest <- as.data.table(cbind(dataTest_origin_PCA$ind$coord, GrupoPrecio = dataTest %>% dplyr::select(c("GrupoPrecio"))))
+
+XPCATrain <- PCATrain %>% dplyr::select(-GrupoPrecio)
+YPCATrain <- PCATrain$GrupoPrecio
+XPCATest <- PCATest %>% dplyr::select(-GrupoPrecio)
+YPCATest <- PCATest$GrupoPrecio
 ```
 
-Plotcp nos devulve una representación gráfica con un resumen del error obtenido haciendo cross validation. Los valores de CP (Complexity Parameter) se dibujan en el eje x mientras que en la y tenemos el valor de la media geométrica para representar la desviación hasta  alcanzar el valor mínimo. Vamos que el error relativo es menor para un valor de cp de 0,012. Lo comprobamos:
+Entrenamos el modelo:
 
-```{r fig.width=30, fig.height=10}
-pruneTREE.1 = prune(HouseTREE.1,cp = HouseTREE.1$cptable[which.min(HouseTREE.1$cptable["xerror"]), "CP"])
-fancyRpartPlot(pruneTREE.1, uniform = TRUE, main = "Pruned Classification Tree", sub = "")
+```{r message = FALSE, warning=FALSE}
+house.tree_pca <- train(
+                    x = XPCATrain,
+                    y = YPCATrain,
+                    method = "rpart",
+                    parms = list(split = "information"),
+                    trControl = trainControl(search = "random",
+                                             method = "cv",
+                                             classProbs = TRUE, 
+                                             summaryFunction = twoClassSummary,
+                                             savePredictions = TRUE,
+                                             sampling = "smote")
+                    )
 
-```
-Si probamos el árbol podado:
-
-```{r}
-##CÁLCULO DEL ERROR A LA HORA DE CLASIFICAR:
-table(pred = predict(pruneTREE.1, type = "class"), obs = dataTrain$GrupoPrecio)
-n = dim(dataTrain)[1]
-error3 = 100 * sum(predict(pruneTREE.1, type = "class") != dataTrain$GrupoPrecio)/n
-error3
-
-##RESULTADO EN EL DATASET DE PRUEBA:
-tab3 = table(pred = predict(pruneTREE.1, dataTest, type = "class"), obs = dataTest$GrupoPrecio)
-ntest3 = nrow(dataTest)
-acierto3 = sum(diag(tab2))/ntest3
-tab3
-acierto3
-```
-Comprobamos que, efectivamente, al coger el valor mínimo de cp el árbol se ha podado y el valor de la accuracy ha disminuido, disminuyendo el overfitting.
-
-- COMPARACIÓN DE MODELOS.
-
-Para realizar la comparación de los dos (o tres) árboles que hemos creado, acudimos a las estadísticas que hemos obtenido.
-
-Las estadísticas las sacamos sobre el conjunto de test. Para el primer árbol:
-```{r}
-tab1
-acierto1
+house.tree_pca
 ```
 
-Las estadísticas para el segundo árbol donde hemos añadido el hiperparámetro con las probabilidades a priori:
-```{r}
-tab2
-acierto2
+Podemos ver cuando dibujamos el árbol que las variables no tienen ningún sentido para nosotros.
+
+```{r message = FALSE, warning=FALSE}
+library(rattle)
+fancyRpartPlot(house.tree_pca$finalModel)
 ```
 
-Las estadísticas con el árbol podado:
-```{r}
-tab3
-acierto3
-```
+```{r message = FALSE, warning=FALSE}
+##MATRIZ CONFUSION
+house.pred_pca <- predict(house.tree_pca, newdata = XPCATest)
+table_pca <- table(house.pred_pca, YPCATest)
+table_pca
 
-Como vemos, cuando hemos añadido las probabilidades a priori hemos mejorado la predicción en las casas baratas. Vemos que en nuestro caso es un modelo totalmente desbalanceado ya que tenemos una clara predominación de la clase "Barato" y somos muy buenos prediciendo cuando una casa es barata. Es por ello por lo que los resultados son bastante similares, ya que aunque añadamos las probabilidades a priori solo reforzamos ese aspecto del entrenamiento. Como hemos dicho además en la poda, esto solo ha hecho que el modelo se quede como está pues así ya estamos en el punto con el menor error relativo aunque sea un árbol complejo. 
+
+cm_pca <- confusionMatrix(house.pred_pca, YPCATest,mode = "prec_recall")
+cm_pca
+
+##CÁLCULO DEL ERROR
+error.rate_pca = mean(house.pred_pca !=YPCATest)
+error.rate_pca
+```
 
 - CURVA ROC.
 
-```{r}
-library(rpart)
-library(caret)
-```
-
-Nos vamos a quedar con el modelo podado para hacer el estudio de la curva ROC. 
+Si comparamos ambos modelos: variables originales o variables producto del PCA usando la curva ROC y sus matrices de confusión + errores, tenemos:
 
 ```{r}
-pred = predict(pruneTREE.1, dataTest, type = "class")
-table = table(pred, obs = dataTest$GrupoPrecio, dnn = c("Actual", "Predichos"))
+cm_nopca
+error.rate_nopca
 
-confusionMatrix(table)
+print('__________________')
 
+cm_pca
+error.rate_pca
 
-draw_confusion_matrix <- function(tab, tab_Actual, tab_Predict){
-  confusion_matrix <- as.data.frame(tab)
-  
-  Actual <- factor(confusion_matrix[[tab_Actual]])
-  Predichos <- factor(confusion_matrix[[tab_Predict]])
-  Y      <- confusion_matrix$Freq
-  df <- data.frame(Actual, Predichos, Y)
-  
-  ggplot(data =  df, mapping = aes(x = Actual, y = Predichos)) +
-    geom_tile(aes(fill = Y), colour = "white") +
-    geom_text(aes(label = sprintf("%1.0f", Y)), vjust = 1) +
-    scale_fill_gradient(low = "blue", high = "red") +
-    theme_bw() + theme(legend.position = "none")
-}
-
-
-draw_confusion_matrix(table, "Actual", "Predichos")
-
-
-library(pROC)
-predRoc <- predict(pruneTREE.1, newdata=dataTest, type="prob")
-area_curva <- multiclass.roc(dataTest$GrupoPrecio, predRoc,)
-area_curva
-
-        
 ```
+
+Lo que vemos es que sale mejor modelo cuando no utilizamos pca y dejamos las variables que a ojo del ciéntifico de datos podemos entender mejor. 
+Además la matriz de confusión nos indica que predecimos mejor usando el modelo sin pca, aunque el valor de f1 sea mejor para el segundo modelo.
+
+```{r , message=FALSE, warning=FALSE, echo=TRUE}
+res <- evalm(list(house.tree1,house.tree_pca),gnames = c('house.tree_nopca','house.tree_pca'))
+```
+Aunque con la curva ROC vemos que, efectivamente, son bastante similares. Así que preferiremos usar el modelo sin PCA porque así podemos seguir usando la característica de explicatividad que tienen este tipo de modelos.
+
+```{r}
+saveRDS(house.tree1, "house_tree_nopca.rds")
+saveRDS(house.tree_pca, "house_tree_pca.rds")
+```
+

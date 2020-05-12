@@ -317,6 +317,7 @@ cm_rf_nopca
 error.rate_rf_nopca
 ```
 
+En este caso vemos que si usamos el dataset en el que NO hemos aplicado PCA el modelo sale considerablemente mejor si nos fijamos en la matriz de confusión, aunque podemos ver que tiene un error un poco más alto. 
 
 ```{r , message=FALSE, warning=FALSE, echo=TRUE}
 library(MLeval)
