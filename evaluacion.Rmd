@@ -14,17 +14,21 @@ knn_pca <- readRDS("knn_pca.rds")
 svm <- readRDS("svm.rds")
 svm_pca <- readRDS("svm_pca.rds")
 glm <- readRDS("glm.rds")
+rf <- readRDS("randomforest_pca.rds")
 
 
 ```
 
 ```{r}
 
-res <- evalm(list(svm, knn, glm), gnames = c('svm', 'knn', 'glm'),rlinethick=0.8,fsize=8)
+res <- evalm(list(svm, knn_pca, glm, rf), gnames = c('svm','knn_pca', 'glm','rf'),rlinethick=0.8,fsize=8)
 
 ```
 
 
+```{r}
+
+```
 
 
 
