@@ -8,8 +8,10 @@ navbar:
       href: Cluster.html
     - text: "PCA"
       href: PCA.html
-    - text: "Aprendizaje supervisado"
+    - text: "Clasificadores"
       menu:
+        - text: "GAM"
+          href: GAMLogit.html 
         - text: "GLM"
           href: glm.html
         - text: "KNN"
@@ -20,8 +22,10 @@ navbar:
           href: random_forest.html
         - text: "SVM"
           href: svm.html
-    - text: "GAM"
+    - text: "GAM - regresión"
       href: GAM.html
+    - text: "Evaluación"
+      href: evaluacion.html
 output:
   html_document:
     theme: cosmo

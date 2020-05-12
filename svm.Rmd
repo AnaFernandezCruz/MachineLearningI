@@ -17,6 +17,7 @@ library (ROCR)
 library(kernlab)
 library(data.table)
 library(MLeval)
+library(DMwR)
 source("funcs.R")
 ```
 
@@ -70,16 +71,16 @@ dataTrainNorm <- predict(ctrNorm, dataTrain)
 
 #Entrenamiento y busqueda de k más optimo
 set.seed(400)
-ctrl <-  trainControl("repeatedcv", repeats=3,classProbs = TRUE, summaryFunction = twoClassSummary, savePredictions = TRUE)
-svm <- train(GrupoPrecio ~ ., data = dataTrainNorm, method = "svmRadial", trControl = ctrl, metric="ROC", tuneLength = 20)
+ctrl <-  trainControl("repeatedcv", repeats=3,classProbs = TRUE, summaryFunction = twoClassSummary, savePredictions = TRUE, sampling = "smote")
+svm <- train(GrupoPrecio ~ ., data = dataTrainNorm, method = "svmRadial", trControl = ctrl, tuneLength = 20)
 (svm)
 plot(svm)
 
 set.seed(400)
 
-grid <- expand.grid(sigma = c(.02, .029, 0.31), C = c(1.75, 1.9, 2, 2.1, 2.25))
+grid <- expand.grid(sigma = c(.019, .02, 0.21), C = c(1.75, 2, 2.25, 2.5, 2.75))
 
-svm <- train(GrupoPrecio ~ ., data = dataTrainNorm, method = "svmRadial", trControl = ctrl, metric="ROC", tuneGrid = grid)
+svm <- train(GrupoPrecio ~ ., data = dataTrainNorm, method = "svmRadial", trControl = ctrl, tuneGrid = grid)
 (svm)
 plot(svm)
 
@@ -90,7 +91,7 @@ cm <- confusionMatrix(pred, YTest, mode = "prec_recall" )
 tab_test <- table(pred, YTest, dnn = c("Actual", "Predichos"))
 draw_confusion_matrix(tab_test, "Actual", "Predichos")
 ```
-
+##### APLICAMOS PCA
 
 ```{r}
 
@@ -106,7 +107,7 @@ XPCATest <- PCATest %>% dplyr::select(-GrupoPrecio)
 YPCATest <- PCATest$GrupoPrecio
 
 set.seed(400)
-ctrl <-  trainControl("repeatedcv", repeats=3,classProbs = TRUE, summaryFunction = twoClassSummary, savePredictions = TRUE)
+ctrl <-  trainControl("repeatedcv", repeats=3,classProbs = TRUE, summaryFunction = twoClassSummary, savePredictions = TRUE, sampling = "smote")
 
 svm_pca <- train(GrupoPrecio ~ ., data = PCATrain, method = "svmRadial", trControl = ctrl, metric="ROC", tuneLength = 20)
 (svm_pca)
@@ -134,5 +135,6 @@ draw_confusion_matrix(tab_test_pca, "Actual", "Predichos")
 res <- evalm(list(svm_pca,svm),gnames = c('svm_pca','svm'))
 
 saveRDS(svm, "svm.rds")
+saveRDS(svm_pca, "svm_pca.rds")
 ```
 

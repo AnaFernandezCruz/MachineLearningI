@@ -8,6 +8,7 @@ library(dplyr)
 library(caret)
 library (ROCR)
 library(kernlab)
+library(DMwR)
 source("funcs.R")
 ```
 
@@ -53,7 +54,7 @@ dataTrainNorm <- predict(ctrNorm, dataTrain)
 
 #Entrenamiento y busqueda de k más optimo
 set.seed(400)
-ctrl <-  trainControl(method = "repeatedcv", repeats=3, savePredictions = TRUE)
+ctrl <-  trainControl(method = "repeatedcv", repeats=3, classProbs = TRUE, summaryFunction = twoClassSummary, savePredictions = TRUE, sampling = "smote"))
 glm <- train(GrupoPrecio ~ ., data = dataTrainNorm, method = "glm", trControl = ctrl, family = "binomial")
 (glm)
 

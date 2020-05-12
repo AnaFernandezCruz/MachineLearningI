@@ -20,6 +20,7 @@ library(MASS)
 library(hmeasure)
 library(data.table)
 library(MLeval)
+library(DMwR)
 source("funcs.R")
 data(Pima.te)
 
@@ -74,7 +75,7 @@ dataTrainNorm <- predict(ctrNorm, dataTrain)
 
 #Entrenamiento y busqueda de k más optimo
 set.seed(400)
-ctrl <- trainControl(method="repeatedcv", repeats = 3, classProbs = TRUE, summaryFunction = twoClassSummary, savePredictions = TRUE)
+ctrl <- trainControl(method="repeatedcv", repeats = 3, classProbs = TRUE, summaryFunction = twoClassSummary, savePredictions = TRUE, sampling = "smote")
 knn <- train(GrupoPrecio ~ ., data = dataTrainNorm, method = "knn", trControl = ctrl, tuneLength = 30)
 (knn)
 plot(knn)
@@ -106,7 +107,7 @@ XPCATest <- PCATest %>% dplyr::select(-GrupoPrecio)
 YPCATest <- PCATest$GrupoPrecio
 
 set.seed(400)
-ctrl_pca <- trainControl(method="repeatedcv",repeats = 3,classProbs = TRUE, summaryFunction = twoClassSummary, savePredictions = TRUE)
+ctrl_pca <- trainControl(method="repeatedcv",repeats = 3,classProbs = TRUE, summaryFunction = twoClassSummary, savePredictions = TRUE, sampling = "smote")
 knn_pca <- train(GrupoPrecio ~ ., data = PCATrain, method = "knn", trControl = ctrl_pca, tuneLength = 30)
 (knn_pca)
 plot(knn_pca)
@@ -124,5 +125,10 @@ draw_confusion_matrix(tab_test_pca, "Actual", "Predichos")
 ```{r , message=FALSE, warning=FALSE, echo=TRUE}
 res <- evalm(list(knn_pca,knn),gnames = c('knn_pca','knn'))
 
-saveRDS(knn_pca, "knn.rds")
+
+#test1 <- evalm(pred,plots = 'r',rlinethick=0.8,fsize=8,bins=8)
+
+
+saveRDS(knn_pca, "knn_pca.rds")
+saveRDS(knn, "knn.rds")
 ```

@@ -4,6 +4,44 @@ author: "Ana Fernández Cruz, Jesús Gallego Olivas y Miguel Ángel Sánchez Alc
 output: html_document
 ---
 
+
+```{r}
+
+library(MLeval)
+
+knn <- readRDS("knn.rds")
+knn_pca <- readRDS("knn_pca.rds")
+svm <- readRDS("svm.rds")
+svm_pca <- readRDS("svm_pca.rds")
+glm <- readRDS("glm.rds")
+
+
+```
+
+```{r}
+
+res <- evalm(list(svm, knn, glm), gnames = c('svm', 'knn', 'glm'),rlinethick=0.8,fsize=8)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+------------------------------------
 Después de haber realizado el análisis de cada modelo sobre el conjunto de test de los datos se ha llegado a la conclusión de que el mejor modelo para nuestro problema es el Random Forest. Para probarlo sobre nuestros modelos lo que haremos será cargar el dataset de validación separado previamente a todo el proceso y preparar los datos para poder inferior el resultado con nuestro modelo.
 
 ```{r message=FALSE}

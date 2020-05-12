@@ -741,6 +741,11 @@ numero_variables_modelo_clasificador = 20
 
 var_modelo_clasificador =  setdiff(unique(union(dataframeTestImportantesBaratos[1:numero_variables_modelo_clasificador,1],dataframeTestImportantesCaros[1:numero_variables_modelo_clasificador,1])),var_eliminar_correlacion)
 
+#datasetTrain <- upSample(x = datasetTrain[, -ncol(datasetTrain)],
+#                     y = datasetTrain$GrupoPrecio)  
+
+#names(datasetTrain)[names(datasetTrain) == "Class"] <- "GrupoPrecio"  
+
 
 write.csv(datasetTrain %>% dplyr::select(c(var_modelo_clasificador,c('SalePrice','GrupoPrecio')) ), "datasetTrainModeloClasificador.csv")
 write.csv(datasetTest %>% dplyr::select(c(var_modelo_clasificador,c('SalePrice','GrupoPrecio')) ) , "datasetTestModeloClasificador.csv")
