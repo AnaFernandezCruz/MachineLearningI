@@ -1,8 +1,6 @@
 ---
 title: "K Nearest Neighbors - KNN"
-output: 
-  html_document:
-    code_folding: hide
+
 ---
 A continuación aplicaremos un modelo knn o k nearest neighbors a nuestro grupo de datos. El algoritmo clasifica cada dato nuevo en el grupo que corresponda, según tenga "k" vecinos más cerca de un grupo o de otro. Es decir, calcula la distancia del elemento nuevo a cada uno de los existentes, y ordena dichas distancias de menor a mayor para ir seleccionando el grupo al que pertenece. Este grupo será, por tanto, el de mayor frecuencia con menores distancias.
 
@@ -64,7 +62,7 @@ YTest <- dataTest$GrupoPrecio
 
 ### ENTRENAMIENTO, OPTIMIZACIÓN Y EVALUACIÓN DEL MODELO
 
-Entrenamos el modelo a la vez que buscamos el k más optimo para el conjunto de datos de train normalizados. A continuación evaluamos nuestro modelo con el conjunto de test normalizados con la información de train.
+Entrenamos el modelo a la vez que buscamos el k más optimo para el conjunto de datos de train normalizados. A continuación evaluamos nuestro modelo con el conjunto de test normalizados con la información de train. Al tener un dataset desbalanceado se ha utilizado el parametros "smote" para equilibrar la clase minoritaria.
 
 ```{r}
 
@@ -75,7 +73,7 @@ dataTrainNorm <- predict(ctrNorm, dataTrain)
 
 #Entrenamiento y busqueda de k más optimo
 set.seed(400)
-ctrl <- trainControl(method="repeatedcv", repeats = 3, classProbs = TRUE, summaryFunction = twoClassSummary, savePredictions = TRUE, sampling = "smote")
+ctrl <- trainControl(method="repeatedcv", repeats = 3, classProbs = TRUE, summaryFunction = twoClassSummary, metric="ROC", savePredictions = TRUE, sampling = "smote")
 knn <- train(GrupoPrecio ~ ., data = dataTrainNorm, method = "knn", trControl = ctrl, tuneLength = 30)
 (knn)
 plot(knn)
@@ -107,7 +105,7 @@ XPCATest <- PCATest %>% dplyr::select(-GrupoPrecio)
 YPCATest <- PCATest$GrupoPrecio
 
 set.seed(400)
-ctrl_pca <- trainControl(method="repeatedcv",repeats = 3,classProbs = TRUE, summaryFunction = twoClassSummary, savePredictions = TRUE, sampling = "smote")
+ctrl_pca <- trainControl(method="repeatedcv",repeats = 3,classProbs = TRUE, summaryFunction = twoClassSummary, metric="ROC", savePredictions = TRUE, sampling = "smote")
 knn_pca <- train(GrupoPrecio ~ ., data = PCATrain, method = "knn", trControl = ctrl_pca, tuneLength = 30)
 (knn_pca)
 plot(knn_pca)
