@@ -7,205 +7,323 @@ En este punto vamos a aplicar los bosques de árboles  a nuestro modelo. Ya cono
 
 Para empezar, cargamos nuestros datos.
 
-```{r message = FALSE}
-library(rpart)
-library(rpart.plot)
-library(rattle)
-library(tidyverse)
-library(readr)
-
-var_modelo = c( 'GrLivArea','LotArea','Total_Bathrooms','Total_porch_SF','LandContour','LotConfig','Condition1','BldgType','HouseStyle','MasVnrType','Foundation','SaleType','SaleCondition','OverallQual','OverallCond','PavedDrive','Fence','BsmtFinSF1','ExterQual','BsmtQual','BsmtExposure','BsmtFinType1','BsmtUnfSF','KitchenQual','Fireplaces','FireplaceQu','BedroomAbvGr','LotShape','GarageArea','GarageCond','Neighborhood','has2ndFloor','All#ey','TotalSF','GarageType','MasVnrArea','MSSubClass','GrupoPrecio')
-
-dataTrain <- readRDS("datasetTrain.rds") 
-myvars <- names(dataTrain) %in% c(var_modelo)
-dataTrain <- dataTrain[myvars]
-
-dataTest <- readRDS("datasetTest.rds")
-myvars <- names(dataTest) %in% c(var_modelo)
-dataTest <- dataTest[myvars]
-                       
-val <- readRDS("datasetValidation.rds")
-myvars <- names(val) %in% c(var_modelo)
-val <- val[myvars]
-set.seed(123)
-```
-
-Para hacer el bosque aleatorio de árboles cargamos la biblioteca de R específica. En este primer bosque no vamos a añadir ningún hiperparámetro.
-```{r}
-#NUESTRO BOSQUE DE ARBOLES
-library(randomForest)
-House.rf=randomForest(GrupoPrecio ~ . , data = dataTrain)
-House.rf
-print(House.rf)
-plot(House.rf)
-
-
-##GUARDAMOS EL MODELO EN FORMATO RDS:
-saveRDS(House.rf, "modelRandomForest.rds")
-
-```
-
-
-Cuando hacemos el plot del bosque aleatorio de árboles vemos el error para cada clase (las líneas coloreadas, el orden de aparición es en el que aparecen en el print: Barato y Caro). La línea negra representa el error medio del bosque. Si queremos ver la importancia de las variables del modelo:
-
-```{r}
-importance(House.rf)
-```
-
-Lo que nos indica la columna es que cuanto más grande sea ese factor más importante es en la decisión final del modelo. En nuestro caso TotalSF o GrLivArea son variables que afectan mucho al modelo.
-
-```{r}
-##PROBANDO SOBRE EL TESTDATA:
-predTrain <- predict(House.rf, dataTest, type = "class")
-
-## MATRIZ DE CONFUSION
-table(predTrain, dataTest$GrupoPrecio) 
-
-##ERROR PARA CADA CLASE
-House.rf$confusion[, 'class.error']
-
-# Matriz de confusión -> y ACCURACY DEL MODELO
-(mc <- with(dataTest,table(predTrain, GrupoPrecio)))
-100 * sum(diag(mc)) / sum(mc)
-```
-Vemos que tenemos un error del 5,25% para la clase "Barato", un error del 55% para la clase "Caro". Esta diferencia de errores a la hora de predecir podría estar justificada ya que la muestra de casas caras es mucho más pequeña que las de casas baratas.
-
-A continuación vamos a realizar una exploración en los hiperparámetros del modelo usando librerías específicas para ello. Los hiperparámetros que vamos a analizar son los siguientes:
-
--> MTRY: o número de variables en cada árbol.
-
-```{r}
+```{r message = FALSE, warning=FALSE}
+library(class)
+library(dplyr)
 library(caret)
-library(e1071)
+library (ROCR)
+library(MASS)
+library(DMwR)
+library(hmeasure)
+library(data.table)
 
-trControl <- trainControl(method = "cv",
-    number = 10,
-    search = "grid")
+dataTrain_origin <- readRDS("datasetTrainModeloClasificador.rds")
+dataTest_origin <- readRDS("datasetTestModeloClasificador.rds")
+
+dataTrain_origin_PCA <- readRDS("datasetTrainModeloClasificadorPCA.rds")
+dataTest_origin_PCA <- readRDS("datasetTestModeloClasificadorPCA.rds") 
+
+PCATrain <- as.data.table(cbind(dataTrain_origin_PCA$ind$coord, GrupoPrecio = dataTrain_origin %>% dplyr::select(c("GrupoPrecio"))))
+PCATest <- as.data.table(cbind(dataTest_origin_PCA$ind$coord, GrupoPrecio = dataTest_origin %>% dplyr::select(c("GrupoPrecio"))))
+
+XPCATrain <- PCATrain %>% dplyr::select(-GrupoPrecio)
+YPCATrain <- PCATrain$GrupoPrecio
+XPCATest <- PCATest %>% dplyr::select(-GrupoPrecio)
+YPCATest <- PCATest$GrupoPrecio
+```
 
 
-set.seed(1234)
-# Run the model
-rf_default <- train(GrupoPrecio~.,
-                      data = dataTrain,
-                      method = "rf",
-                      metric = "Accuracy",
-                      trControl = trControl)
-# Print the results
+Vamos a afrontar el problema usando random forest. Este modelo no lo podemos comprender previamente como hemos hecho con el árbol de decisión, así que tenemos que ajustarlo de manera correcta para obtener los mejores resultados. En este apartado nos centraremos en el ajuste de dos hiperparámetros: mtry y ntree. 
+
+ - mtry: el número de variables que cogemos para realizar cada muestreo.
+
+ - ntree: el número de ramas.
+
+En el código que tenemos aqui, utilizamos el método repeatedcv de la herramientra trainControl de Caret y dividiremos el conjunto de datos en 10 grupos para hacer validación cruzada y repetiremos 3 veces para ralentizar nuestro proceso. 
+
+
+```{r message = FALSE, warning=FALSE}
+library(caret)
+
+#10 folds repeat 3 times
+controlrf <- trainControl(method='repeatedcv', 
+                        number=10, 
+                        repeats=3,
+                        classProbs = TRUE, 
+                        summaryFunction = twoClassSummary,
+                        savePredictions = TRUE,
+                        sampling = "smote")
+#Metric compare model is Accuracy
+metric <- "Accuracy"
+set.seed(123)
+#Number randomely variable selected is mtry
+mtry <- sqrt(ncol(PCATrain))
+tunegridrf <- expand.grid(.mtry=mtry)
+rf_default <- train(GrupoPrecio~., 
+                      data=PCATrain, 
+                      method='rf', 
+                      metric='Accuracy', 
+                      tuneGrid=tunegridrf, 
+                      trControl=controlrf)
+
 print(rf_default)
 ```
 
-El algoritmo usa 500 árboles y prueba con 3 valores de mtry: 2, 75 y 148 Vamos a usar mtry = 2, ya que obtenemos un valor del accuracy muy alto y un kappa muy pequeño. 
+Si evaluamos este modelo, tenemos la siguiente información:
 
--> MAXNODE:
+```{r message = FALSE, warning=FALSE}
+##MATRIZ CONFUSION
+house.pred_default <- predict(rf_default, newdata = PCATest)
+table_random <- table(house.pred_default, PCATest$GrupoPrecio)
+table_random
 
-```{r}
-store_maxnode <- list()
-tuneGrid <- expand.grid(.mtry = 20)
-for (maxnodes in c(10: 20)) {
-    set.seed(1234)
-    rf_maxnode <- train(GrupoPrecio~.,
-        data = dataTrain,
-        method = "rf",
-        metric = "Accuracy",
-        tuneGrid = tuneGrid,
-        trControl = trControl,
-        importance = TRUE,
-        nodesize = 14,
-        maxnodes = maxnodes,
-        ntree = 300)
-    key <- toString(maxnodes)
-    store_maxnode[[key]] <- rf_maxnode
+
+cm_random <- confusionMatrix(house.pred_default, PCATest$GrupoPrecio, mode = "prec_recall")
+cm_random
+
+##CÁLCULO DEL ERROR
+error.rate_random = round(mean(house.pred_default != PCATest$GrupoPrecio), 2)
+error.rate_random
+```
+
+
+La biblioteca Caret nos proporciona herramientas para declarar de manera aleatoria las variables. El código de aqui genera aleatoriamente 10 modelos con distintos valores de mtry. 
+
+```{r message = FALSE, warning=FALSE}
+control2 <- trainControl(method='repeatedcv', 
+                        number=10, 
+                        repeats=3,
+                        search = 'random',
+                        sampling = "smote")
+
+#Random generate 15 mtry values with tuneLength = 15
+set.seed(1)
+rf_random <- train(GrupoPrecio ~ .,
+                   data = PCATrain,
+                   method = 'rf',
+                   metric = 'Accuracy',
+                   tuneLength  = 10, 
+                   trControl = control2)
+print(rf_random)
+plot(rf_random)
+```
+
+
+
+Como resultado obtenemos que para mtry = 1 el accuracy es más alto.
+
+También podemos hacer un Grid Search para buscar los parámetros mejores para nuestro modelo, en nuestro caso el número de árboles. 
+
+```{r message = FALSE, warning=FALSE}
+bestMtry <- 1
+control1 <- trainControl(method = 'repeatedcv',number = 5, sampling = "smote")
+                               
+
+storeMaxtrees <- list()
+tuneGrid1 <- expand.grid(.mtry = bestMtry)
+for (ntree in c(300, 500, 700, 1000, 1500, 2000)) {
+  set.seed(291)
+  rf.maxtrees <- train(GrupoPrecio ~ .,
+                       data = PCATrain,
+                       method = "rf",
+                       metric = "Accuracy",
+                       tuneGrid = tuneGrid1,
+                       trControl = control1,
+                       importance = TRUE,
+                       nodesize = 14,
+                       maxnodes = 24,
+                       ntree = ntree)
+  key <- toString(ntree)
+  storeMaxtrees[[key]] <- rf.maxtrees
 }
-results_node <- resamples(store_maxnode)
-summary(results_node)
+resultsTree <- resamples(storeMaxtrees)
+
+res = summary(resultsTree)
+print(res)
+res$models[which.max(res$statistics$Accuracy[,"Mean"])]
 
 ```
+Y obtenemos que el número de árboles recomendado es de 700 árboles.
 
-La Accuracy aumenta suavemente, asi que usaremos el valor que nos proporciona un accuracy más grande: 20
+Si entrenenamos el modelo con nuestros parámetros:
 
--> NUMERO DE ARBOLES:
+```{r message = FALSE, warning=FALSE}
+model_control <- trainControl(method='repeatedcv', 
+                        number=10, 
+                        repeats=3,
+                        savePredictions = TRUE,
+                        classProbs = TRUE, 
+                        summaryFunction = twoClassSummary,
+                        sampling = "smote")
 
-```{r}
-store_maxtrees <- list()
-for (ntree in c(250, 300, 350, 400, 450, 500, 550, 600, 800, 1000, 2000)) {
-    set.seed(5678)
-    rf_maxtrees <- train(GrupoPrecio~.,
-        data = dataTrain,
-        method = "rf",
-        metric = "Accuracy",
-        tuneGrid = tuneGrid,
-        trControl = trControl,
-        importance = TRUE,
-        nodesize = 14,
-        maxnodes = 20,
-        ntree = ntree)
-    key <- toString(ntree)
-    store_maxtrees[[key]] <- rf_maxtrees
+set.seed(123)
+
+model_tunegrid <- expand.grid(.mtry= 1)
+rf_model <- train(GrupoPrecio ~ .,
+                       data = PCATrain,
+                       method = "rf",
+                       metric = "Accuracy",
+                       tuneGrid = model_tunegrid,
+                       trControl = model_control,
+                       importance = TRUE,
+                       nodesize = 14,
+                       maxnodes = 24,
+                       ntree = 700)
+
+print(rf_model)
+model_pca <- rf_model
+```
+
+Evaluamos los resultados:
+```{r message = FALSE, warning=FALSE}
+##MATRIZ CONFUSION
+house.predmodel_pca_ <- predict(model_pca, newdata = PCATest)
+table_rf <- table(house.predmodel_pca_, PCATest$GrupoPrecio)
+table_rf
+
+
+cm_rf_pca <- confusionMatrix(house.predmodel_pca_, PCATest$GrupoPrecio, mode = "prec_recall")
+cm_rf_pca
+
+##CÁLCULO DEL ERROR
+error.rate_rf_pca = mean(house.predmodel_pca_ != PCATest$GrupoPrecio)
+error.rate_rf_pca
+```
+
+
+Otra de las pruebas que podemos hacer es calcular los hiperparámetros para el dataset sin PCA. Para ello cargamos los dataset sin PCA y realizamos el mismo trabajo.
+
+
+```{r echo = FALSE}
+dataTrain <- readRDS("datasetTrainModeloClasificador.rds") 
+myvars <- names(dataTrain) %in% c('SalePrice')
+dataTrain <- dataTrain[!myvars]
+
+dataTest <- readRDS("datasetTestModeloClasificador.rds")
+myvars <- names(dataTest) %in% c('SalePrice')
+dataTest <- dataTest[!myvars]
+```
+
+Calculamos el número óptimo de mtry: 
+
+```{r message = FALSE, warning=FALSE}
+control2 <- trainControl(method='repeatedcv', 
+                        number=10, 
+                        repeats=3,
+                        search = 'random',
+                        sampling = "smote")
+
+#Random generate 15 mtry values with tuneLength = 15
+set.seed(1)
+dataTrain_rf_random <- train(GrupoPrecio ~ .,
+                   data = dataTrain,
+                   method = 'rf',
+                   metric = 'Accuracy',
+                   tuneLength  = 10, 
+                   trControl = control2)
+print(dataTrain_rf_random)
+plot(dataTrain_rf_random)
+```
+Sorprendentemente, vemos que en este caso tenemos dos puntos que predominan en el accuracy: 1 y 50. 
+
+```{r message = FALSE, warning=FALSE}
+bestMtry <- 50
+control1 <- trainControl(method = 'repeatedcv',number = 5, sampling = "smote")
+                               
+
+storeMaxtrees <- list()
+tuneGrid1 <- expand.grid(.mtry = bestMtry)
+for (ntree in c(1000, 1500, 2000)) {
+  set.seed(291)
+  rf.maxtrees <- train(GrupoPrecio ~ .,
+                       data = dataTrain,
+                       method = "rf",
+                       metric = "Accuracy",
+                       tuneGrid = tuneGrid1,
+                       trControl = control1,
+                       importance = TRUE,
+                       nodesize = 14,
+                       maxnodes = 24,
+                       ntree = ntree)
+  key <- toString(ntree)
+  storeMaxtrees[[key]] <- rf.maxtrees
 }
-results_tree <- resamples(store_maxtrees)
-summary(results_tree)
+resultsTree2 <- resamples(storeMaxtrees)
+
+res2 = summary(resultsTree2)
+print(res)
+res2$models[which.max(res2$statistics$Accuracy[,"Mean"])]
 
 ```
-Nos vamos a quedar con el menor número de árboles posible manteniendo el accuracy más alto, por lo que ntree = 300.
+El modelo nos devuelve que la cantidad de árboles necesaria es de 1500.
 
-Con todos estos hiperparámetros obtenidos de pruebas iterativas, pasamos a entrenar el modelo:
+Entrenamos nuestro modelo con estos hiperparámetros:
+
+
+```{r message = FALSE, warning=FALSE}
+model_control <- trainControl(method='repeatedcv', 
+                        number=10, 
+                        repeats=3,
+                        savePredictions = TRUE,
+                        classProbs = TRUE, 
+                        summaryFunction = twoClassSummary,
+                        sampling = "smote")
+
+set.seed(123)
+
+model_tunegrid <- expand.grid(.mtry= 50)
+rf_model_train <- train(GrupoPrecio ~ .,
+                       data = PCATrain,
+                       method = "rf",
+                       metric = "Accuracy",
+                       tuneGrid = model_tunegrid,
+                       trControl = model_control,
+                       importance = TRUE,
+                       nodesize = 14,
+                       maxnodes = 24,
+                       ntree = 1500)
+
+print(rf_model_train)
+model_nopca <- rf_model_train
+```
+
+Evaluamos los resultados:
+```{r message = FALSE, warning=FALSE}
+##MATRIZ CONFUSION
+house.predmodel_nopca <- predict(model_nopca, newdata = PCATest)
+table_rf <- table(house.pred_rf_nopca, dataTest$GrupoPrecio)
+table_rf
+
+
+cm_rf_nopca <- confusionMatrix(house.predmodel_nopca, dataTest$GrupoPrecio, mode = "prec_recall")
+cm_rf_nopca
+
+##CÁLCULO DEL ERROR
+error.rate_rf_nopca = mean(house.predmodel_nopca  != dataTest$GrupoPrecio)
+error.rate_rf_nopca
+```
+
+
+Para comparar los modelos podemos acudir a sus matrices de confusiones y errores además de a la curva ROC de cada modelo:
+```{r}
+### PCA
+cm_rf_pca
+error.rate_rf_pca
+
+print('------------')
+
+### NO PCA
+cm_rf_nopca
+error.rate_rf_nopca
+```
+
+
+```{r , message=FALSE, warning=FALSE, echo=TRUE}
+library(MLeval)
+res <- evalm(list(model_pca, model_nopca),gnames = c('model_pca', 'model_nopca'))
+```
 
 ```{r}
-library(randomForest)
-fit_rf <- randomForest(GrupoPrecio ~ . , data = dataTrain, mtry=20, maxnodes=20, ntree=300)
-
+saveRDS(model_pca, "randomforest_pca.rds")
+saveRDS(model_nopca, "randomforest_nopca.rds")
 ```
-
-PROBAMOS EL MODELO:
-```{r}
-##PROBANDO SOBRE EL TESTDATA:
-predTrain_2 <- predict(fit_rf, dataTest, type = "class")
-
-##ERROR PARA CADA CLASE
-fit_rf$confusion[, 'class.error']
-
-# Matriz de confusión -> y ACCURACY DEL MODELO
-(mc <- with(dataTest,table(predTrain_2, GrupoPrecio)))
-
-resultado <- 100 * sum(diag(mc)) / sum(mc)
-
-resultado
-```
-
-Después de ajustar estos hiperparámetros, vemos que el accuracy ha disminuido pero tenemos un modelo que predice casi perfectamente cuando una casa en Barata (error 4%), aunque se equivoca bastante más cuando es Cara (65%). El accuracy es mayor mientras que el error es menor en el primer modelo entrenado, asi que nos quedaremos con él.
-
-```{r}
-pred = predict(House.rf, dataTest, type = "class")
-table = table(pred, obs = dataTest$GrupoPrecio, dnn = c("Actual", "Predichos"))
-
-confusionMatrix(table)
-
-
-draw_confusion_matrix <- function(tab, tab_Actual, tab_Predict){
-  confusion_matrix <- as.data.frame(tab)
-  
-  Actual <- factor(confusion_matrix[[tab_Actual]])
-  Predichos <- factor(confusion_matrix[[tab_Predict]])
-  Y      <- confusion_matrix$Freq
-  df <- data.frame(Actual, Predichos, Y)
-  
-  ggplot(data =  df, mapping = aes(x = Actual, y = Predichos)) +
-    geom_tile(aes(fill = Y), colour = "white") +
-    geom_text(aes(label = sprintf("%1.0f", Y)), vjust = 1) +
-    scale_fill_gradient(low = "blue", high = "red") +
-    theme_bw() + theme(legend.position = "none")
-}
-
-
-draw_confusion_matrix(table, "Actual", "Predichos")
-
-
-library(pROC)
-predRoc <- predict(House.rf, newdata=dataTest, type="prob")
-area_curva <- multiclass.roc(dataTest$GrupoPrecio, predRoc,)
-area_curva
-```
-
-Vemos que el area bajo la curva en este bosque aleatorio es un valor cercano al 90%, por lo que tenemos un modelo bastante bueno.
-
-
