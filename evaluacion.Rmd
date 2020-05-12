@@ -6,7 +6,7 @@ output: html_document
 
 
 ```{r}
-
+source("funcs.R")
 library(MLeval)
 
 knn <- readRDS("knn.rds")
@@ -14,19 +14,38 @@ knn_pca <- readRDS("knn_pca.rds")
 svm <- readRDS("svm.rds")
 svm_pca <- readRDS("svm_pca.rds")
 glm <- readRDS("glm.rds")
-rf <- readRDS("randomforest_pca.rds")
-
-
+rf <- readRDS("randomforest_nopca.rds")
+dt <- readRDS("house_tree_nopca.rds")
 ```
 
 ```{r}
 
-res <- evalm(list(svm, knn_pca, glm, rf), gnames = c('svm','knn_pca', 'glm','rf'),rlinethick=0.8,fsize=8)
+res <- evalm(list(svm, knn_pca, glm, rf, dt), gnames = c('svm','knn_pca', 'glm','rf', 'dt'),rlinethick=0.8,fsize=8, optimise="MCC", showplots = TRUE , bins=20, plots=c("r","prg"))
+
+```
+
+Después de haber realizado el análisis de cada modelo sobre el conjunto de test de los datos se ha llegado a la conclusión de que el mejor modelo para nuestro problema es el Random Forest. Para probarlo sobre nuestros modelos lo que haremos será cargar el dataset de validación separado previamente a todo el proceso y preparar los datos para poder inferior el resultado con nuestro modelo.
+
+```{r}
+
+dataValidation_origin <- readRDS("datasetValidationModeloClasificador.rds")
+
+dataValidation <- dataValidation_origin %>% dplyr::select(-SalePrice)
+
+XValidation <- dataValidation %>% dplyr::select(-GrupoPrecio)
+YValidation <- dataValidation$GrupoPrecio
+
 
 ```
 
 
 ```{r}
+pred <- predict(svm_pca, newdata = XValidation)
+
+cm <- confusionMatrix(pred, YValidation, mode = "prec_recall" )
+(cm_pca)
+tab_test <- table(pred, YValidation, dnn = c("Actual", "Predichos"))
+draw_confusion_matrix(tab_test, "Actual", "Predichos")
 
 ```
 
@@ -46,7 +65,7 @@ res <- evalm(list(svm, knn_pca, glm, rf), gnames = c('svm','knn_pca', 'glm','rf'
 
 
 ------------------------------------
-Después de haber realizado el análisis de cada modelo sobre el conjunto de test de los datos se ha llegado a la conclusión de que el mejor modelo para nuestro problema es el Random Forest. Para probarlo sobre nuestros modelos lo que haremos será cargar el dataset de validación separado previamente a todo el proceso y preparar los datos para poder inferior el resultado con nuestro modelo.
+
 
 ```{r message=FALSE}
 library(dplyr)
