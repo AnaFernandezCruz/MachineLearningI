@@ -1,0 +1,354 @@
+---
+title: "GAMLogit"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+  En primer lugar cargaremos los datasets necesarios para realizar el modelo.
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+
+library(car)
+library(mgcv)
+library(parallel)
+library(dplyr)
+
+
+datasetTrain <-  readRDS("datasetTrain.rds")
+datasetTest<-  readRDS("datasetTest.rds")
+validation_sin_na<-  readRDS("datasetValidation.rds")
+datasetTrainTransformed<-  readRDS("datasetTrainTransformed.rds")
+datasetTestTransformed<-  readRDS("datasetTestTransformed.rds")
+validationTransformed<-  readRDS("validationTransformed.rds")
+
+#names(datasetTrain) <- make.names(names(datasetTrain))
+#names(datasetTest) <- make.names(names(datasetTrain))
+#names(validation_sin_na) <- make.names(names(validation_sin_na))
+#names(datasetTrainTransformed) <- make.names(names(datasetTrainTransformed))
+#names(datasetTestTransformed) <- make.names(names(datasetTestTransformed))
+#names(validationTransformed) <- make.names(names(validation_sin_na))
+
+
+var_modelo_clasificador <- readRDS("var_modelo_clasificador.rds")
+
+```
+
+Haremos un breve preprocesamiento para quitar outliers que se hayan podido colar, así como cambiar el nombre de algunas columnas para hacerlas compatibles con Caret.
+
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+
+dataSetTrainGAMLogistic <-  readRDS('datasetTrainModeloClasificador.rds')   %>% filter( ! (exp(SalePrice) < 200000 &&exp(GrLivArea) > 4000  ))  %>% dplyr::select(-c('SalePrice'))  %>% na.omit()
+
+dataSetTestGAMLogistic <- readRDS('datasetTestModeloClasificador.rds')   %>% filter(! (exp(SalePrice) < 200000 &&exp(GrLivArea) > 4000  ))  %>% dplyr::select(-c('SalePrice'))  %>% na.omit()
+
+names(dataSetTrainGAMLogistic) <- make.names(names(dataSetTrainGAMLogistic))
+names(dataSetTestGAMLogistic) <- make.names(names(dataSetTestGAMLogistic))
+
+variablesEliminarCorr <- c()
+
+```
+
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+obtenFormulaGAM<-function(dataset,varPrincipal,modelo_continuas,variableNames,variablesEliminar=variablesEliminarCorr)
+{
+  variablesFinal <- c()
+  factores <- names(sapply(dataset,is.factor)[sapply(dataset,is.factor) == TRUE])
+  
+  
+        for(variable in modelo_continuas) 
+        {
+          
+          numeroElementosDistintos = dim(unique(dataset[variable]))[1]
+          numeroK <- numeroElementosDistintos
+          if(numeroK > 9){
+            numeroK <- -1
+          }
+          
+          if(!variable  %in%  factores) {
+            if(grepl('^[0-9]', variable)) {
+               nuevoValor2 <- paste('s(X',variable,', k= ',numeroK,')',collapse='',sep = "")
+            } else {
+                nuevoValor2 <- paste('s(',variable,', k= ',numeroK,')')
+            }
+          } else {
+            if(grepl('^[0-9]', variable)) {
+               nuevoValor2 <- paste('X',variable,collapse='',sep = "")
+            } else {
+                nuevoValor2 <- paste(variable)
+            }
+            
+          }
+         
+          if(numeroElementosDistintos > 1 && ! variable %in% variablesEliminar ) {
+           
+            variablesFinal <- c(variablesFinal,nuevoValor2)
+          }
+  }
+  #print(variablesFinal)
+  as.formula(paste(varPrincipal, paste(variablesFinal, collapse=" + "), sep=" ~ "))
+}
+
+
+obtenFormulaGAMCaret <-function(dataset,varPrincipal,modelo_continuas,variableNames,variablesEliminar=variablesEliminarCorr)
+{
+  variablesFinal <- c()
+  factores <- names(sapply(dataset,is.factor)[sapply(dataset,is.factor) == TRUE])
+  
+  
+        for(variable in modelo_continuas) 
+        {
+          
+          if(grepl('^[0-9]', variable)) {
+              numeroElementosDistintos = 999
+          } else {
+              numeroElementosDistintos = dim(unique(dataset[variable]))[1]
+          }
+          numeroK <- numeroElementosDistintos
+          if(numeroK > 9){
+            numeroK <- -1
+          }
+          
+          if(!variable  %in%  factores) {
+            #nuevoValor <- paste('s(',variable,',by = MSSubClass)')
+            if(grepl('^[0-9]', variable)) {
+                nuevoValor2 <- paste('X',variable,collapse='',sep = "")
+            } else {
+                nuevoValor2 <- paste(variable)
+            }
+          } else {
+             if(grepl('^[0-9]', variable)) {
+                  nuevoValor2 <- paste('X',variable,collapse='',sep = "")
+             } else {
+                  nuevoValor2 <- paste(variable)
+             }
+           
+          }
+         
+          
+          if(numeroElementosDistintos > 1 && ! variable %in% variablesEliminar ) {
+            variablesFinal <- c(variablesFinal,nuevoValor2)
+          }
+  }
+ 
+  as.formula(paste(varPrincipal, paste(variablesFinal, collapse=" + "), sep=" ~ "))
+}
+
+```
+
+Una vez realizados los procesos anteriores, obtendremos con la siguiente función la fórmula del modelo con la que estamos trabajando en todos los algoritmos de clasificación para discriminar casas baratas y caras:
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+
+#formulaClasificador  =  obtenFormulaGAM(dataSetTrainGAMLogistic,c('GrupoPrecio'),var_modelo_clasificador,variablesEliminarCorr) 
+formulaClasificadorCaret  =  obtenFormulaGAMCaret(dataSetTrainGAMLogistic,c('GrupoPrecio'),var_modelo_clasificador,variablesEliminarCorr)
+
+```
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+
+predictLogistic <- function(modelo,dataset,caret = FALSE )  {
+
+
+    predictedCarosBaratosArray <- data.frame(indice=character(), valorPredicho=character(), valorReal=character())
+    for (index in seq(1,nrow(dataset))) {
+      try(
+        { try( {
+                predictedCarosBaratos <- predict(modelo,dataset[index,] , type="prob")
+                predictedCarosBaratosArray %>% add_row(indice = index ,valorPredicho = predictedCarosBaratos[1],  valorReal = dataset[index,]$GrupoPrecio)
+              })
+         
+          }
+        )
+    }
+    
+    return(predictedCarosBaratosArray)
+
+}
+
+
+
+
+
+```
+
+ Ahora empezaremos al con la generación de varios modelos. Debido a que tenemos un dataset desbalanceado, jugaremos un poco con técnicas de generación sintética de muestras para intentar equilibrar los datasets en el momento de la generación del modelo. En primer lugar, obtendremos un modelo de clasificación sin utilizar ninguna de estas técnicas para comprobar si el uso de técnicas que ayudan a balancer el dataset contribuyen a obtener un mejor modelo.
+ 
+
+```{r message=FALSE, warning=FALSE}
+
+library('caretEnsemble')
+library('caret')
+
+set.seed(5627)
+trainFolds_full <- createFolds(dataSetTrainGAMLogistic$GrupoPrecio, k = 10)
+myControl <- trainControl(method = "repeatedcv",
+                     number = 10,
+                     repeats = 5,
+                     summaryFunction = twoClassSummary,
+                     classProbs = TRUE,
+                     savePredictions = TRUE,
+                     index = trainFolds_full)
+
+
+
+
+modeloGAMLogisticRegressionCarosCaret <- train(formulaClasificadorCaret ,
+                  data = dataSetTrainGAMLogistic,
+                  method="gamSpline", 
+                  family=binomial(link="logit"),
+                  metric = "ROC",
+                  trControl=myControl)
+
+
+
+
+
+```
+
+ 
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+
+prediccionModeloTestCaret  <-   predict(modeloGAMLogisticRegressionCarosCaret,dataSetTestGAMLogistic,type="prob")
+
+library(InformationValue)
+optCutOff <- optimalCutoff(dataSetTestGAMLogistic$GrupoPrecio, prediccionModeloTestCaret)[1] 
+
+library(pROC)
+
+#roc(dataSetTestGAMLogistic$GrupoPrecio,prediccionModeloTestCaret[, 2])$auc
+
+```
+
+  Ahora obtendremos un nuevo modelo penalizando con un peso en el proceso de entrenamiento la clase mayoritaria y haciendo que la clase minoritaria tenge menos preponderancia en el proceso de entrenamiento.
+ 
+
+```{r message=FALSE, warning=FALSE}
+pesos_modelo <- ifelse(dataSetTrainGAMLogistic$GrupoPrecio == "Barato",
+                        (1/table(dataSetTrainGAMLogistic$GrupoPrecio)[1]) * 0.5,
+                        (1/table(dataSetTrainGAMLogistic$GrupoPrecio)[2]) * 0.5)
+
+
+myControl$seeds <- prediccionModeloTestCaret$control$seeds
+
+
+modeloGAMLogisticRegressionCarosCaret_pesos <- train(formulaClasificadorCaret,
+                      data = dataSetTrainGAMLogistic,
+                      method = "gamSpline",
+                      family=binomial(link="logit"),
+                      verbose = FALSE,
+                      weights = pesos_modelo,
+                      metric = "ROC",
+                      trControl = myControl)
+
+#prediccionModeloTestCaret_pesos  <-   #predict(modeloGAMLogisticRegressionCarosCaret_pesos,dataSetTestGAMLogistic,type="prob")
+
+#rocObject <- roc(dataSetTestGAMLogistic$GrupoPrecio,prediccionModeloTestCaret_pesos[, 2])
+```
+
+
+  Ahora generaremos un nuevo modelo utilizando como técnica de generación sintética de muestras SMOTE:
+
+```{r message=FALSE, warning=FALSE}
+
+
+library(DMwR)
+myControlSmote <- trainControl(method = "repeatedcv",
+                     number = 10,
+                     repeats = 5,
+                     summaryFunction = twoClassSummary,
+                     classProbs = TRUE,
+                     index = trainFolds_full,
+                     savePredictions = TRUE,
+                     sampling = "smote"
+                     )
+
+myControlSmote$seeds <- prediccionModeloTestCaret$control$seeds
+
+modeloGAMLogisticRegressionCarosCaret_smote <- train(formulaClasificadorCaret,
+                      data = dataSetTrainGAMLogistic,
+                      method = "gamSpline",
+                      family=binomial(link="logit"),
+                      verbose = FALSE,
+                      metric = "ROC",
+                      trControl = myControlSmote)
+
+#prediccionModeloTestCaret_smote  <-   #predict(modeloGAMLogisticRegressionCarosCaret_smote,dataSetTestGAMLogistic,type="prob")
+
+
+```
+
+
+
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+calculate_roc <- function(modelo, test,umbralDecision){
+  p <- predict(modelo,test, type = 'prob')
+  tabela <- table(factor(ifelse(p[,2]>umbralDecision,'Caro','Barato'),
+               levels = c('Barato','Caro')), test$GrupoPrecio)
+  roc <- roc(test$GrupoPrecio,p[, 2])
+  roc
+}
+
+model_list <- list(original = modeloGAMLogisticRegressionCarosCaret,
+                   weighted = modeloGAMLogisticRegressionCarosCaret_pesos,
+                   #rose = modeloGAMLogisticRegressionCarosCaret_rose,
+                   smote = modeloGAMLogisticRegressionCarosCaret_smote)
+
+
+
+results_list_roc <- list(NA)
+results_list_f1 <- list(NA)
+num_mod <- 1
+for(model_gam in model_list){
+  
+  the_roc = calculate_roc(model_gam,dataSetTestGAMLogistic,0.5)
+  results_list_roc[[num_mod]] <- 
+  data_frame(tpr = the_roc$sensitivities,
+               fpr = 1 - the_roc$specificities,
+               model = names(model_list)[num_mod])
+  
+  #roc2 <- roc  %>% coords(ret = "all", transpose = FALSE) %>%
+  #  select(precision, recall)
+  
+  #roc2 <- roc  %>%  select(precision, recall)
+  
+  resultParcial <- t(coords(the_roc, "all", ret = c("recall", "precision")))
+  
+  results_list_f1[[num_mod]] <- 
+  data_frame(trec = resultParcial[,1],
+               tprec = resultParcial[,2],
+               model = names(model_list)[num_mod])
+  
+  num_mod <- num_mod + 1
+  
+}
+
+results_df_roc <- bind_rows(results_list_roc)
+results_df_f1  <- bind_rows(results_list_f1)
+
+custom_col <- c("#000000", "#009E73", "#0072B2")
+
+ggplot(aes(x = fpr,  y = tpr, group = model), data = results_df_roc) +
+  geom_line(aes(color = model), size = 1) +
+  scale_color_manual(values = custom_col) +
+  geom_abline(intercept = 0, slope = 1, color = "gray", size = 1) +
+  theme_bw(base_size = 18)
+
+
+ggplot(aes(x = trec,  y = tprec, group = model), data =  results_df_f1) +
+  geom_line(aes(color = model), size = 1) +
+  scale_color_manual(values = custom_col) +
+  #geom_abline(intercept = 0, slope = 1, color = "gray", size = 1) +
+  theme_bw(base_size = 18)
+
+
+saveRDS(modeloGAMLogisticRegressionCarosCaret_smote, "modeloGAMLogisticRegressionCarosCaret.rds")
+
+```
+
