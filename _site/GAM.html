@@ -279,11 +279,14 @@ $(document).ready(function () {
 </li>
 <li class="dropdown">
   <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
-    Aprendizaje supervisado
+    Clasificadores
      
     <span class="caret"></span>
   </a>
   <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="GAMLogit.html">GAM</a>
+    </li>
     <li>
       <a href="glm.html">GLM</a>
     </li>
@@ -302,7 +305,10 @@ $(document).ready(function () {
   </ul>
 </li>
 <li>
-  <a href="GAM.html">GAM</a>
+  <a href="GAM.html">GAM - regresión</a>
+</li>
+<li>
+  <a href="evaluacion.html">Evaluación</a>
 </li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
@@ -324,128 +330,1653 @@ $(document).ready(function () {
 <div id="r-markdown" class="section level2">
 <h2>R Markdown</h2>
 <p>En primer lugar cargaremos los datasets obtenidos en las fases anteriores del modelado de datos.</p>
-<pre><code>## [1] 12</code></pre>
 <p>Quitaremos de estos datasets posibles outliers que se hayan podido colar en pasos anteriores del procesamiento (casas muy baratos on una superficie exageradamente alta) y dividiremos en dataset en casas “baratas” (menos de 300000 dólares) y casas “caras” (más de 300000 dólares). Estos dataset serviran para extaer las variables más influyentes dentro de las poblaciones y crear a posteriori una regresión logística de tipo GAM para intentar discriminar casas caras de las baratas:</p>
-<p>La idea de esta práctica es generar dos modelos y compararlos entre sí: - Un primer modelo GAM de regresión con la totalidad de la población y las variables más importantes de cara a la exactitud de la predicción. - Otro modelo basado en un clasificador que discrimine entre casas caras y baratas (se considera cara si su precio es mayor de 300000$) y cuyo resultado final será la media aritmética ponderada por la probabilidad del primer modelo entre otros dos modelos de regresión, uno para casas baratas y otro para casas caras.</p>
-<p>Para hacer una primera estimación del modelo, generaremos varios ramdon-forest con los dataset obtenidos en el paso anterior (casas baratas, casas caras y todas las casas). Comenzaremos por realizar este proceso sobre el conjunto de todas las casas y dibujaremos un gráfico resultado de generar el random-forest que nuestra una idea de lo importante que es una variable en el resultado final. Esta importancia muestra de forma aproximada (en valor medio para todos los árboles generados en el random-forest) el efecto en la precisión de la regresión (a través de su RMS) al eliminar la varible del conjunto de variables del modelo. El resultado es el siguiente:</p>
-<p><img src="GAM_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
-<p>En el se muestran que las variables que tienen más impacto en la precisión son tienen que ver en primer lugar con las diversas áreas en las que se descompone una casas, el vecindario, el tipo de casa, tamaños medios de habitaciones, numero medio de baños y por último el tipo de calefacción que tienen y el año de construcción. Las calidades de los materiales y las características de garages, habitaciones, etc. tienen menos importancia a priori en el valor de la casa.</p>
-<p>Realizaremos ahora el mismo procedimiento pero sobre únicamente la población de casas baratas. El resultado es el siguiente:</p>
-<p><img src="GAM_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
-<pre><code>En este primer modelo, a diferencia del anterior, cobran más importancia las variables que modelan el vecindario, el estilo arquitectónico de la casa, las características del garaje y las calidades de los materiales.
-
-Ahora realizaremos el procedimiento anterior sobre las casas clasificadas como &quot;caras&quot;:</code></pre>
-<p><img src="GAM_files/figure-html/unnamed-chunk-5-1.png" width="672" /> En este modelo las variables que tienen más importancia tienen que ver con el tamaño de las casas y sus divisiones (porche, “Lot”, habitaciones, sótano) y curiosamente el mes en el que se vendió, así como el tipo de venta. El vecindario y las calidades de la casa tienen un poder discriminador menor. No obstante, llama la antención que el que tenga elementos como piscina no aparezcan en esta gráfica.</p>
+<p>La idea de esta práctica es generar dos modelos y compararlos entre sí: - Un primer modelo GAM de regresión con la totalidad de la población y las variables más importantes de cara a la exactitud de la predicción. - Crearemos dos modelos GAM de regresión, uno con las casas categorizadas como baratas, otro con las casas categorizadas como caras, y por último, utilizando el clasificador del paso anterior, el resultado final del modelo será el precio de la casa según el modelo de casas baratas multiplicado por la probabilidad de que la casa sea barata al que sumaremos el precio de la casa cara multiplicado por el precio de la casa cara.</p>
 <p>A continuación se muestran una serie de funciones de apoyo que ayudarán a generar los diferentes modelos de regresión realizados en este punto:</p>
 <p>A continuación generaremos los tres modelos de regresión comentados con anterioridad: un primer modelo con las 30 variables más importantes para el modelo que intente estimar el valor de una vivienda. Otro modelo que se concentre en las 20 características más importantes que definen las casas “baratas” y otro con las 13 características más importantes que definen las casas “caras”. El siguiente código genera el primero de los modelos:</p>
 <p>Este es el código que genera el modelo de las casas “baratas”:</p>
 <p>Y este es el código que genera el modelo de las casas “caras”:</p>
-<p>A continuación veremos las características y poder de predicción de estos tres modelos generados con los elementos de Train del dataset completo sobre los elementos de Test. para ell, calcularemos las correlaciones de los elementos predecidos y la métrica MAE. El código que realiza este proceso se muestra a continuación:</p>
+<p>A continuación veremos las características y poder de predicción de estos tres modelos generados con los elementos de Train del dataset completo sobre los elementos de Test. para ello, calcularemos las correlaciones de los elementos predecidos y la métrica MAE. El código que realiza este proceso se muestra a continuación:</p>
 <pre><code>## Error in X[, pstart[i] - 1 + 1:object$nsdf[i]] &lt;- Xp : 
-##   replacement has length zero</code></pre>
-<pre><code>## Error in X[, pstart[i] - 1 + 1:object$nsdf[i]] &lt;- Xp : 
+##   replacement has length zero
+## Error in X[, pstart[i] - 1 + 1:object$nsdf[i]] &lt;- Xp : 
 ##   replacement has length zero</code></pre>
 <pre><code>## Error in X[, pstart[i] - 1 + 1:object$nsdf[i]] &lt;- Xp : 
 ##   replacement has length zero</code></pre>
 <p>La siguiente función muestra los valores AIC para los 3 modelos. Como se ve, el modelo denominado “modeloGAMCarosBaratos” es ligeramente mejor que el resto de los modelos. Con lo que es un punto más para seleccionar dicho modelo frente a los otros dos:</p>
-<pre><code>##                             df       AIC
-## modeloGAMCarosBaratos 143.6107 -655.5753
-## modeloGAMBaratos      109.1677 -666.3409
-## modeloGAMCaros        116.0232 -660.6125</code></pre>
+<pre><code>##                              df       AIC
+## modeloGAMCarosBaratos 146.43105 -679.4329
+## modeloGAMBaratos       93.05343 -677.3837
+## modeloGAMCaros         76.55896 -604.2684</code></pre>
 <p>Con estos resultados en la mano, elegiremos como mejor modelo para predecir el valor de las casas (el logaritmo del mismo) a el modelo que no discrimina entre las características de las casas baratas y las caras (parece un poco de sentido común que al final el mejor modelo sea esta).</p>
 <p>Comprobaremos la validad del modelo en primer lugar mostrando las típicas gráficas que muestran la distribución de los resíduos para comprobar si las hipótesis básicas para las cuales un modelo lineal es válido se cumplen (homocedasticidad de los residuos, incorrelación de los residuos, y normalidad de los residuos). Comprobamos que la hipótesis de homocedasticida no se cumple en el modelo, existe todavía ciertos cambios en la varianza de los errores en función de la predicción (una ligera parábola hacia arriba). Hay que seguir trabajando en el ajuste de los parámetros de este modelo para conseguir cumplir con este criterio.</p>
 <p><img src="GAM_files/figure-html/unnamed-chunk-13-1.png" width="672" /></p>
 <pre><code>## 
 ## Method: GCV   Optimizer: magic
-## Smoothing parameter selection converged after 36 iterations.
-## The RMS GCV score gradient at convergence was 2.847988e-08 .
-## The Hessian was positive definite.
-## Model rank =  214 / 215 
+## Smoothing parameter selection converged after 70 iterations.
+## The RMS GCV score gradient at convergence was 3.906831e-07 .
+## The Hessian was not positive definite.
+## Model rank =  212 / 213 
 ## 
 ## Basis dimension (k) checking results. Low p-value (k-index&lt;1) may
 ## indicate that k is too low, especially if edf is close to k&#39;.
 ## 
 ##                          k&#39;      edf k-index p-value    
-## s(GrLivArea)       9.00e+00 7.56e+00    0.91  &lt;2e-16 ***
-## s(LotArea)         9.00e+00 2.18e+00    0.89  &lt;2e-16 ***
-## s(BsmtUnfSF)       9.00e+00 1.70e+00    0.92  &lt;2e-16 ***
-## s(BedroomAbvGr)    6.00e+00 1.45e+00    0.82  &lt;2e-16 ***
-## s(OverallCond)     8.00e+00 1.75e+00    0.69  &lt;2e-16 ***
-## s(TotalBsmtSF)     9.00e+00 7.97e+00    0.88  &lt;2e-16 ***
-## s(Total_Bathrooms) 9.00e+00 2.66e-01    0.56  &lt;2e-16 ***
-## s(BsmtFinSF1)      9.00e+00 1.42e-06    0.86  &lt;2e-16 ***
-## s(MiscVal)         9.00e+00 5.13e-08    0.75  &lt;2e-16 ***
-## s(MasVnrArea)      9.00e+00 1.17e-05    0.80  &lt;2e-16 ***
-## s(BsmtFinSF2)      9.00e+00 7.35e-01    0.78  &lt;2e-16 ***
+## s(LotArea)         9.00e+00 1.66e+00    0.90  &lt;2e-16 ***
+## s(GrLivArea)       9.00e+00 8.73e+00    0.93   0.005 ** 
+## s(BedroomAbvGr)    6.00e+00 2.78e-06    0.81  &lt;2e-16 ***
+## s(BsmtUnfSF)       9.00e+00 5.35e-05    0.91  &lt;2e-16 ***
+## s(TotRmsAbvGrd)    9.00e+00 2.15e+00    0.74  &lt;2e-16 ***
+## s(TotalBsmtSF)     9.00e+00 7.88e+00    0.90  &lt;2e-16 ***
+## s(OpenPorchSF)     9.00e+00 3.10e+00    0.76  &lt;2e-16 ***
+## s(OverallCond)     8.00e+00 5.94e+00    0.68  &lt;2e-16 ***
+## s(KitchenAbvGr)    3.00e+00 1.44e+00    0.72  &lt;2e-16 ***
+## s(Total_Bathrooms) 9.00e+00 6.96e+00    0.57  &lt;2e-16 ***
+## s(Total_porch_SF)  9.00e+00 2.57e+00    0.83  &lt;2e-16 ***
+## s(EnclosedPorch)   9.00e+00 3.90e-06    0.80  &lt;2e-16 ***
+## s(MasVnrArea)      9.00e+00 1.37e-04    0.79  &lt;2e-16 ***
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
 <p>Ahora conprobaremos en el modelo si hay correlación elevada entre las variables. El concepto equivalente en los modelos de tipo GAM se denomina “concurvity”, y la siguiente función ayuda a mostrar este rasgo en los modelos GAM:</p>
-<pre><code>##              para s(GrLivArea) s(LotArea) s(BsmtUnfSF) s(BedroomAbvGr)
-## worst    0.999807    0.8956590  0.9167885    0.9999344       0.6431484
-## observed 0.999807    0.8489701  0.6555350    0.8754232       0.6164120
-## estimate 0.999807    0.7361640  0.7366392    0.6886258       0.6252085
-##          s(OverallCond) s(TotalBsmtSF) s(Total_Bathrooms) s(BsmtFinSF1)
-## worst         0.5448478      0.9999331          0.7552394     0.9999385
-## observed      0.4027304      0.9498094          0.7352943     0.7869111
-## estimate      0.4045833      0.9030614          0.6565381     0.7884941
-##          s(MiscVal) s(MasVnrArea) s(BsmtFinSF2)
-## worst     0.9943341     0.9470782     0.9995424
-## observed  0.1991929     0.5535033     0.9995380
-## estimate  0.3794356     0.4430244     0.8574647</code></pre>
+<pre><code>##               para s(LotArea) s(GrLivArea) s(BedroomAbvGr) s(BsmtUnfSF)
+## worst    0.9998727  0.9158915    0.9119297       0.6983290    0.6620534
+## observed 0.9998727  0.6330433    0.8394681       0.6808725    0.6090173
+## estimate 0.9998727  0.7174748    0.7766522       0.6863443    0.5448622
+##          s(TotRmsAbvGrd) s(TotalBsmtSF) s(OpenPorchSF) s(OverallCond)
+## worst          0.9903615      0.9902799      0.5634105      0.4974641
+## observed       0.8159236      0.8621370      0.5460470      0.2973698
+## estimate       0.7131721      0.8120721      0.4622980      0.3740031
+##          s(KitchenAbvGr) s(Total_Bathrooms) s(Total_porch_SF) s(EnclosedPorch)
+## worst          0.8487958          0.7391405         0.7574857        0.7317694
+## observed       0.8334639          0.5749345         0.4381641        0.4194950
+## estimate       0.7922654          0.6379518         0.4705032        0.4469853
+##          s(MasVnrArea)
+## worst        0.5221309
+## observed     0.4513535
+## estimate     0.3374074</code></pre>
 <p>Se comprueba que, efectivamente, existe un elevado grado de correlación entre alguna de las combinaciones de las variables “GrLivArea”, “LotArea”, “TotRmsAbvGrd” y “TotalBsmtSF”. Está claro que sí que se puede dar esa correlación entre “GrLivArea” , “TotalBsmsSF” y “TotRmsAbvGrd”, debido a que todas tienen relacióncon el área de la planta del edificio, pero no encuentro razón para que la variable “LotArea” aparezca en este listado.</p>
-<p>A continuación generaremos el modelo de regresión logística para clasificar las casas en “baratas” y “caras”. Nos encontramos con un dataset muy imbalaceado (menos del 5% de las casas son caras). De momento, no se aplica ninguna técnica que ayuda a conseguir un dataset más balanceado (submuestreo, generación de datos artificiales que ayuden a balancear el dataset, etc.). El siguiente código realizrá en modelo sobre las variables que hemos considerado importantes para discernir las casas baratas de las caras:</p>
-<p>Como antes, comprobaremos la validez del modelo, con las gráficas de residuos.</p>
+<p>A continuación cargaremos el modelo de regresión logística obtenido en la parte de modelos de clasificación:</p>
+<pre><code>## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in X[, pstart[i] - 1 + 1:object$nsdf[i]] &lt;- Xp : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero
+## Error in term[i] &lt;- attr(terms(reformulate(term[i])), &quot;term.labels&quot;) : 
+##   replacement has length zero</code></pre>
 <p><img src="GAM_files/figure-html/unnamed-chunk-16-1.png" width="672" /></p>
-<pre><code>## 
-## Method: UBRE   Optimizer: outer newton
-## full convergence after 11 iterations.
-## Gradient range [-5.994896e-08,1.112832e-08]
-## (score -0.8112014 &amp; scale 1).
-## Hessian positive definite, eigenvalue range [5.993851e-08,0.0004687441].
-## Model rank =  92 / 92 
-## 
-## Basis dimension (k) checking results. Low p-value (k-index&lt;1) may
-## indicate that k is too low, especially if edf is close to k&#39;.
-## 
-##                      k&#39;  edf k-index p-value    
-## s(GrLivArea)       9.00 1.00    0.92  &lt;2e-16 ***
-## s(LotArea)         9.00 1.66    0.98    0.25    
-## s(TotalBsmtSF)     9.00 5.57    1.07    0.99    
-## s(OverallQual)     3.00 1.66    0.67  &lt;2e-16 ***
-## s(BsmtUnfSF)       9.00 1.76    0.93  &lt;2e-16 ***
-## s(Total_Bathrooms) 5.00 3.15    0.75  &lt;2e-16 ***
-## ---
-## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
-<p>Y por último, comprobaremos las posibles autocorrelacines elevadas entre variables dentro del modelo:</p>
-<pre><code>##               para s(GrLivArea) s(LotArea) s(TotalBsmtSF) s(OverallQual)
-## worst    0.9995773    0.8454390  0.7850260      0.8427399      0.7862110
-## observed 0.9995773    0.6607617  0.6845584      0.6310653      0.6995576
-## estimate 0.9995773    0.5287008  0.5726235      0.6298797      0.7289733
-##          s(BsmtUnfSF) s(Total_Bathrooms)
-## worst       0.5354543          0.6760524
-## observed    0.2753212          0.1655281
-## estimate    0.3792092          0.6279315</code></pre>
-<pre><code>Nos encontramos con los mismos probemas que en el caso del modelo anterior.
-A continuación, seleccionaremos un punto de corte óptimo para realizar la discriminación entre lo que se considera una casa barata y cara utilizando el criterio dado por la función &quot;OptimalValue&quot; de la biblioteca &quot;InformationValue&quot;. Además, dibujaremos una curva &quot;ROC&quot; para evaluar la calidad del clasificador:</code></pre>
-<pre><code>## [1] 0.0406</code></pre>
-<p><img src="GAM_files/figure-html/unnamed-chunk-18-1.png" width="672" /></p>
-<p>Como se observa, a priori el clasificador hace un trabajo razonable, pero ¿es suficientemente bueno dado lo imbalanceado del dataset? Para ellos medimos el grado de concordancia entre los elementos predecidos y los valores reales en el dataset de Train:</p>
-<pre><code>## $Concordance
-## [1] 0.8960056
-## 
-## $Discordance
-## [1] 0.1039944
-## 
-## $Tied
-## [1] -4.163336e-17
-## 
-## $Pairs
-## [1] 25636</code></pre>
-<p>Como vemos, este clasificador no es mejor que tirar un dado “al azar” y clasificar según el resultado obtenido. Este resultado hay que mejorarlo con técnicas que de alguna forma “balanceen” la cantidad de datos en las dos clases.</p>
-<p>A continuación mostramos la matriz de confusión del modelo con los datos de TEST:</p>
-<pre><code>##   FALSE TRUE
-## 0   747   25
-## 1     7    9</code></pre>
 </div>
 
 

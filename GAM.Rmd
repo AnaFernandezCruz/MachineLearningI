@@ -6,7 +6,7 @@ title: "GAM"
 
 En primer lugar cargaremos los datasets obtenidos en las fases anteriores del modelado de datos.
 
-```{r  message=FALSE, warning=FALSE, echo=FALSE}
+```{r  message=FALSE, warning=FALSE, error = FALSE ,echo=FALSE, results="hide"}
 
 library(mgcv)
 library(car)
@@ -38,13 +38,16 @@ names(dataSetTestGAMLogistic) <- make.names(names(dataSetTestGAMLogistic))
 
 variablesEliminarCorr <- c()
 
+invisible({capture.output({
 
-detectCores()
- 
-###indicate number of cores used for parallel processing
-if (detectCores()>1) {
-cl <- makeCluster(detectCores()-1)
-} else cl <- NULL
+    detectCores()
+     
+    ###indicate number of cores used for parallel processing
+    if (detectCores()>1) {
+    cl <- makeCluster(detectCores()-1)
+    } else cl <- NULL
+    
+})})    
 
 ```
 
@@ -352,15 +355,21 @@ concurvity(modeloGAMCarosBaratos)
    A continuación cargaremos el modelo de regresión logística obtenido en la parte de modelos de clasificación:
 
 
-```{r message=FALSE, warning=FALSE, echo=FALSE}
+```{r message=FALSE, warning=FALSE, echo=FALSE, error=FALSE}
+
+invisible({capture.output({
 
  modeloGAMLogisticRegressionCaros <- readRDS("modeloGAMLogisticRegressionCarosCaret.rds")
+ 
+})})
 
 ```
 
 
 
-```{r message=FALSE, warning=FALSE, echo=FALSE}
+```{r message=FALSE, warning=FALSE, echo=FALSE, error=FALSE}
+
+invisible({capture.output({
 
 prediccionModeloFinal <- function(dato,clasificador = modeloGAMLogisticRegressionCaros,modeloCaros = modeloGAMCaros ,modeloBaratos = modeloGAMBaratos,umbralDecision = optCutOff) {
   
@@ -381,7 +390,7 @@ prediccionModeloFinal <- function(dato,clasificador = modeloGAMLogisticRegressio
   if(returnValue == 0) {
      try(
      { 
-       print("holaaa")
+       
        prediccionModeloCaros <-  predict(modeloCaros,dato)
        prediccionModeloBaratos <-  predict(modeloBaratos,dato)
        returnValue <- (1-prediccionModeloClasificacion)*prediccionModeloCaros + (prediccionModeloClasificacion)*prediccionModeloBaratos
@@ -411,6 +420,8 @@ for (index in seq(1,nrow(dataSetTestGAM))) {
     )
 }
 
+
+})})
 
 plot(predictedModeloFinalArray[,3], predictedModeloFinalArray[,3] - predictedModeloFinalArray[,2], ylab="Residuals", xlab="Waiting Time",  main="Old Faithful Eruptions") 
 abline(0, 0)    
