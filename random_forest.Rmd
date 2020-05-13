@@ -291,7 +291,7 @@ Evaluamos los resultados:
 ```{r message = FALSE, warning=FALSE}
 ##MATRIZ CONFUSION
 house.predmodel_nopca <- predict(model_nopca, newdata = PCATest)
-table_rf <- table(house.pred_rf_nopca, dataTest$GrupoPrecio)
+table_rf <- table(house.predmodel_nopca, dataTest$GrupoPrecio)
 table_rf
 
 
