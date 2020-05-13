@@ -22,6 +22,7 @@
 <script src="site_libs/navigation-1.1/tabsets.js"></script>
 <link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
 <script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<script src="site_libs/kePrint-0.0.1/kePrint.js"></script>
 
 <style type="text/css">code{white-space: pre;}</style>
 <style type="text/css">
@@ -336,75 +337,1901 @@ $(document).ready(function () {
 <p><img src="Cluster_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
 <p>Ahora intentaremos realizar el proceso de clustering teniendo en cuenta también las variables cualitativas (tanto factoriales como ordinales). Para ello calcularemos una matriz de disimilaridad denominada “matriz de disimilaridad de Gower”. Lo haremos sobre el conjunto de todas las variables y el conjunto de variables candidatas obtenido en el paso anterior para nuestro modelo de discriminación de “casas caras” y “casas baratas”.</p>
 <p>Una vez calculada estas matrices, obtendremos los elementos más parecidos para ver que los resultados son coherentes. En primer lugar realizaremos esta comprobación sobre el dataset completo sin filtrar, mostrando los elementos más similares:</p>
-<pre><code>## # A tibble: 2 x 73
-##   MSSubClass MSZoning LotArea Alley LotShape LandContour LotConfig Neighborhood
-##   &lt;fct&gt;      &lt;fct&gt;      &lt;dbl&gt; &lt;fct&gt; &lt;fct&gt;    &lt;fct&gt;       &lt;fct&gt;     &lt;fct&gt;       
-## 1 duplex_al… RL          8.98 NA    Reg      Lvl         Inside    SawyerW     
-## 2 duplex_al… RL          8.98 NA    Reg      Lvl         Inside    SawyerW     
-## # … with 65 more variables: Condition1 &lt;fct&gt;, BldgType &lt;fct&gt;, HouseStyle &lt;fct&gt;,
-## #   OverallQual &lt;dbl&gt;, OverallCond &lt;dbl&gt;, YearBuilt &lt;fct&gt;, YearRemodAdd &lt;fct&gt;,
-## #   RoofStyle &lt;fct&gt;, RoofMatl &lt;fct&gt;, Exterior1st &lt;fct&gt;, Exterior2nd &lt;fct&gt;,
-## #   MasVnrType &lt;fct&gt;, MasVnrArea &lt;dbl&gt;, ExterQual &lt;fct&gt;, ExterCond &lt;fct&gt;,
-## #   Foundation &lt;fct&gt;, BsmtQual &lt;fct&gt;, BsmtCond &lt;fct&gt;, BsmtExposure &lt;fct&gt;,
-## #   BsmtFinType1 &lt;fct&gt;, BsmtFinSF1 &lt;dbl&gt;, BsmtFinType2 &lt;fct&gt;, BsmtUnfSF &lt;dbl&gt;,
-## #   TotalBsmtSF &lt;dbl&gt;, Heating &lt;fct&gt;, HeatingQC &lt;fct&gt;, CentralAir &lt;fct&gt;,
-## #   Electrical &lt;fct&gt;, `1stFlrSF` &lt;dbl&gt;, `2ndFlrSF` &lt;dbl&gt;, GrLivArea &lt;dbl&gt;,
-## #   BsmtFullBath &lt;dbl&gt;, BsmtHalfBath &lt;dbl&gt;, FullBath &lt;dbl&gt;, HalfBath &lt;dbl&gt;,
-## #   BedroomAbvGr &lt;dbl&gt;, KitchenAbvGr &lt;dbl&gt;, KitchenQual &lt;fct&gt;,
-## #   TotRmsAbvGrd &lt;dbl&gt;, Functional &lt;fct&gt;, Fireplaces &lt;dbl&gt;, FireplaceQu &lt;fct&gt;,
-## #   GarageType &lt;fct&gt;, GarageYrBlt &lt;dbl&gt;, GarageFinish &lt;fct&gt;, GarageCars &lt;dbl&gt;,
-## #   GarageArea &lt;dbl&gt;, GarageQual &lt;fct&gt;, GarageCond &lt;fct&gt;, PavedDrive &lt;fct&gt;,
-## #   WoodDeckSF &lt;dbl&gt;, OpenPorchSF &lt;dbl&gt;, EnclosedPorch &lt;dbl&gt;,
-## #   `3SsnPorch` &lt;dbl&gt;, ScreenPorch &lt;dbl&gt;, PoolQC &lt;fct&gt;, Fence &lt;fct&gt;,
-## #   MoSold &lt;fct&gt;, YrSold &lt;fct&gt;, SaleType &lt;fct&gt;, SaleCondition &lt;fct&gt;,
-## #   TotalSF &lt;dbl&gt;, Total_Bathrooms &lt;dbl&gt;, Total_porch_SF &lt;dbl&gt;, SalePrice &lt;dbl&gt;</code></pre>
+<div style="border: 1px solid #ddd; padding: 0px; overflow-y: scroll; height:200px; overflow-x: scroll; width:100%; ">
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+MSSubClass
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+MSZoning
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+LotArea
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+Alley
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+LotShape
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+LandContour
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+LotConfig
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+Neighborhood
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+Condition1
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+BldgType
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+HouseStyle
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+OverallQual
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+OverallCond
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+YearBuilt
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+YearRemodAdd
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+RoofStyle
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+RoofMatl
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+Exterior1st
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+Exterior2nd
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+MasVnrType
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+MasVnrArea
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+ExterQual
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+ExterCond
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+Foundation
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+BsmtQual
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+BsmtCond
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+BsmtExposure
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+BsmtFinType1
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+BsmtFinSF1
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+BsmtFinType2
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+BsmtUnfSF
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+TotalBsmtSF
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+Heating
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+HeatingQC
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+CentralAir
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+Electrical
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+1stFlrSF
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+2ndFlrSF
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+GrLivArea
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+BsmtFullBath
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+BsmtHalfBath
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+FullBath
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+HalfBath
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+BedroomAbvGr
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+KitchenAbvGr
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+KitchenQual
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+TotRmsAbvGrd
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+Functional
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+Fireplaces
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+FireplaceQu
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+GarageType
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+GarageYrBlt
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+GarageFinish
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+GarageCars
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+GarageArea
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+GarageQual
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+GarageCond
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+PavedDrive
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+WoodDeckSF
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+OpenPorchSF
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+EnclosedPorch
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+3SsnPorch
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+ScreenPorch
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+PoolQC
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+Fence
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+MoSold
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+YrSold
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+SaleType
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+SaleCondition
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+TotalSF
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+Total_Bathrooms
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+Total_porch_SF
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+SalePrice
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+duplex_all_style_age
+</td>
+<td style="text-align:left;">
+RL
+</td>
+<td style="text-align:right;">
+8.979669
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+Reg
+</td>
+<td style="text-align:left;">
+Lvl
+</td>
+<td style="text-align:left;">
+Inside
+</td>
+<td style="text-align:left;">
+SawyerW
+</td>
+<td style="text-align:left;">
+Feedr
+</td>
+<td style="text-align:left;">
+Duplex
+</td>
+<td style="text-align:left;">
+2Story
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:left;">
+1990_
+</td>
+<td style="text-align:left;">
+1990_
+</td>
+<td style="text-align:left;">
+Hip
+</td>
+<td style="text-align:left;">
+CompShg
+</td>
+<td style="text-align:left;">
+VinylSd
+</td>
+<td style="text-align:left;">
+VinylSd
+</td>
+<td style="text-align:left;">
+BrkFace
+</td>
+<td style="text-align:right;">
+23
+</td>
+<td style="text-align:left;">
+TA
+</td>
+<td style="text-align:left;">
+TA
+</td>
+<td style="text-align:left;">
+PConc
+</td>
+<td style="text-align:left;">
+Ex
+</td>
+<td style="text-align:left;">
+TA
+</td>
+<td style="text-align:left;">
+No
+</td>
+<td style="text-align:left;">
+Unf
+</td>
+<td style="text-align:right;">
+6.710523
+</td>
+<td style="text-align:left;">
+Unf
+</td>
+<td style="text-align:right;">
+5.855072
+</td>
+<td style="text-align:right;">
+1168
+</td>
+<td style="text-align:left;">
+GasA
+</td>
+<td style="text-align:left;">
+Ex
+</td>
+<td style="text-align:left;">
+Y
+</td>
+<td style="text-align:left;">
+SBrkr
+</td>
+<td style="text-align:right;">
+1168
+</td>
+<td style="text-align:right;">
+1619
+</td>
+<td style="text-align:right;">
+7.93308
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+1.098612
+</td>
+<td style="text-align:left;">
+TA
+</td>
+<td style="text-align:right;">
+8
+</td>
+<td style="text-align:left;">
+Typ
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:left;">
+TA
+</td>
+<td style="text-align:left;">
+BuiltIn
+</td>
+<td style="text-align:right;">
+2000
+</td>
+<td style="text-align:left;">
+Fin
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+820
+</td>
+<td style="text-align:left;">
+TA
+</td>
+<td style="text-align:left;">
+TA
+</td>
+<td style="text-align:left;">
+Y
+</td>
+<td style="text-align:right;">
+312
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+10
+</td>
+<td style="text-align:left;">
+2009
+</td>
+<td style="text-align:left;">
+WD
+</td>
+<td style="text-align:left;">
+Normal
+</td>
+<td style="text-align:right;">
+8.282736
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+312
+</td>
+<td style="text-align:right;">
+12.30342
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+duplex_all_style_age
+</td>
+<td style="text-align:left;">
+RL
+</td>
+<td style="text-align:right;">
+8.984318
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+Reg
+</td>
+<td style="text-align:left;">
+Lvl
+</td>
+<td style="text-align:left;">
+Inside
+</td>
+<td style="text-align:left;">
+SawyerW
+</td>
+<td style="text-align:left;">
+Feedr
+</td>
+<td style="text-align:left;">
+Duplex
+</td>
+<td style="text-align:left;">
+2Story
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:left;">
+1990_
+</td>
+<td style="text-align:left;">
+1990_
+</td>
+<td style="text-align:left;">
+Hip
+</td>
+<td style="text-align:left;">
+CompShg
+</td>
+<td style="text-align:left;">
+VinylSd
+</td>
+<td style="text-align:left;">
+VinylSd
+</td>
+<td style="text-align:left;">
+BrkFace
+</td>
+<td style="text-align:right;">
+23
+</td>
+<td style="text-align:left;">
+TA
+</td>
+<td style="text-align:left;">
+TA
+</td>
+<td style="text-align:left;">
+PConc
+</td>
+<td style="text-align:left;">
+Ex
+</td>
+<td style="text-align:left;">
+TA
+</td>
+<td style="text-align:left;">
+No
+</td>
+<td style="text-align:left;">
+Unf
+</td>
+<td style="text-align:right;">
+6.710523
+</td>
+<td style="text-align:left;">
+Unf
+</td>
+<td style="text-align:right;">
+5.855072
+</td>
+<td style="text-align:right;">
+1168
+</td>
+<td style="text-align:left;">
+GasA
+</td>
+<td style="text-align:left;">
+Ex
+</td>
+<td style="text-align:left;">
+Y
+</td>
+<td style="text-align:left;">
+SBrkr
+</td>
+<td style="text-align:right;">
+1168
+</td>
+<td style="text-align:right;">
+1619
+</td>
+<td style="text-align:right;">
+7.93308
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+1.098612
+</td>
+<td style="text-align:left;">
+TA
+</td>
+<td style="text-align:right;">
+8
+</td>
+<td style="text-align:left;">
+Typ
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:left;">
+TA
+</td>
+<td style="text-align:left;">
+BuiltIn
+</td>
+<td style="text-align:right;">
+2000
+</td>
+<td style="text-align:left;">
+Fin
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+820
+</td>
+<td style="text-align:left;">
+TA
+</td>
+<td style="text-align:left;">
+TA
+</td>
+<td style="text-align:left;">
+Y
+</td>
+<td style="text-align:right;">
+312
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+10
+</td>
+<td style="text-align:left;">
+2009
+</td>
+<td style="text-align:left;">
+WD
+</td>
+<td style="text-align:left;">
+Normal
+</td>
+<td style="text-align:right;">
+8.282736
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+312
+</td>
+<td style="text-align:right;">
+12.30375
+</td>
+</tr>
+</tbody>
+</table>
+</div>
 <p>Mostraremos también los elementos más similares para el dataset limitado a las variables que mejor parecen discriminar entre precios baratos y caros:</p>
-<pre><code>## # A tibble: 2 x 29
-##   LotArea GrLivArea BedroomAbvGr MSSubClass `1stFlrSF` FullBath Neighborhood
-##     &lt;dbl&gt;     &lt;dbl&gt;        &lt;dbl&gt; &lt;fct&gt;           &lt;dbl&gt;    &lt;dbl&gt; &lt;fct&gt;       
-## 1    9.29      7.09            3 duplex_al…       1200        3 Edwards     
-## 2    9.29      7.09            3 duplex_al…       1200        3 Edwards     
-## # … with 22 more variables: Total_Bathrooms &lt;dbl&gt;, TotalBsmtSF &lt;dbl&gt;,
-## #   YearBuilt &lt;fct&gt;, MSZoning &lt;fct&gt;, BldgType &lt;fct&gt;, GarageType &lt;fct&gt;,
-## #   OverallCond &lt;dbl&gt;, BsmtUnfSF &lt;dbl&gt;, Heating &lt;fct&gt;, `2ndFlrSF` &lt;dbl&gt;,
-## #   LotShape &lt;fct&gt;, OverallQual &lt;dbl&gt;, BsmtFinSF1 &lt;dbl&gt;, BsmtQual &lt;fct&gt;,
-## #   MasVnrArea &lt;dbl&gt;, SaleCondition &lt;fct&gt;, KitchenQual &lt;fct&gt;, SaleType &lt;fct&gt;,
-## #   HalfBath &lt;dbl&gt;, GarageArea &lt;dbl&gt;, SalePrice &lt;dbl&gt;, Exterior1st &lt;fct&gt;</code></pre>
+<div style="border: 1px solid #ddd; padding: 0px; overflow-y: scroll; height:200px; overflow-x: scroll; width:100%; ">
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+LotArea
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+GrLivArea
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+BedroomAbvGr
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+MSSubClass
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+1stFlrSF
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+FullBath
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+Neighborhood
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+Total_Bathrooms
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+TotalBsmtSF
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+YearBuilt
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+MSZoning
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+BldgType
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+GarageType
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+OverallCond
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+BsmtUnfSF
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+Heating
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+2ndFlrSF
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+LotShape
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+OverallQual
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+BsmtFinSF1
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+BsmtQual
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+MasVnrArea
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+SaleCondition
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+KitchenQual
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+SaleType
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+HalfBath
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+GarageArea
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+SalePrice
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+Exterior1st
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+9.287394
+</td>
+<td style="text-align:right;">
+7.09091
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:left;">
+duplex_all_style_age
+</td>
+<td style="text-align:right;">
+1200
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:left;">
+Edwards
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+1200
+</td>
+<td style="text-align:left;">
+1980_1990
+</td>
+<td style="text-align:left;">
+RL
+</td>
+<td style="text-align:left;">
+Duplex
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+GasA
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+Reg
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+7.09091
+</td>
+<td style="text-align:left;">
+Gd
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+Alloca
+</td>
+<td style="text-align:left;">
+TA
+</td>
+<td style="text-align:left;">
+WD
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+12.09245
+</td>
+<td style="text-align:left;">
+Plywood
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+9.287394
+</td>
+<td style="text-align:right;">
+7.09091
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:left;">
+duplex_all_style_age
+</td>
+<td style="text-align:right;">
+1200
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:left;">
+Edwards
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+1200
+</td>
+<td style="text-align:left;">
+1980_1990
+</td>
+<td style="text-align:left;">
+RL
+</td>
+<td style="text-align:left;">
+Duplex
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+GasA
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+Reg
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+7.09091
+</td>
+<td style="text-align:left;">
+Gd
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+Alloca
+</td>
+<td style="text-align:left;">
+TA
+</td>
+<td style="text-align:left;">
+WD
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+12.09514
+</td>
+<td style="text-align:left;">
+Plywood
+</td>
+</tr>
+</tbody>
+</table>
+</div>
 <p>Ahora realizaremos el mismo proceso mostrando los elementos más disimilares dentro del dataset teniendo en cuenta todas las variables:</p>
-<pre><code>## # A tibble: 2 x 73
-##   MSSubClass MSZoning LotArea Alley LotShape LandContour LotConfig Neighborhood
-##   &lt;fct&gt;      &lt;fct&gt;      &lt;dbl&gt; &lt;fct&gt; &lt;fct&gt;    &lt;fct&gt;       &lt;fct&gt;     &lt;fct&gt;       
-## 1 1_story_1… 4           9.59 NA    Reg      Low         Inside    IDOTRR      
-## 2 2_story_1… RL         11.1  NA    IR3      Bnk         Corner    Edwards     
-## # … with 65 more variables: Condition1 &lt;fct&gt;, BldgType &lt;fct&gt;, HouseStyle &lt;fct&gt;,
-## #   OverallQual &lt;dbl&gt;, OverallCond &lt;dbl&gt;, YearBuilt &lt;fct&gt;, YearRemodAdd &lt;fct&gt;,
-## #   RoofStyle &lt;fct&gt;, RoofMatl &lt;fct&gt;, Exterior1st &lt;fct&gt;, Exterior2nd &lt;fct&gt;,
-## #   MasVnrType &lt;fct&gt;, MasVnrArea &lt;dbl&gt;, ExterQual &lt;fct&gt;, ExterCond &lt;fct&gt;,
-## #   Foundation &lt;fct&gt;, BsmtQual &lt;fct&gt;, BsmtCond &lt;fct&gt;, BsmtExposure &lt;fct&gt;,
-## #   BsmtFinType1 &lt;fct&gt;, BsmtFinSF1 &lt;dbl&gt;, BsmtFinType2 &lt;fct&gt;, BsmtUnfSF &lt;dbl&gt;,
-## #   TotalBsmtSF &lt;dbl&gt;, Heating &lt;fct&gt;, HeatingQC &lt;fct&gt;, CentralAir &lt;fct&gt;,
-## #   Electrical &lt;fct&gt;, `1stFlrSF` &lt;dbl&gt;, `2ndFlrSF` &lt;dbl&gt;, GrLivArea &lt;dbl&gt;,
-## #   BsmtFullBath &lt;dbl&gt;, BsmtHalfBath &lt;dbl&gt;, FullBath &lt;dbl&gt;, HalfBath &lt;dbl&gt;,
-## #   BedroomAbvGr &lt;dbl&gt;, KitchenAbvGr &lt;dbl&gt;, KitchenQual &lt;fct&gt;,
-## #   TotRmsAbvGrd &lt;dbl&gt;, Functional &lt;fct&gt;, Fireplaces &lt;dbl&gt;, FireplaceQu &lt;fct&gt;,
-## #   GarageType &lt;fct&gt;, GarageYrBlt &lt;dbl&gt;, GarageFinish &lt;fct&gt;, GarageCars &lt;dbl&gt;,
-## #   GarageArea &lt;dbl&gt;, GarageQual &lt;fct&gt;, GarageCond &lt;fct&gt;, PavedDrive &lt;fct&gt;,
-## #   WoodDeckSF &lt;dbl&gt;, OpenPorchSF &lt;dbl&gt;, EnclosedPorch &lt;dbl&gt;,
-## #   `3SsnPorch` &lt;dbl&gt;, ScreenPorch &lt;dbl&gt;, PoolQC &lt;fct&gt;, Fence &lt;fct&gt;,
-## #   MoSold &lt;fct&gt;, YrSold &lt;fct&gt;, SaleType &lt;fct&gt;, SaleCondition &lt;fct&gt;,
-## #   TotalSF &lt;dbl&gt;, Total_Bathrooms &lt;dbl&gt;, Total_porch_SF &lt;dbl&gt;, SalePrice &lt;dbl&gt;</code></pre>
+<div style="border: 1px solid #ddd; padding: 0px; overflow-y: scroll; height:200px; overflow-x: scroll; width:100%; ">
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+MSSubClass
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+MSZoning
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+LotArea
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+Alley
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+LotShape
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+LandContour
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+LotConfig
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+Neighborhood
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+Condition1
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+BldgType
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+HouseStyle
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+OverallQual
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+OverallCond
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+YearBuilt
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+YearRemodAdd
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+RoofStyle
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+RoofMatl
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+Exterior1st
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+Exterior2nd
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+MasVnrType
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+MasVnrArea
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+ExterQual
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+ExterCond
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+Foundation
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+BsmtQual
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+BsmtCond
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+BsmtExposure
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+BsmtFinType1
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+BsmtFinSF1
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+BsmtFinType2
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+BsmtUnfSF
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+TotalBsmtSF
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+Heating
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+HeatingQC
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+CentralAir
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+Electrical
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+1stFlrSF
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+2ndFlrSF
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+GrLivArea
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+BsmtFullBath
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+BsmtHalfBath
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+FullBath
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+HalfBath
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+BedroomAbvGr
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+KitchenAbvGr
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+KitchenQual
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+TotRmsAbvGrd
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+Functional
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+Fireplaces
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+FireplaceQu
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+GarageType
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+GarageYrBlt
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+GarageFinish
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+GarageCars
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+GarageArea
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+GarageQual
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+GarageCond
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+PavedDrive
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+WoodDeckSF
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+OpenPorchSF
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+EnclosedPorch
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+3SsnPorch
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+ScreenPorch
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+PoolQC
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+Fence
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+MoSold
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+YrSold
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+SaleType
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+SaleCondition
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+TotalSF
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+Total_Bathrooms
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+Total_porch_SF
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+SalePrice
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+1_story_1946_
+</td>
+<td style="text-align:left;">
+4
+</td>
+<td style="text-align:right;">
+9.587749
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+Reg
+</td>
+<td style="text-align:left;">
+Low
+</td>
+<td style="text-align:left;">
+Inside
+</td>
+<td style="text-align:left;">
+IDOTRR
+</td>
+<td style="text-align:left;">
+Norm
+</td>
+<td style="text-align:left;">
+1Fam
+</td>
+<td style="text-align:left;">
+1Story
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:left;">
+1950_1960
+</td>
+<td style="text-align:left;">
+1950_1960
+</td>
+<td style="text-align:left;">
+Gable
+</td>
+<td style="text-align:left;">
+CompShg
+</td>
+<td style="text-align:left;">
+AsbShng
+</td>
+<td style="text-align:left;">
+VinylSd
+</td>
+<td style="text-align:left;">
+None
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+Fa
+</td>
+<td style="text-align:left;">
+Po
+</td>
+<td style="text-align:left;">
+Slab
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:right;">
+0.000000
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:right;">
+0.000000
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+Wall
+</td>
+<td style="text-align:left;">
+Po
+</td>
+<td style="text-align:left;">
+N
+</td>
+<td style="text-align:left;">
+FuseA
+</td>
+<td style="text-align:right;">
+733
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+6.598509
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+0.6931472
+</td>
+<td style="text-align:left;">
+Fa
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:left;">
+7
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+Attchd
+</td>
+<td style="text-align:right;">
+1952
+</td>
+<td style="text-align:left;">
+Unf
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+487
+</td>
+<td style="text-align:left;">
+Fa
+</td>
+<td style="text-align:left;">
+Po
+</td>
+<td style="text-align:left;">
+N
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+2
+</td>
+<td style="text-align:left;">
+2008
+</td>
+<td style="text-align:left;">
+WD
+</td>
+<td style="text-align:left;">
+Abnorml
+</td>
+<td style="text-align:right;">
+6.597146
+</td>
+<td style="text-align:right;">
+1.0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+12.05805
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+2_story_1946_
+</td>
+<td style="text-align:left;">
+RL
+</td>
+<td style="text-align:right;">
+11.064887
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+IR3
+</td>
+<td style="text-align:left;">
+Bnk
+</td>
+<td style="text-align:left;">
+Corner
+</td>
+<td style="text-align:left;">
+Edwards
+</td>
+<td style="text-align:left;">
+Feedr
+</td>
+<td style="text-align:left;">
+1Fam
+</td>
+<td style="text-align:left;">
+2Story
+</td>
+<td style="text-align:right;">
+10
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:left;">
+1990_
+</td>
+<td style="text-align:left;">
+1990_
+</td>
+<td style="text-align:left;">
+Hip
+</td>
+<td style="text-align:left;">
+ClyTile
+</td>
+<td style="text-align:left;">
+Stucco
+</td>
+<td style="text-align:left;">
+Stucco
+</td>
+<td style="text-align:left;">
+Stone
+</td>
+<td style="text-align:right;">
+796
+</td>
+<td style="text-align:left;">
+Ex
+</td>
+<td style="text-align:left;">
+TA
+</td>
+<td style="text-align:left;">
+PConc
+</td>
+<td style="text-align:left;">
+Ex
+</td>
+<td style="text-align:left;">
+TA
+</td>
+<td style="text-align:left;">
+Gd
+</td>
+<td style="text-align:left;">
+Unf
+</td>
+<td style="text-align:right;">
+8.638526
+</td>
+<td style="text-align:left;">
+Unf
+</td>
+<td style="text-align:right;">
+6.146329
+</td>
+<td style="text-align:right;">
+6110
+</td>
+<td style="text-align:left;">
+GasA
+</td>
+<td style="text-align:left;">
+Ex
+</td>
+<td style="text-align:left;">
+Y
+</td>
+<td style="text-align:left;">
+SBrkr
+</td>
+<td style="text-align:right;">
+4692
+</td>
+<td style="text-align:right;">
+950
+</td>
+<td style="text-align:right;">
+8.638171
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+0.6931472
+</td>
+<td style="text-align:left;">
+Ex
+</td>
+<td style="text-align:right;">
+12
+</td>
+<td style="text-align:left;">
+Typ
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:left;">
+Gd
+</td>
+<td style="text-align:left;">
+Attchd
+</td>
+<td style="text-align:right;">
+2008
+</td>
+<td style="text-align:left;">
+Fin
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+1418
+</td>
+<td style="text-align:left;">
+TA
+</td>
+<td style="text-align:left;">
+TA
+</td>
+<td style="text-align:left;">
+Y
+</td>
+<td style="text-align:right;">
+214
+</td>
+<td style="text-align:right;">
+292
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+Gd
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:left;">
+2008
+</td>
+<td style="text-align:left;">
+New
+</td>
+<td style="text-align:left;">
+Partial
+</td>
+<td style="text-align:right;">
+9.371779
+</td>
+<td style="text-align:right;">
+4.5
+</td>
+<td style="text-align:right;">
+506
+</td>
+<td style="text-align:right;">
+11.98293
+</td>
+</tr>
+</tbody>
+</table>
+</div>
 <p>Y teniendo en cuenta ahora las variables seleccionadas como más relevantes para distinguir casas baratas de casas caras:</p>
-<pre><code>## # A tibble: 2 x 29
-##   LotArea GrLivArea BedroomAbvGr MSSubClass `1stFlrSF` FullBath Neighborhood
-##     &lt;dbl&gt;     &lt;dbl&gt;        &lt;dbl&gt; &lt;fct&gt;           &lt;dbl&gt;    &lt;dbl&gt; &lt;fct&gt;       
-## 1   10.6       8.54            2 1_story_1…       5095        2 Edwards     
-## 2    8.88      7.88            6 duplex_al…        862        3 SWISU       
-## # … with 22 more variables: Total_Bathrooms &lt;dbl&gt;, TotalBsmtSF &lt;dbl&gt;,
-## #   YearBuilt &lt;fct&gt;, MSZoning &lt;fct&gt;, BldgType &lt;fct&gt;, GarageType &lt;fct&gt;,
-## #   OverallCond &lt;dbl&gt;, BsmtUnfSF &lt;dbl&gt;, Heating &lt;fct&gt;, `2ndFlrSF` &lt;dbl&gt;,
-## #   LotShape &lt;fct&gt;, OverallQual &lt;dbl&gt;, BsmtFinSF1 &lt;dbl&gt;, BsmtQual &lt;fct&gt;,
-## #   MasVnrArea &lt;dbl&gt;, SaleCondition &lt;fct&gt;, KitchenQual &lt;fct&gt;, SaleType &lt;fct&gt;,
-## #   HalfBath &lt;dbl&gt;, GarageArea &lt;dbl&gt;, SalePrice &lt;dbl&gt;, Exterior1st &lt;fct&gt;</code></pre>
+<div style="border: 1px solid #ddd; padding: 0px; overflow-y: scroll; height:200px; overflow-x: scroll; width:100%; ">
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+LotArea
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+GrLivArea
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+BedroomAbvGr
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+MSSubClass
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+1stFlrSF
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+FullBath
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+Neighborhood
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+Total_Bathrooms
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+TotalBsmtSF
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+YearBuilt
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+MSZoning
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+BldgType
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+GarageType
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+OverallCond
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+BsmtUnfSF
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+Heating
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+2ndFlrSF
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+LotShape
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+OverallQual
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+BsmtFinSF1
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+BsmtQual
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+MasVnrArea
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+SaleCondition
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+KitchenQual
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+SaleType
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+HalfBath
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+GarageArea
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+SalePrice
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+Exterior1st
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+10.578751
+</td>
+<td style="text-align:right;">
+8.536211
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:left;">
+1_story_1946_
+</td>
+<td style="text-align:right;">
+5095
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:left;">
+Edwards
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+5095
+</td>
+<td style="text-align:left;">
+1990_
+</td>
+<td style="text-align:left;">
+RL
+</td>
+<td style="text-align:left;">
+1Fam
+</td>
+<td style="text-align:left;">
+Attchd
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+6.990257
+</td>
+<td style="text-align:left;">
+GasA
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+IR1
+</td>
+<td style="text-align:right;">
+10
+</td>
+<td style="text-align:right;">
+8.296796
+</td>
+<td style="text-align:left;">
+Ex
+</td>
+<td style="text-align:right;">
+1224
+</td>
+<td style="text-align:left;">
+Partial
+</td>
+<td style="text-align:left;">
+Ex
+</td>
+<td style="text-align:left;">
+New
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1154
+</td>
+<td style="text-align:right;">
+12.34949
+</td>
+<td style="text-align:left;">
+CemntBd
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+8.881975
+</td>
+<td style="text-align:right;">
+7.882692
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:left;">
+duplex_all_style_age
+</td>
+<td style="text-align:right;">
+862
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:left;">
+SWISU
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+1960_1970
+</td>
+<td style="text-align:left;">
+RH
+</td>
+<td style="text-align:left;">
+Duplex
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+0.000000
+</td>
+<td style="text-align:left;">
+GasA
+</td>
+<td style="text-align:right;">
+1788
+</td>
+<td style="text-align:left;">
+Reg
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+0.000000
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+Normal
+</td>
+<td style="text-align:left;">
+TA
+</td>
+<td style="text-align:left;">
+WD
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+12.25132
+</td>
+<td style="text-align:left;">
+Plywood
+</td>
+</tr>
+</tbody>
+</table>
+</div>
 <p>Por último, obtendremos el gráfico número de clústeres/“Silouette with” para intentar ver cuál es el número óptimo de divisiones, en primer lugar para todo el dataset:</p>
 <p><img src="Cluster_files/figure-html/unnamed-chunk-13-1.png" width="672" /></p>
 <p>Y ahora realizaremos el mismo gráfico para las variables más discriminatorias:</p>
@@ -425,132 +2252,29 @@ $(document).ready(function () {
 <p>Al hacer esta división sí que se observa una mayor separación de los elementos que contienen las casas “caras”, y se observa que aparecen dos islas en los grupos 3 y 4, que únicamente tienen casas clasificadas como baratas.Sigue habiendo ciertos puntos de los grupos 1 y 2 que se mezclan con los grupos 3 y 4, pero ahora parece que esa mezcla es menos pronunciada.</p>
 <p>Para ayudar a la interpretación de los resultados obtenidos por el proceso de clustering y ver de forma más clara el criterio que ha seguido dicho algoritmo, construiremos un árbol de decision teniendo como objetivo del mismo el resultado del proceso de clústering. En primer lugar lo haremos sobre el dataset completo. El resultado es el siguiente:</p>
 <p><img src="Cluster_files/figure-html/unnamed-chunk-22-1.png" width="672" /><img src="Cluster_files/figure-html/unnamed-chunk-22-2.png" width="672" /></p>
-<pre><code>Como vemos con claridad, las principales variables que han participado en este proceso han sido: el año de construcción, la superficie de la segunda planta, los materiales utilizados en la fachada y por último el vecindario en el que se encuentran dichas casas.  La mayoría de las casas caras (categorías 1 y 2) han sido construidas entre los años 1980 y 1990 y pertenecen a unos vecindarios muy concretos y con unos tipos de materiales en la fachada muy específicos. La diferencia entre los grupos 1 y 2 se encuentra en la superficie de la segunda planta, siendo todas las casas construidos en el grupo 2 también en la década de los 80.
-
-Repetiremos este mismo proceso teniendo únicamente las variables seleccinadas para el modelo de clasificación. El resultado es el que se muestra a continuación:</code></pre>
+<p>Como vemos con claridad, las principales variables que han participado en este proceso han sido: el año de construcción, la superficie de la segunda planta, los materiales utilizados en la fachada y por último el vecindario en el que se encuentran dichas casas. La mayoría de las casas caras (categorías 1 y 2) han sido construidas entre los años 1980 y 1990 y pertenecen a unos vecindarios muy concretos y con unos tipos de materiales en la fachada muy específicos. La diferencia entre los grupos 1 y 2 se encuentra en la superficie de la segunda planta, siendo todas las casas construidos en el grupo 2 también en la década de los 80.</p>
+<p>Repetiremos este mismo proceso teniendo únicamente las variables seleccinadas para el modelo de clasificación. El resultado es el que se muestra a continuación:</p>
 <p><img src="Cluster_files/figure-html/unnamed-chunk-23-1.png" width="672" /><img src="Cluster_files/figure-html/unnamed-chunk-23-2.png" width="672" /></p>
-<pre><code>El resultado es similar al obtenido con anterioridad con una diferencia. Al no tener las variables elegidas aquella  que indica el tipo de materiales, el algoritmo en su lugar ha elegido como variable sustitutiva el estilo arquitectónico de la casa. En este caso vemos que las casas de tipo 1 y 2 han sido construidas en la década de los 80 pero pertenecen a estilos arquitectónicos distintos.  Sigue siendo tremendamente discriminante el vecindario. Las clasas de categoría 3 pertenecen en su mayor parte a los vecindarios mostrados en el árbol, y la diferencia entre las casas de categoría 3 y 4 están en la superficie del sótano, en el vecindario y en el estilo arquitectónico de las mismas.  Algunas casas caras del tipo 1 con elevadoas superficies del segundo piso, aparecen mezcladas entre las casas de tipo 3 y 4, pero aun así hay una diferencia entre estos dos grupos: en la superfice de sótano finalizado.</code></pre>
+<p>El resultado es similar al obtenido con anterioridad con una diferencia. Al no tener las variables elegidas aquella que indica el tipo de materiales, el algoritmo en su lugar ha elegido como variable sustitutiva el estilo arquitectónico de la casa. En este caso vemos que las casas de tipo 1 y 2 han sido construidas en la década de los 80 pero pertenecen a estilos arquitectónicos distintos. Sigue siendo tremendamente discriminante el vecindario. Las clasas de categoría 3 pertenecen en su mayor parte a los vecindarios mostrados en el árbol, y la diferencia entre las casas de categoría 3 y 4 están en la superficie del sótano, en el vecindario y en el estilo arquitectónico de las mismas. Algunas casas caras del tipo 1 con elevadoas superficies del segundo piso, aparecen mezcladas entre las casas de tipo 3 y 4, pero aun así hay una diferencia entre estos dos grupos: en la superfice de sótano finalizado.</p>
 <p>Como vemos las variables que ha seleccionado principalmente el algoritmo de clústering para ayudar a discriminar las casas baratas de las caras son: - El año de construcción: discierne entre construcciones en la década de los 80 de casas más antíguas, que parecen indicar unos tipos de edificios históricos específico - El vecindario: muchas de las casas más caras parecen estar concentradas en unos pocos vecindarios. Y cuando estas casas aparecen en vecindarios más probres, lo hacen con unos estilos arquitectónicos y superficies de la segunda planta máyores. - El estilo arquitectónico. - Los materiales de las fachadas.</p>
 <p>Realizaremos una serie de gráficas para corroborar estas hipótesis. En primer lugar, las siguientes dos gráficas muestran: la media de precio por vecindario (primera gráfica) y el valor máximo del precio por vecindario:</p>
-<pre class="r"><code>library(scales)
-library(gridExtra)</code></pre>
-<pre><code>## 
-## Attaching package: &#39;gridExtra&#39;</code></pre>
-<pre><code>## The following object is masked from &#39;package:dplyr&#39;:
-## 
-##     combine</code></pre>
-<pre class="r"><code>gr1 &lt;-ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(fill=cluster_result, y=exp(SalePrice), x=Neighborhood )) + 
-    geom_bar(position=&quot;dodge&quot;, stat=&#39;summary&#39;, fun.y = &quot;mean&quot;,width = 0.7) +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-    scale_y_continuous(breaks= seq(0, 1800000, by=60000), labels = comma)  +
-        geom_hline(yintercept=250000, linetype=&quot;dashed&quot;, color = &quot;red&quot;)
-
-
-gr1_1 &lt;-ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(fill=cluster_result, y=exp(SalePrice), x=Neighborhood )) + 
-    geom_bar(position=&quot;dodge&quot;, stat=&#39;summary&#39;, fun.y = &quot;max&quot;,width = 0.7) +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-    scale_y_continuous(breaks= seq(0, 1800000, by=60000), labels = comma)  +
-        geom_hline(yintercept=250000, linetype=&quot;dashed&quot;, color = &quot;red&quot;)
-
-grid.arrange(gr1, gr1_1)</code></pre>
 <p><img src="Cluster_files/figure-html/unnamed-chunk-27-1.png" width="672" /></p>
-<pre><code>Observamos que hay 3 vecindarios (NoRidge, NrtdgHt y StoneBr) en el cual el precio medio de las casa es sustancialmente más caro , así como el valor máximo de las mismas. En estos vecindarios hay principalmente casas de categoría de clustering &quot;1&quot; y &quot;2&quot;, aunque hay algunas de tipo 4 en StoneBR. En el resto de vecindarios la media es significativamente menor, habiendo 3 vecindarios &quot;collgrCr, Crawfor y Gilber&quot; en las que se mezclan categorías 1,2 y 3 pero con precios máximos significativamente menores a los de los barrios comentados con anterioridad.</code></pre>
+<p>Observamos que hay 3 vecindarios (NoRidge, NrtdgHt y StoneBr) en el cual el precio medio de las casa es sustancialmente más caro , así como el valor máximo de las mismas. En estos vecindarios hay principalmente casas de categoría de clustering “1” y “2”, aunque hay algunas de tipo 4 en StoneBR. En el resto de vecindarios la media es significativamente menor, habiendo 3 vecindarios “collgrCr, Crawfor y Gilber” en las que se mezclan categorías 1,2 y 3 pero con precios máximos significativamente menores a los de los barrios comentados con anterioridad.</p>
 <p>Realizaremos este mismo análisis para el año de construccion. las siguientes dos gráficas muestran la media de precio por década en la que se contruyó y el valor máximo del precio por cada una de las décadas:</p>
-<pre class="r"><code>gr2 &lt;- ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(fill=cluster_result, y=exp(SalePrice), x=YearBuilt)) + 
-    geom_bar(position=&quot;dodge&quot;, stat=&#39;summary&#39;, fun.y = &quot;mean&quot; ,width = 0.7) +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-    scale_y_continuous(breaks= seq(0, 1800000, by=60000), labels = comma)  +
-        geom_hline(yintercept=250000, linetype=&quot;dashed&quot;, color = &quot;red&quot;)  
-
-
-gr2_1 &lt;- ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(fill=cluster_result, y=exp(SalePrice), x=YearBuilt)) + 
-    geom_bar(position=&quot;dodge&quot;, stat=&#39;summary&#39;, fun.y = &quot;max&quot; ,width = 0.7) +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-    scale_y_continuous(breaks= seq(0, 1800000, by=120000), labels = comma)  +
-        geom_hline(yintercept=250000, linetype=&quot;dashed&quot;, color = &quot;red&quot;)  
-
-grid.arrange(gr2, gr2_1)</code></pre>
-<p><img src="Cluster_files/figure-html/unnamed-chunk-28-1.png" width="672" /> La gráfica de la media no nos da mucha información, pero vemos claramente en la otra gráfica que, efectivamente, en las décadas de los 80 y 90 aparecen una gran cantidad de casas clasificada en los grupos 1 y 2, que contienen casas con precio máximo más significativo. En la década de 1900-1910 aparece alguna casa de categoría 3 (clasificada como “barata”) que desmiente que todas las casas de esta categoría son necesariamente baratas. Durante el resto de los años sí que se construyeron algunas casas consideradas como “caras” pero con un valor mucho menor en el precio máximo. Y generalmente, estas casas, son de categoría 1,2 y 3.</p>
+<p><img src="Cluster_files/figure-html/unnamed-chunk-28-1.png" width="672" /></p>
+<p>La gráfica de la media no nos da mucha información, pero vemos claramente en la otra gráfica que, efectivamente, en las décadas de los 80 y 90 aparecen una gran cantidad de casas clasificada en los grupos 1 y 2, que contienen casas con precio máximo más significativo. En la década de 1900-1910 aparece alguna casa de categoría 3 (clasificada como “barata”) que desmiente que todas las casas de esta categoría son necesariamente baratas. Durante el resto de los años sí que se construyeron algunas casas consideradas como “caras” pero con un valor mucho menor en el precio máximo. Y generalmente, estas casas, son de categoría 1,2 y 3.</p>
 <p>Realizaremos este mismo análisis para la variable “vecindario”. las siguientes dos gráficas muestran la media de precio por vecindario en la que se contruyó y el valor máximo del precio por cada uno de estos vecindarios:</p>
-<pre class="r"><code>gr3 &lt;- ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(fill=cluster_result, y=exp(SalePrice), x=MSSubClass)) + 
-    geom_bar(position=&quot;dodge&quot;, stat=&#39;summary&#39;, fun.y = &quot;mean&quot;,width = 0.7) +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-    scale_y_continuous(breaks= seq(0, 1800000, by=60000), labels = comma)  +
-        geom_hline(yintercept=250000, linetype=&quot;dashed&quot;, color = &quot;red&quot;)  
-
-
-
-gr3_1 &lt;- ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(fill=cluster_result, y=exp(SalePrice), x=MSSubClass)) + 
-    geom_bar(position=&quot;dodge&quot;, stat=&#39;summary&#39;, fun.y = &quot;max&quot;,width = 0.7) +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-    scale_y_continuous(breaks= seq(0, 1800000, by=120000), labels = comma)  +
-        geom_hline(yintercept=250000, linetype=&quot;dashed&quot;, color = &quot;red&quot;)  
-
-grid.arrange(gr3, gr3_1)</code></pre>
 <p><img src="Cluster_files/figure-html/unnamed-chunk-29-1.png" width="672" /></p>
 <p>La gráfica anterior (sobre todo la del valor máximo) parece indicar que hay 4 vecindarios en los se concentran las casas con mayor valor másimo, y que estan son principalmente de categorías 1 y 2, habiendo alguna excepción dentro las categorías 3 y 4, pero de menor valor que las de 1 y 2.</p>
 <p>A continuación mostraremos una gráfica con el valor máximo de la casa según los materiales utilizados en la fachada, para ver si esta varible, tal y como nos dice unos de los procesos de clusterización, es relevanta para distinguir las casas baratas de las caras.</p>
-<pre class="r"><code>gr4 &lt;- ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(fill=cluster_result, y=exp(SalePrice), x=Exterior1st)) + 
-    geom_bar(position=&quot;dodge&quot;, stat=&#39;summary&#39;, fun.y = &quot;max&quot;,width = 0.7) +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-    scale_y_continuous(breaks= seq(0, 1800000, by=60000), labels = comma)  +
-        geom_hline(yintercept=250000, linetype=&quot;dashed&quot;, color = &quot;red&quot;)  
-
-gr4</code></pre>
 <p><img src="Cluster_files/figure-html/unnamed-chunk-30-1.png" width="672" /></p>
 <p>Se muestra en la anterior gráfica que, efectivamente, hay 6 materiales utilizados en casas de categoría 1 y 2 que podrían ser relevantes para ayudar a discriminar estas casas.</p>
 <p>Y por último, realizaremos una gráfica con la variable “Calidad de la casa evaluada en una escala de 0 a 10”.</p>
-<pre class="r"><code>gr5 &lt;- ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(fill=cluster_result, y=exp(SalePrice), x=OverallQual)) + 
-    geom_bar(position=&quot;dodge&quot;, stat=&#39;summary&#39;, fun.y = &quot;max&quot;,width = 0.7) +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-    scale_y_continuous(breaks= seq(0, 1800000, by=60000), labels = comma)  +
-        geom_hline(yintercept=250000, linetype=&quot;dashed&quot;, color = &quot;red&quot;)  
-
-gr5</code></pre>
 <p><img src="Cluster_files/figure-html/unnamed-chunk-31-1.png" width="672" /></p>
 <p>Se muestra en esta gráfica que las categorías 1 y 2 tienen casas con valor máximo de precio que están en en rango de 7,5 a 10. Hay alguna casa de categoría 3 que tiene una valoración de 10 puntos y un valor muy elevado en el precio. Se observa también que los valores máximos de 0 a 7,5 son sustancialmente menores y hay casas de todos los tipos del cluster.</p>
 <p>Ahora dibujaremos un gráfico que muestra diversas variables que muestran superficies numéricas de las casas en función de las categorías realizadas por el algoritmo de clústering con las variables seleccionadas para nuestro modelo:</p>
-<pre class="r"><code>p1&lt;-ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(x=LotArea , y=exp(SalePrice) ,group=cluster_result ,fill=cluster_result)) +
-  geom_boxplot( aes(color=cluster_result)) +
-    scale_y_continuous(breaks= seq(0, 1800000, by=60000), labels = comma)  +
-        geom_hline(yintercept=250000, linetype=&quot;dashed&quot;, color = &quot;red&quot;) 
-
-p2&lt;-ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(x=GrLivArea , y=exp(SalePrice) ,group=cluster_result ,fill=cluster_result)) +
-  geom_boxplot( aes(color=cluster_result)) +
-    scale_y_continuous(breaks= seq(0, 1800000, by=60000), labels = comma)  +
-        geom_hline(yintercept=250000, linetype=&quot;dashed&quot;, color = &quot;red&quot;) 
-
-
-p3&lt;-ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(x=`2ndFlrSF` , y=exp(SalePrice) ,group=cluster_result ,fill=cluster_result)) +
-  geom_boxplot( aes(color=cluster_result)) +
-    scale_y_continuous(breaks= seq(0, 1800000, by=60000), labels = comma)  +
-        geom_hline(yintercept=250000, linetype=&quot;dashed&quot;, color = &quot;red&quot;) 
-
-p4&lt;-ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(x=BsmtFinSF1 , y=exp(SalePrice) ,group=cluster_result ,fill=cluster_result)) +
-  geom_boxplot( aes(color=cluster_result)) +
-    scale_y_continuous(breaks= seq(0, 1800000, by=60000), labels = comma)  +
-        geom_hline(yintercept=250000, linetype=&quot;dashed&quot;, color = &quot;red&quot;) 
-
-
-p5&lt;-ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(x=MasVnrArea , y=exp(SalePrice) ,group=cluster_result ,fill=cluster_result)) +
-  geom_boxplot( aes(color=cluster_result)) +
-    scale_y_continuous(breaks= seq(0, 1800000, by=60000), labels = comma)  +
-        geom_hline(yintercept=250000, linetype=&quot;dashed&quot;, color = &quot;red&quot;) 
-
-p6&lt;-ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(x=GarageArea , y=exp(SalePrice) ,group=cluster_result ,fill=cluster_result)) +
-  geom_boxplot( aes(color=cluster_result)) +
-    scale_y_continuous(breaks= seq(0, 1800000, by=60000), labels = comma)  +
-        geom_hline(yintercept=250000, linetype=&quot;dashed&quot;, color = &quot;red&quot;) 
-
-
-
-grid.arrange(p1, p2,p3,p4,p5,p6, ncol = 2)</code></pre>
 <p><img src="Cluster_files/figure-html/unnamed-chunk-32-1.png" width="672" /></p>
-<pre><code>En estas gráficas se observa clarament que:
-  * en cuanto al área del segundo piso, las categorías 1 y 2 tienen una superficie superior a 1000 (pies al cuadrado?) y hay un conjuto de casas con estas superficios con precios mucho más elevados que la media.
-  * Curiosamente, el área del garage todal es mucho menor para las casas de categoría 2 que las de 1, pese a que algunas tienen precios bastante elevados.
-  * Lo mismo ocurre con la variable &quot;MasVnrArea&quot;, existen un grupo de casas de la categoría 2 con precios elevados y relativamente bajo valor de esta variable
-  * Las casas de categoría 1 y 2 en general tienen más area habitable, de segundo piso y de sótano &quot;finalizado&quot; o útil.</code></pre>
+<p>En estas gráficas se observa claramente que: - En cuanto al área del segundo piso, las categorías 1 y 2 tienen una superficie superior a 1000 (pies al cuadrado?) y hay un conjuto de casas con estas superficios con precios mucho más elevados que la media. - Curiosamente, el área del garage todal es mucho menor para las casas de categoría 2 que las de 1, pese a que algunas tienen precios bastante elevados. - Lo mismo ocurre con la variable “MasVnrArea”, existen un grupo de casas de la categoría 2 con precios elevados y relativamente bajo valor de esta variable - Las casas de categoría 1 y 2 en general tienen más area habitable, de segundo piso y de sótano “finalizado” o útil.</p>
 <p>Ahora intentaremos utilizar otro algoritmo de clústering distinto, DBSCAN, basado en agrupamiento espacial basado en densidad. No obstante, debido a la naturaleza de los datos, no hemos sido capaces de dividir este dataset en más de 1 cluster distinto, por mucho que hemos jugado como parámetros.</p>
 <p><img src="Cluster_files/figure-html/unnamed-chunk-33-1.png" width="672" /><img src="Cluster_files/figure-html/unnamed-chunk-33-2.png" width="672" /><img src="Cluster_files/figure-html/unnamed-chunk-33-3.png" width="672" /></p>
 

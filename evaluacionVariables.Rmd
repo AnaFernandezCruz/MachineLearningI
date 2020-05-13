@@ -39,6 +39,9 @@ datasetTestEvaluacionBaratos <- datasetTestEvaluacion %>% filter(GrupoPrecio == 
 
 En esta parte de la práctica, intentaremos evaluar cuáles son las variables que más influyen en el precio de una casa. Además, como nuestro objetivo es obtener las variables que son más significativas para distinguir las casas que consideramos "baratas" de las consideradas como "caras", intentaremos realizar el alterior análisis restringidos a las poblaciones de cada una de las familias de casas. Como se verá en el posterior análisis de los clusters que forman estas casas, pondremos el umbral de decisión para distinguir casas baratas de caras en un precio de unos 250000 dólares.
 
+Al hacer esta división nos encontramos con un dataset muy desbalanceado. El número de casas que superan en su precio de venta este valor no llegan al 5%.
+
+
 Para hacer una primera estimación de las variables a utilizar en nuestros modelos, generaremos varios ramdon-forest intentando predecir la variable "SalePrice" con los dataset obtenidos en el paso anterior (casas baratas, casas caras y todas las casas). Comenzaremos por realizar este proceso sobre el conjunto de todas las casas y dibujaremos un gráfico resultado de generar el random-forest que nuestra una idea de lo importante que es una variable en el resultado final. Esta importancia muestra de forma aproximada (en valor medio para todos los árboles generados en el random-forest) el efecto en la precisión de la regresión (a través de su RMS) al eliminar la varible del conjunto de variables del modelo. El resultado es el siguiente:
 
  
@@ -60,15 +63,9 @@ dataframeTestImportantesCaros <- readRDS("dataframeTestImportantesCaros.rds")
 arbol_visualizacion_caros <- readRDS("arbol_visualizacion_caros.rds")
 
 
-set.seed(2018)
-arbol_visualizacion <- randomForest(x= datasetTrainTestEvaluacion %>% dplyr::select(-excludedVarsEvaluacion), y=datasetTrainTestEvaluacion$SalePrice, ntree=100,importance=TRUE)
-varImportantes <- importance(arbol_visualizacion)
-dataframeTestImportantes <- data.frame(Variables = row.names(varImportantes), MSE = varImportantes[,1])
-dataframeTestImportantes <- dataframeTestImportantes[order(dataframeTestImportantes$MSE, decreasing = TRUE),]
-
 
 set.seed(2018)
-arbol_visualizacion_caroBarato <- randomForest(x= datasetTrainTestEvaluacion %>% dplyr::select(-excludedVarsEvaluacion), y=datasetTrainTestEvaluacion$GrupoPrecio, ntree=100,importance=TRUE)
+arbol_visualizacion_caroBarato <- randomForest(x= datasetTrainTestEvaluacion %>% dplyr::select(-excludedVarsEvaluacion) , y=datasetTrainTestEvaluacion$GrupoPrecio, ntree=100,importance=TRUE)
 varImportantes <- importance(arbol_visualizacion_caroBarato)
 dataframeTestImportantes <- data.frame(Variables = row.names(varImportantes), MSE = varImportantes[,1])
 dataframeTestImportantes <- dataframeTestImportantes[order(dataframeTestImportantes$MSE, decreasing = TRUE),]
@@ -78,7 +75,7 @@ dataframeTestImportantes <- dataframeTestImportantes[order(dataframeTestImportan
 ggplot(dataframeTestImportantes[1:30,], aes(x=reorder(Variables, MSE), y=MSE, fill=MSE)) + geom_bar(stat = 'identity') + labs(x = 'Variables', y= '% incremento en MSE si que quita aleatoriamente del dataframe la Variable para todas las casas') + coord_flip() + theme(legend.position="none")
 ```
 
-En el se muestran que las variables que tienen más impacto a la hora de decidir el precio de una casa son las que tienen que ver en primer lugar con las diversas áreas de las zonas en las que se descompone una casas, el vecindario, el tipo de casa, el año de construcción, el numero medio de habitaciones, el numero de baños. Las variables que describen calidades y propiedades de los materiales de construcción, características del garage y del sótano, la condición de la casa evaluada por quien construyó el dataset tienen menos importancia y casi todas contribuyen de la misma forma al incremento en la precisión del proceso de regresión del precio.
+En el se muestran que las variables que tienen más impacto a la hora de decidir el precio de una casa son las que tienen que ver con el vecindario, las diversas superficies de las zonas en las que se descompone una casas, los materiales utilizadons en la fachada, el tipo de casa, la valoración realizada por la inmobilaria del estado de la casa, y el área del garaje. Variables que tienen que ver con las calidades y superficie de las áreas no habitables (porche, garaje, sótano, etc.) parecen tener una importancia menor.
 
 Ahora realizaremos el mismo proceso pero haciendo que el random forest intente clasificar la división entre precios caros y baratos que hemos hecho de momento artificialmente:
 
@@ -94,8 +91,7 @@ dataframeTestImportantes <- dataframeTestImportantes[order(dataframeTestImportan
 ggplot(dataframeTestImportantes[1:30,], aes(x=reorder(Variables, MSE), y=MSE, fill=MSE)) + geom_bar(stat = 'identity') + labs(x = 'Variables', y= '% incremento en MSE si que quita aleatoriamente del dataframe la Variable para todas las casas') + coord_flip() + theme(legend.position="none")
 ```
 
-   En el caso del análisis de la división entre casas baratas y caras muestra que la variable más importante es el vecindario, seguida por las superficies del sótano, el tipo de casa, el tipo de materiales utilizados en las fachadas, las calidades en las cocinas y la calidad
-general de la casa evaluada por el vendedor. Las diversas superficies de habitaciones, pisos parecen en este caso menos significativas, así como el año de construcción. Todas estas variables tenemos que tenerlas muy en cuenta a la hora de construir el modelo de predicción. 
+   Los resultados obtenidos son muy similares al anterior caso. 
 
 
 
@@ -109,9 +105,9 @@ ggplot(dataframeTestImportantesBaratos[1:30,], aes(x=reorder(Variables, MSE), y=
 
 ```
 
- En este primer modelo, a diferencia del anterior, cobran más importancia las variables que modelan el vecindario, el estilo arquitectónico de la casa, características del entorno urbano en el que se encuentran, características como el numero de baños, etc. Cobra aquí mucha más importancia la variable 'LotArea' frente a la superficie habitable de la casa.
+ En este modelo, a diferencia del anterior, cobran menos importancia las variables que modelan el vecindario,  características del entorno urbano en el que se encuentran, características como el numero de baños, etc. Cobra aquí mucha más importancia la variable 'LotArea' frente a la superficie habitable de la casa, así como el número medio de habitaciones.
 
-    Ahora realizaremos el procedimiento anterior sobre las casas clasificadas como "caras":
+  Ahora realizaremos el procedimiento anterior sobre las casas clasificadas como "caras":
     
 ```{r  message=FALSE, warning=FALSE, echo=FALSE}
 
@@ -121,5 +117,14 @@ ggplot(dataframeTestImportantesCaros[1:30,], aes(x=reorder(Variables, MSE), y=MS
 
    En este tipo de casas cobra más importancia el area habitable de la misma, el área y calidades del sótano y la variable 'OverallQual', que es una medida de la calidad de los materiales utilizados en la construccion. Otras variables importantes son el número de baños y el número de coches que caben en el garaje (correlacionado con la superficie el mismo). Las calidades de los distintos tipos de habitáculos dentro de una casa cobran más importancia que las superficies de las mismas. Las variables que tienen que ver con los vecindarios en los que están, el estilo arquitectónico, etc. tienen mucha menos imporancia en este tipo de casas, lo que indican claramente que están situadas en unos pocos vecindarios dentro del dataset. El año de construcción y el tamaño del "Lot" tampoco parecen tener mucha importancia, lo que indica que todas estas casas tienen estas características muy similares.
    
+   Una vez realizado este análisis, las variables que consideramos más relevantes para distinguir las casas consideradas "caras" de las "baratas" son las siguientes:
+   
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+
+var_modelo_clasificador <- readRDS("var_modelo_clasificador.rds")
+
+var_modelo_clasificador
+
+```
    
 

@@ -3,7 +3,8 @@ title: "Cluster"
 ---
 
 ```{r  message=FALSE, warning=FALSE, echo=FALSE}
-
+library(knitr)
+library(kableExtra)
 library(mgcv)
 library(car)
 library(parallel)
@@ -138,18 +139,20 @@ gower_mat_modelo_clasificador <- as.matrix(gower_dist_modelo_clasificador)
 
 # Output most similar pair
 
-dataSetClustering[
+kable(dataSetClustering[
   which(gower_mat == min(gower_mat[gower_mat != min(gower_mat)]),
-        arr.ind = TRUE)[1, ], ]
+        arr.ind = TRUE)[1, ], ]) %>% kable_styling() %>%
+  scroll_box(width = "100%", height = "200px")
 
 ```
 
  Mostraremos también los elementos más similares para el dataset limitado a las variables que mejor parecen discriminar entre precios baratos y caros:
 
 ```{r  message=FALSE, warning=FALSE, echo=FALSE}
-dataSetClusteringModeloClasificador[
+kable(dataSetClusteringModeloClasificador[
   which(gower_mat_modelo_clasificador == min(gower_mat_modelo_clasificador[gower_mat_modelo_clasificador != min(gower_mat_modelo_clasificador)]),
-        arr.ind = TRUE)[1, ], ]
+        arr.ind = TRUE)[1, ], ])  %>% kable_styling() %>%
+  scroll_box(width = "100%", height = "200px")
 
 ```
 
@@ -157,18 +160,20 @@ dataSetClusteringModeloClasificador[
 
 ```{r  message=FALSE, warning=FALSE, echo=FALSE}
 
-dataSetClustering[
+kable(dataSetClustering[
   which(gower_mat == max(gower_mat[gower_mat != max(gower_mat)]),
-        arr.ind = TRUE)[1, ], ]
+        arr.ind = TRUE)[1, ], ])  %>% kable_styling() %>%
+  scroll_box(width = "100%", height = "200px")
 ```
 
   Y teniendo en cuenta ahora las variables seleccionadas como más relevantes para distinguir casas baratas de casas caras:
 
 ```{r  message=FALSE, warning=FALSE, echo=FALSE}
 
-dataSetClusteringModeloClasificador[
+kable(dataSetClusteringModeloClasificador[
   which(gower_mat_modelo_clasificador == max(gower_mat_modelo_clasificador[gower_mat_modelo_clasificador != max(gower_mat_modelo_clasificador)]),
-        arr.ind = TRUE)[1, ], ]
+        arr.ind = TRUE)[1, ], ])  %>% kable_styling() %>%
+  scroll_box(width = "100%", height = "200px")
 
 ```
 
@@ -371,9 +376,9 @@ fancyRpartPlot(tree.1)
 #rpart.rules(tree.1)
 ```
 
-    Como vemos con claridad, las principales variables que han participado en este proceso han sido: el año de construcción, la superficie de la segunda planta, los materiales utilizados en la fachada y por último el vecindario en el que se encuentran dichas casas.  La mayoría de las casas caras (categorías 1 y 2) han sido construidas entre los años 1980 y 1990 y pertenecen a unos vecindarios muy concretos y con unos tipos de materiales en la fachada muy específicos. La diferencia entre los grupos 1 y 2 se encuentra en la superficie de la segunda planta, siendo todas las casas construidos en el grupo 2 también en la década de los 80.
+  Como vemos con claridad, las principales variables que han participado en este proceso han sido: el año de construcción, la superficie de la segunda planta, los materiales utilizados en la fachada y por último el vecindario en el que se encuentran dichas casas.  La mayoría de las casas caras (categorías 1 y 2) han sido construidas entre los años 1980 y 1990 y pertenecen a unos vecindarios muy concretos y con unos tipos de materiales en la fachada muy específicos. La diferencia entre los grupos 1 y 2 se encuentra en la superficie de la segunda planta, siendo todas las casas construidos en el grupo 2 también en la década de los 80.
     
-    Repetiremos este mismo proceso teniendo únicamente las variables seleccinadas para el modelo de clasificación. El resultado es el que se muestra a continuación:
+  Repetiremos este mismo proceso teniendo únicamente las variables seleccinadas para el modelo de clasificación. El resultado es el que se muestra a continuación:
 
 
 ```{r  message=FALSE, warning=FALSE, echo=FALSE}
@@ -461,7 +466,7 @@ Como vemos las variables que ha seleccionado principalmente el algoritmo de clú
   
  
  
-```{r} 
+```{r message=FALSE, warning=FALSE, echo=FALSE} 
 library(scales)
 library(gridExtra)
 
@@ -482,12 +487,12 @@ grid.arrange(gr1, gr1_1)
 
 ```
 
-    Observamos que hay 3 vecindarios (NoRidge, NrtdgHt y StoneBr) en el cual el precio medio de las casa es sustancialmente más caro , así como el valor máximo de las mismas. En estos vecindarios hay principalmente casas de categoría de clustering "1" y "2", aunque hay algunas de tipo 4 en StoneBR. En el resto de vecindarios la media es significativamente menor, habiendo 3 vecindarios "collgrCr, Crawfor y Gilber" en las que se mezclan categorías 1,2 y 3 pero con precios máximos significativamente menores a los de los barrios comentados con anterioridad.
+  Observamos que hay 3 vecindarios (NoRidge, NrtdgHt y StoneBr) en el cual el precio medio de las casa es sustancialmente más caro , así como el valor máximo de las mismas. En estos vecindarios hay principalmente casas de categoría de clustering "1" y "2", aunque hay algunas de tipo 4 en StoneBR. En el resto de vecindarios la media es significativamente menor, habiendo 3 vecindarios "collgrCr, Crawfor y Gilber" en las que se mezclan categorías 1,2 y 3 pero con precios máximos significativamente menores a los de los barrios comentados con anterioridad.
 
 
   Realizaremos este mismo análisis para el año de construccion. las siguientes dos gráficas muestran la media de precio por década en la que se contruyó y el valor máximo del precio por cada una de las décadas:
 
-```{r} 
+```{r message=FALSE, warning=FALSE, echo=FALSE} 
 gr2 <- ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(fill=cluster_result, y=exp(SalePrice), x=YearBuilt)) + 
     geom_bar(position="dodge", stat='summary', fun.y = "mean" ,width = 0.7) +
     theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
@@ -504,12 +509,13 @@ gr2_1 <- ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(data
 grid.arrange(gr2, gr2_1)
 
 ```
+  
   La gráfica de la media no nos da mucha información, pero vemos claramente en la otra gráfica que, efectivamente, en las décadas de los 80 y 90 aparecen una gran cantidad de casas clasificada en los grupos 1 y 2, que contienen casas con precio máximo más significativo. En la década de 1900-1910 aparece alguna casa de categoría 3 (clasificada como "barata") que desmiente que todas las casas de esta categoría son necesariamente baratas. Durante el resto de los años sí que se construyeron algunas casas consideradas como "caras" pero con un valor mucho menor en el precio máximo. Y generalmente, estas casas, son de categoría 1,2 y 3.
 
 
   Realizaremos este mismo análisis para la variable "vecindario". las siguientes dos gráficas muestran la media de precio por vecindario en la que se contruyó y el valor máximo del precio por cada uno de estos vecindarios:
 
-```{r} 
+```{r message=FALSE, warning=FALSE, echo=FALSE} 
 
 
 gr3 <- ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(fill=cluster_result, y=exp(SalePrice), x=MSSubClass)) + 
@@ -534,7 +540,7 @@ grid.arrange(gr3, gr3_1)
   
   A continuación mostraremos una gráfica con el valor máximo de la casa según los materiales utilizados en la fachada, para ver si esta varible, tal y como nos dice unos de los procesos de clusterización, es relevanta para distinguir las casas baratas de las caras.
 
-```{r} 
+```{r message=FALSE, warning=FALSE, echo=FALSE} 
 
 gr4 <- ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(fill=cluster_result, y=exp(SalePrice), x=Exterior1st)) + 
     geom_bar(position="dodge", stat='summary', fun.y = "max",width = 0.7) +
@@ -550,7 +556,7 @@ gr4
   
   Y por último, realizaremos una gráfica con la variable "Calidad de la casa evaluada en una escala de 0 a 10".
 
-```{r} 
+```{r message=FALSE, warning=FALSE, echo=FALSE} 
 
 gr5 <- ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(fill=cluster_result, y=exp(SalePrice), x=OverallQual)) + 
     geom_bar(position="dodge", stat='summary', fun.y = "max",width = 0.7) +
@@ -567,7 +573,7 @@ gr5
    Ahora dibujaremos un gráfico que muestra diversas variables que muestran superficies numéricas de las casas en función de las categorías realizadas por el algoritmo de clústering con las variables seleccionadas para nuestro modelo:
 
 
-```{r} 
+```{r message=FALSE, warning=FALSE, echo=FALSE} 
 
 
 p1<-ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(x=LotArea , y=exp(SalePrice) ,group=cluster_result ,fill=cluster_result)) +
@@ -608,14 +614,11 @@ grid.arrange(p1, p2,p3,p4,p5,p6, ncol = 2)
 
 ``` 
 
-    En estas gráficas se observa clarament que:
-      * en cuanto al área del segundo piso, las categorías 1 y 2 tienen una superficie superior a 1000 (pies al cuadrado?) y hay un conjuto de casas con estas superficios con precios mucho más elevados que la media.
-      * Curiosamente, el área del garage todal es mucho menor para las casas de categoría 2 que las de 1, pese a que algunas tienen precios bastante elevados.
-      * Lo mismo ocurre con la variable "MasVnrArea", existen un grupo de casas de la categoría 2 con precios elevados y relativamente bajo valor de esta variable
-      * Las casas de categoría 1 y 2 en general tienen más area habitable, de segundo piso y de sótano "finalizado" o útil.
-
-
-
+ En estas gráficas se observa claramente que:
+  - En cuanto al área del segundo piso, las categorías 1 y 2 tienen una superficie superior a 1000 (pies al cuadrado?) y hay un conjuto de casas con estas superficios con precios mucho más elevados que la media.
+  - Curiosamente, el área del garage todal es mucho menor para las casas de categoría 2 que las de 1, pese a que algunas tienen precios bastante elevados.
+  - Lo mismo ocurre con la variable "MasVnrArea", existen un grupo de casas de la categoría 2 con precios elevados y relativamente bajo valor de esta variable
+  - Las casas de categoría 1 y 2 en general tienen más area habitable, de segundo piso y de sótano "finalizado" o útil.
 
    Ahora intentaremos utilizar otro algoritmo de clústering distinto, DBSCAN, basado en agrupamiento espacial basado en densidad. No obstante, debido a la naturaleza de los datos, no hemos sido capaces de dividir este dataset en más de 1 cluster distinto, por mucho que hemos jugado como parámetros.
   

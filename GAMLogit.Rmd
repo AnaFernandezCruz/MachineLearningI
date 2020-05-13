@@ -237,7 +237,7 @@ library(pROC)
  
 
 ```{r message=FALSE, warning=FALSE}
-pesos_modelo <- ifelse(dataSetTrainGAMLogistic$GrupoPrecio == "Barato",
+pesos_modelo <- ifelse(dataSetTrainGAMLogistic$GrupoPrecio == "Caro",
                         (1/table(dataSetTrainGAMLogistic$GrupoPrecio)[1]) * 0.5,
                         (1/table(dataSetTrainGAMLogistic$GrupoPrecio)[2]) * 0.5)
 
@@ -266,20 +266,23 @@ modeloGAMLogisticRegressionCarosCaret_pesos <- train(formulaClasificadorCaret,
 
 
 library(DMwR)
+
+dataSetTrainGAMLogisticSMOTE <- SMOTE(GrupoPrecio ~ ., as.data.frame(dataSetTrainGAMLogistic), perc.over = 20000, perc.under=100)
+trainFolds_full <- createFolds(dataSetTrainGAMLogisticSMOTE$GrupoPrecio, k = 10)
 myControlSmote <- trainControl(method = "repeatedcv",
                      number = 10,
                      repeats = 5,
                      summaryFunction = twoClassSummary,
                      classProbs = TRUE,
                      index = trainFolds_full,
-                     savePredictions = TRUE,
-                     sampling = "smote"
+                     savePredictions = TRUE #,
+                     #sampling = "smote"
                      )
 
 myControlSmote$seeds <- prediccionModeloTestCaret$control$seeds
 
 modeloGAMLogisticRegressionCarosCaret_smote <- train(formulaClasificadorCaret,
-                      data = dataSetTrainGAMLogistic,
+                      data = dataSetTrainGAMLogisticSMOTE,
                       method = "gamSpline",
                       family=binomial(link="logit"),
                       verbose = FALSE,
@@ -292,6 +295,42 @@ modeloGAMLogisticRegressionCarosCaret_smote <- train(formulaClasificadorCaret,
 ```
 
 
+ Ahora generaremos un nuevo modelo utilizando como técnica de generación sintética de muestras ROSE:
+
+```{r message=FALSE, warning=FALSE}
+
+
+library(ROSE)
+
+dataSetTrainGAMLogisticROSE <- ROSE(GrupoPrecio ~ ., as.data.frame(dataSetTrainGAMLogistic),seed = 1)$data
+trainFolds_full <- createFolds(dataSetTrainGAMLogisticROSE$GrupoPrecio, k = 10)
+myControlROSE <- trainControl(method = "repeatedcv",
+                     number = 10,
+                     repeats = 5,
+                     summaryFunction = twoClassSummary,
+                     classProbs = TRUE,
+                     index = trainFolds_full,
+                     savePredictions = TRUE #,
+                     #sampling = "smote"
+                     )
+
+myControlROSE$seeds <- prediccionModeloTestCaret$control$seeds
+
+modeloGAMLogisticRegressionCarosCaret_rose <- train(formulaClasificadorCaret,
+                      data = dataSetTrainGAMLogisticROSE,
+                      method = "gamSpline",
+                      family=binomial(link="logit"),
+                      verbose = FALSE,
+                      metric = "ROC",
+                      trControl = myControlSmote)
+
+#prediccionModeloTestCaret_smote  <-   #predict(modeloGAMLogisticRegressionCarosCaret_smote,dataSetTestGAMLogistic,type="prob")
+
+
+```
+
+
+ Una vez obtenidos los modelos, los compararemos con las típicas curvas ROC (no son las mejores para la evaluación de datasets desbalanceados) y las curvas que enfrentran los parámetros precission/recall. El resultado es el que se muestra a continuación:
 
 
 ```{r message=FALSE, warning=FALSE, echo=FALSE}
@@ -305,7 +344,7 @@ calculate_roc <- function(modelo, test,umbralDecision){
 
 model_list <- list(original = modeloGAMLogisticRegressionCarosCaret,
                    weighted = modeloGAMLogisticRegressionCarosCaret_pesos,
-                   #rose = modeloGAMLogisticRegressionCarosCaret_rose,
+                   rose = modeloGAMLogisticRegressionCarosCaret_rose,
                    smote = modeloGAMLogisticRegressionCarosCaret_smote)
 
 
@@ -340,7 +379,7 @@ for(model_gam in model_list){
 results_df_roc <- bind_rows(results_list_roc)
 results_df_f1  <- bind_rows(results_list_f1)
 
-custom_col <- c("#000000", "#009E73", "#0072B2")
+custom_col <- c("#000000", "#009E73", "#0072B2","#006262")
 
 ggplot(aes(x = fpr,  y = tpr, group = model), data = results_df_roc) +
   geom_line(aes(color = model), size = 1) +
@@ -359,4 +398,7 @@ ggplot(aes(x = trec,  y = tprec, group = model), data =  results_df_f1) +
 saveRDS(modeloGAMLogisticRegressionCarosCaret_smote, "modeloGAMLogisticRegressionCarosCaret.rds")
 
 ```
+
+   Por lo tanto, de los 4 modelos generados y atendiendo a la curva precission/recall, elegiremos el modelo  "weighted" para pasar a la fase de comparación de modelos.
+
 
