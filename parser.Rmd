@@ -680,6 +680,8 @@ preProcValuesValidation <- preProcess(validation_sin_na  %>% dplyr::select(-Over
 #var_modelo = c( 'GrLivArea','LotArea','Total_Bathrooms','Total_porch_SF','#MSZoning','LandContour','LotConfig','Condition1','BldgType','HouseStyle','#RoofStyle','MasVnrType','Foundation','SaleType','SaleCondition','YearBuilt#','OverallQual','OverallCond','PavedDrive','Fence','BsmtFinSF1','Functiona#l','ExterQual','BsmtQual','BsmtExposure','BsmtFinType1','BsmtUnfSF','Centr#alAir','KitchenQual','Fireplaces','FireplaceQu','BedroomAbvGr','KitchenAbv#Gr','LotShape','GarageArea','GarageCond','Neighborhood','has2ndFloor','All#ey','TotalSF','GarageType','MasVnrArea','MSSubClass')
 
 var_modelo = setdiff(setdiff(setdiff(setdiff(colnames(datasetTrain),c('SalePrice')),var_eliminar_correlacion),c('PoolArea')),c('hasPool','hasFirePlaces','has2ndFloor'))
+saveRDS(var_modelo, "var_modelo.rds")
+
 
 var_modelo_with_SalePrice = c(var_modelo,'SalePrice')
 
@@ -728,6 +730,7 @@ dataframeTestImportantesBaratos <- data.frame(Variables = row.names(varImportant
 dataframeTestImportantesBaratos <- dataframeTestImportantesBaratos[order(dataframeTestImportantesBaratos$MSE, decreasing = TRUE),]
 
 saveRDS(dataframeTestImportantesBaratos, "dataframeTestImportantesBaratos.rds")
+saveRDS(arbol_visualizacion_baratos, "arbol_visualizacion_baratos.rds")
 
 arbol_visualizacion_caros <- randomForest(x=dataSetTrainTestCaros %>% dplyr::select(-excludedVars ), y=dataSetTrainTestCaros$SalePrice, ntree=100,importance=TRUE)
 varImportantesTest <- importance(arbol_visualizacion_caros)
@@ -735,14 +738,14 @@ dataframeTestImportantesCaros <- data.frame(Variables = row.names(varImportantes
 dataframeTestImportantesCaros <- dataframeTestImportantesCaros[order(dataframeTestImportantesCaros$MSE, decreasing = TRUE),]
 
 saveRDS(dataframeTestImportantesCaros, "dataframeTestImportantesCaros.rds")
+saveRDS(arbol_visualizacion_caros, "arbol_visualizacion_caros.rds")
 
 
 numero_variables_modelo_clasificador = 20
 
 var_modelo_clasificador =  setdiff(unique(union(dataframeTestImportantesBaratos[1:numero_variables_modelo_clasificador,1],dataframeTestImportantesCaros[1:numero_variables_modelo_clasificador,1])),var_eliminar_correlacion)
 
-#datasetTrain <- upSample(x = datasetTrain[, -ncol(datasetTrain)],
-#                     y = datasetTrain$GrupoPrecio)  
+saveRDS(var_modelo_clasificador, "var_modelo_clasificador.rds")
 
 #names(datasetTrain)[names(datasetTrain) == "Class"] <- "GrupoPrecio"  
 
