@@ -1,5 +1,6 @@
 ---
 title: "evaluacion variables"
+author: "Ana Fernández Cruz, Jesús Gallego Olivas y Miguel Ángel Sánchez Alcázar"
 output: html_document
 ---
 
@@ -53,6 +54,10 @@ datasetTrainTestEvaluacion <- dplyr::union(datasetTrainEvaluacion,datasetTestEva
 
 excludedVarsEvaluacion <- c('SalePrice','GrupoPrecio','TotalSF','MoSold','YrSold')
 
+dataframeTestImportantesBaratos <- readRDS("dataframeTestImportantesBaratos.rds")
+arbol_visualizacion_baratos <-  readRDS("arbol_visualizacion_baratos.rds")
+dataframeTestImportantesCaros <- readRDS("dataframeTestImportantesCaros.rds")
+arbol_visualizacion_caros <- readRDS("arbol_visualizacion_caros.rds")
 
 
 set.seed(2018)

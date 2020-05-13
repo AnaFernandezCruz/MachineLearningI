@@ -63,30 +63,34 @@ obtenFormulaGAM<-function(dataset,varPrincipal,modelo_continuas,variableNames,va
         for(variable in modelo_continuas) 
         {
           
-          numeroElementosDistintos = dim(unique(dataset[variable]))[1]
-          numeroK <- numeroElementosDistintos
-          if(numeroK > 9){
-            numeroK <- -1
-          }
+          if(!variable %in% variablesEliminarCorr) {
           
-          if(!variable  %in%  factores) {
-            if(grepl('^[0-9]', variable)) {
-               nuevoValor2 <- paste('s(X',variable,', k= ',numeroK,')',collapse='',sep = "")
-            } else {
-                nuevoValor2 <- paste('s(',variable,', k= ',numeroK,')')
-            }
-          } else {
-            if(grepl('^[0-9]', variable)) {
-               nuevoValor2 <- paste('X',variable,collapse='',sep = "")
-            } else {
-                nuevoValor2 <- paste(variable)
-            }
-            
-          }
-         
-          if(numeroElementosDistintos > 1 && ! variable %in% variablesEliminar ) {
-           
-            variablesFinal <- c(variablesFinal,nuevoValor2)
+              numeroElementosDistintos = dim(unique(dataset[variable]))[1]
+              numeroK <- numeroElementosDistintos
+              if(numeroK > 9){
+                numeroK <- -1
+              }
+              
+              if(!variable  %in%  factores) {
+                if(grepl('^[0-9]', variable)) {
+                   nuevoValor2 <- paste('s(X',variable,', k= ',numeroK,')',collapse='',sep = "")
+                } else {
+                    nuevoValor2 <- paste('s(',variable,', k= ',numeroK,')')
+                }
+              } else {
+                if(grepl('^[0-9]', variable)) {
+                   nuevoValor2 <- paste('X',variable,collapse='',sep = "")
+                } else {
+                    nuevoValor2 <- paste(variable)
+                }
+                
+              }
+             
+              if(numeroElementosDistintos > 1 && ! variable %in% variablesEliminar ) {
+               
+                variablesFinal <- c(variablesFinal,nuevoValor2)
+              }
+              
           }
   }
   #print(variablesFinal)
@@ -103,35 +107,39 @@ obtenFormulaGAMCaret <-function(dataset,varPrincipal,modelo_continuas,variableNa
         for(variable in modelo_continuas) 
         {
           
-          if(grepl('^[0-9]', variable)) {
-              numeroElementosDistintos = 999
-          } else {
-              numeroElementosDistintos = dim(unique(dataset[variable]))[1]
-          }
-          numeroK <- numeroElementosDistintos
-          if(numeroK > 9){
-            numeroK <- -1
-          }
+          if(!variable %in% variablesEliminarCorr) {
           
-          if(!variable  %in%  factores) {
-            #nuevoValor <- paste('s(',variable,',by = MSSubClass)')
-            if(grepl('^[0-9]', variable)) {
-                nuevoValor2 <- paste('X',variable,collapse='',sep = "")
-            } else {
-                nuevoValor2 <- paste(variable)
-            }
-          } else {
-             if(grepl('^[0-9]', variable)) {
-                  nuevoValor2 <- paste('X',variable,collapse='',sep = "")
-             } else {
-                  nuevoValor2 <- paste(variable)
-             }
-           
-          }
-         
-          
-          if(numeroElementosDistintos > 1 && ! variable %in% variablesEliminar ) {
-            variablesFinal <- c(variablesFinal,nuevoValor2)
+              if(grepl('^[0-9]', variable)) {
+                  numeroElementosDistintos = 999
+              } else {
+                  numeroElementosDistintos = dim(unique(dataset[variable]))[1]
+              }
+              numeroK <- numeroElementosDistintos
+              if(numeroK > 9){
+                numeroK <- -1
+              }
+              
+              if(!variable  %in%  factores) {
+                #nuevoValor <- paste('s(',variable,',by = MSSubClass)')
+                if(grepl('^[0-9]', variable)) {
+                    nuevoValor2 <- paste('X',variable,collapse='',sep = "")
+                } else {
+                    nuevoValor2 <- paste(variable)
+                }
+              } else {
+                 if(grepl('^[0-9]', variable)) {
+                      nuevoValor2 <- paste('X',variable,collapse='',sep = "")
+                 } else {
+                      nuevoValor2 <- paste(variable)
+                 }
+               
+              }
+             
+              
+              if(numeroElementosDistintos > 1 && ! variable %in% variablesEliminar ) {
+                variablesFinal <- c(variablesFinal,nuevoValor2)
+              }
+              
           }
   }
  

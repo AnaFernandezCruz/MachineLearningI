@@ -9,8 +9,6 @@ library(car)
 library(parallel)
 library(dplyr)
 
-
-
 datasetTrain <-  readRDS("datasetTrain.rds")
 datasetTest<-  readRDS("datasetTest.rds")
 validation_sin_na<-  readRDS("datasetValidation.rds")
@@ -18,12 +16,9 @@ datasetTrainTransformed<-  readRDS("datasetTrainTransformed.rds")
 datasetTestTransformed<-  readRDS("datasetTestTransformed.rds")
 validationTransformed<-  readRDS("validationTransformed.rds")
 
-names(datasetTrain) <- make.names(names(datasetTrain))
-names(datasetTest) <- make.names(names(datasetTrain))
-names(validation_sin_na) <- make.names(names(validation_sin_na))
-names(datasetTrainTransformed) <- make.names(names(datasetTrainTransformed))
-names(datasetTestTransformed) <- make.names(names(datasetTestTransformed))
-names(validationTransformed) <- make.names(names(validation_sin_na))
+var_modelo_clasificador <- readRDS("var_modelo_clasificador.rds")
+
+
 
 ```
 
@@ -35,30 +30,38 @@ library(clustertend)
 
 var_ordinales <- c('LotShape','Utilities','LandSlope','OverallQual','OverallCond','ExterQual','ExterCond','BsmtQual','BsmtCond','BsmtExposure','BsmtFinType1','BsmtFinType2','HeatingQC','CentralAir','Electrical','KitchenQual','Functional','FireplaceQu','GarageFinish','GarageQual','GarageCond','PavedDrive','PoolQC','Fence')
 
+
 columnas_continuas_clustering = c("LotArea","MasVnrArea","BsmtFinSF1","BsmtFinSF2","BsmtUnfSF" ,"TotalBsmtSF","X1stFlrSF","X2ndFlrSF","LowQualFinSF","GrLivArea", "GarageArea","WoodDeckSF","OpenPorchSF","EnclosedPorch","PoolArea","MiscVal","SalePrice")
 
+#,"TotRmsAbvGrd","GarageYrBlt","GarageCars"
 var_eliminar_correlacion = c("Street","Utilities","LandSlope","Condition2","BsmtFinSF2", 
-"LowQualFinSF","MiscFeature","MiscVal","TotRmsAbvGrd","GarageYrBlt","GarageCars")
+"LowQualFinSF","MiscFeature","MiscVal")
 
-var_modelo = setdiff(setdiff(setdiff(setdiff(colnames(datasetTrain),c('SalePrice')),var_eliminar_correlacion),c('PoolArea')),c('hasPool','hasFirePlaces','has2ndFloor','GrupoPrecio'))
+var_modelo <- readRDS("var_modelo.rds")
 
-#columnas_continuas_clustering = c("LotArea","MasVnrArea","BsmtFinSF1","BsmtFinSF2","BsmtUnfSF" ,"TotalBsmtSF","X1stFlrSF","X2ndFlrSF","LowQualFinSF","GrLivArea", #"GarageArea","WoodDeckSF","OpenPorchSF","EnclosedPorch","PoolArea","MiscVal","SalePrice")
+var_modelo_cluster = setdiff(setdiff(setdiff(setdiff(colnames(datasetTrain),c('SalePrice')),var_eliminar_correlacion),c('PoolArea')),c('hasPool','hasFirePlaces','has2ndFloor','GrupoPrecio'))
 
 columnas_continuas_clustering = c("LotArea","MasVnrArea","BsmtFinSF1","BsmtFinSF2","BsmtUnfSF" ,"TotalBsmtSF","LowQualFinSF","GrLivArea", "GarageArea","WoodDeckSF","OpenPorchSF","EnclosedPorch","PoolArea","MiscVal","SalePrice")
 
-var_modelo_with_SalePrice = c(var_modelo,'SalePrice')
+var_modelo_with_SalePrice_cluster = c(var_modelo_cluster,'SalePrice')
+var_modelo_clasificador_with_SalePrice = c(var_modelo_clasificador,'SalePrice','Exterior1st')
 
 
 
-dataSetClusteringContinuous  <-  union_all(datasetTrain,datasetTest) %>% na.omit() 
-dataSetClustering  <-  union_all(datasetTrain,datasetTest)  %>%  dplyr::select(c(var_modelo,'SalePrice'))    %>%  na.omit()
+dataSetClusteringContinuous  <-  dplyr::union_all(datasetTrain,datasetTest) %>% na.omit() 
+dataSetClusteringContinuous <-  dataSetClusteringContinuous  %>% dplyr::select(columnas_continuas_clustering)   %>%  na.omit()
 
+dataSetClustering  <-  union_all(datasetTrain,datasetTest)  %>%  dplyr::select(c(var_modelo_cluster,'SalePrice'))    %>%  na.omit()
+
+dataSetClusteringModeloClasificador  <-  dplyr::union_all(datasetTrain,datasetTest)  %>%  dplyr::select(c(var_modelo_clasificador,'SalePrice','Exterior1st'))    %>%  na.omit()
 
 dataSetTrainClustering  <-  datasetTrain  %>%  dplyr::select(c(var_modelo,'SalePrice'))  %>%  na.omit()
 dataSetTestClustering  <-  datasetTest  %>%  dplyr::select(c(var_modelo,'SalePrice'))  %>%  na.omit()
 dataSetValidationClustering  <-  validation_sin_na  %>%  dplyr::select(c(var_modelo,'SalePrice'))  %>%  na.omit()
 
-dataSetClusteringContinuous <-  dataSetClusteringContinuous  %>% dplyr::select(columnas_continuas_clustering)   %>%  na.omit() 
+#names(dataSetTrainClustering) <- make.names(names(datasetTrain))
+#names(dataSetTestClustering) <- make.names(names(datasetTrain))
+
 
 ```
 
@@ -85,7 +88,7 @@ En primer lugar, intentaremos realizar el clustering sólo sobre las variables c
 fviz_nbclust(dataSetClusteringContinuous, FUNcluster = kmeans, method = c("silhouette"), k.max = 20, nboot = 100,)
 ```
 
-  Este gráfico nos muestra que el valor óptimo se encuentra en 2. No obstante, elegiremos 3 grupos debido a que esta cantidad será la que salgo después a utilizar otra métrica que tiene en cuenta también las variables que son factores u ordinales. El gráfico con el resultado del proceso de clustering una vez realizado una descomposición PCA sobre el dataset y cogido las dos dimensiones más significativas es el siguiente:
+  Este gráfico nos muestra que el valor óptimo se encuentra en 2. No obstante, elegiremos 3 grupos por tener la anchura de la silueta un valor similar. El gráfico con el resultado del proceso de clustering una vez realizado una descomposición PCA sobre el dataset y cogido las dos dimensiones más significativas es el siguiente:
 
 ```{r  message=FALSE, warning=FALSE, echo=FALSE}
 
@@ -95,26 +98,42 @@ kmeansContinuousVariable <- eclust(dataSetClusteringContinuous, "kmeans", hc_met
 
 ```
 
-Ahora intentaremos realizar el proceso de clustering teniendo en cuenta también las variables cualitativas (tanto factoriales como ordinales). Para ello calcularemos una matriz de disimilaridad denominada "matriz de disimilaridad de Gower"
-
+Ahora intentaremos realizar el proceso de clustering teniendo en cuenta también las variables cualitativas (tanto factoriales como ordinales). Para ello calcularemos una matriz de disimilaridad denominada "matriz de disimilaridad de Gower". Lo haremos sobre el conjunto de todas las variables y el conjunto de variables candidatas obtenido en el paso anterior para nuestro modelo de discriminación de "casas caras" y "casas baratas".
 
 ```{r  message=FALSE, warning=FALSE, echo=FALSE}
 
+
 var_ordinales_modelo <- intersect(var_ordinales,var_modelo)
 var_asimetricas <- c('precio')
-
 gower_dist <- daisy(dataSetClustering,
                     metric = "gower",
                     stand = TRUE,
                     type = list(ordratio = var_ordinales_modelo))
                     
-summary(gower_dist)
+#summary(gower_dist)
 ```
 
- Una vez calculada esta matriz, obtendremos los elementos más parecidos para ver que los resultados son coherentes:
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+
+
+var_ordinales_modelo_clasificador <- intersect(var_ordinales,var_modelo_clasificador)
+var_asimetricas <- c('precio')
+gower_dist_modelo_clasificador <- daisy(dataSetClusteringModeloClasificador,
+                    metric = "gower",
+                    stand = TRUE,
+                    type = list(ordratio = var_ordinales_modelo_clasificador))
+                    
+#summary(gower_dist_modelo_clasificador)
+```
+
+
+
+ Una vez calculada estas matrices, obtendremos los elementos más parecidos para ver que los resultados son coherentes. En primer lugar realizaremos esta comprobación sobre el dataset completo sin filtrar, mostrando los elementos más similares:
 
 ```{r  message=FALSE, warning=FALSE, echo=FALSE}
 gower_mat <- as.matrix(gower_dist)
+gower_mat_modelo_clasificador <- as.matrix(gower_dist_modelo_clasificador)
 
 
 # Output most similar pair
@@ -122,9 +141,19 @@ gower_mat <- as.matrix(gower_dist)
 dataSetClustering[
   which(gower_mat == min(gower_mat[gower_mat != min(gower_mat)]),
         arr.ind = TRUE)[1, ], ]
+
 ```
 
-  Y también mostraremos los elementos más disimilares dentro del dataset:
+ Mostraremos también los elementos más similares para el dataset limitado a las variables que mejor parecen discriminar entre precios baratos y caros:
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+dataSetClusteringModeloClasificador[
+  which(gower_mat_modelo_clasificador == min(gower_mat_modelo_clasificador[gower_mat_modelo_clasificador != min(gower_mat_modelo_clasificador)]),
+        arr.ind = TRUE)[1, ], ]
+
+```
+
+  Ahora realizaremos el mismo proceso mostrando los elementos más disimilares dentro del dataset teniendo en cuenta todas las variables:
 
 ```{r  message=FALSE, warning=FALSE, echo=FALSE}
 
@@ -133,7 +162,17 @@ dataSetClustering[
         arr.ind = TRUE)[1, ], ]
 ```
 
-  Por último, obtendremos el gráfico número de clústeres/"Silouette with" para intentar ver cuál es el número óptimo de divisiones:
+  Y teniendo en cuenta ahora las variables seleccionadas como más relevantes para distinguir casas baratas de casas caras:
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+
+dataSetClusteringModeloClasificador[
+  which(gower_mat_modelo_clasificador == max(gower_mat_modelo_clasificador[gower_mat_modelo_clasificador != max(gower_mat_modelo_clasificador)]),
+        arr.ind = TRUE)[1, ], ]
+
+```
+
+  Por último, obtendremos el gráfico número de clústeres/"Silouette with" para intentar ver cuál es el número óptimo de divisiones, en primer lugar para todo el dataset:
 
 ```{r  message=FALSE, warning=FALSE, echo=FALSE}
 sil_width <- c(NA)
@@ -151,33 +190,59 @@ for(i in 2:10){
 # Plot sihouette width (higher is better)
 
 plot(1:10, sil_width,
-     xlab = "Número de clústeres",
+     xlab = "Número de clústeres para todas las variables",
      ylab = "Silhouette Width")
 lines(1:10, sil_width)
 
 ```
 
-Como vemos el número óptimo se encuentra en 3 elementos, que será el que elijamos como número de divisiones en nuestro dataset. A continuación utilizando esta matriz de disimilaridades y el proceso de clustering PAM, calcularemos a qué elemento dentro del cluster pertenece cada uno de los registros de nuestro dataset. 
+  Y ahora realizaremos el mismo gráfico para las variables más discriminatorias:
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+sil_width <- c(NA)
+
+for(i in 2:10){
+  
+  pam_fit <- pam(gower_dist_modelo_clasificador,
+                 diss = TRUE,
+                 k = i)
+  
+  sil_width[i] <- pam_fit$silinfo$avg.width
+  
+}
+
+# Plot sihouette width (higher is better)
+
+plot(1:10, sil_width,
+     xlab = "Número de clústeres para las variables más discriminatorias",
+     ylab = "Silhouette Width")
+lines(1:10, sil_width)
+
+```
+
+
+
+Como vemos el número óptimo se encuentra en 2 elementos para el dataset completo, y de 2 para el dataset con las variables a las que restringuremos el modelo de clasificación. No obstante, para analizar este último caso, elegiremos 4 variables. A continuación utilizando esta matriz de disimilaridades y el proceso de clustering PAM, calcularemos a qué elemento dentro del cluster pertenece cada uno de los registros de nuestro dataset. 
 
 
 ```{r  message=FALSE, warning=FALSE, echo=FALSE}
 
 pam_fit <- pam(gower_dist, diss = TRUE, k = 3)
+pam_fit_modelo_clasificador <- pam(gower_dist_modelo_clasificador, diss = TRUE, k = 4)
 
 
 ```
 
 
-A continuación realizaremos un proceso de reducción de dimensionalidad a 2 dimensiones utilizando el algoritmo TSNE para hacernos una idea más clara de la forma que tienen estas agrupaciones. El resultado parece un poco extraño porque, aunque se ve que sí que hay 3 agrupaciones, la forma en la que se han colocado los puntos parece indicar que existe la posibilidad de generar 4 grupos.
+A continuación realizaremos un proceso de reducción de dimensionalidad a 2 dimensiones utilizando el algoritmo TSNE para hacernos una idea más clara de la forma que tienen estas agrupaciones. En primer lugar realizaremos el proceso en sobre todas las variables del dataset, obteniendo el siguiente resultado:
 
 ```{r  message=FALSE, warning=FALSE, echo=FALSE}
 
-
 library(Rtsne)
-
 
 set.seed(123)
 tsne_obj <- Rtsne(gower_dist, is_distance = TRUE)
+
 
 tsne_data <- tsne_obj$Y %>%
   data.frame() %>%
@@ -185,25 +250,74 @@ tsne_data <- tsne_obj$Y %>%
   mutate(cluster = factor(pam_fit$clustering),
          name = dataSetClustering$SalePrice)
 
-ggplot(aes(x = X, y = Y), data = tsne_data) +
-  geom_point(aes(color = cluster))
+
+
+tsne_obj_modelo_clasificador <- Rtsne(gower_dist_modelo_clasificador, is_distance = TRUE, perplexity = 60, exaggeration_factor = 100)
+
+tsne_data_modelo_clasificador <- tsne_obj_modelo_clasificador$Y %>%
+  data.frame() %>%
+  setNames(c("X", "Y")) %>%
+  mutate(cluster = factor(pam_fit_modelo_clasificador$clustering),
+         name = dataSetClusteringModeloClasificador$SalePrice)
 
 
 
 ```
 
-  Ahora intentaremos interpretar el resultado de este proceso de clustering. Para ello, en un primer momento observaremos si esta segmentación ha sido realizada teniendo el precio de cada casa como variable principal
+
+ Ahora intentaremos interpretar el resultado de este proceso de clustering. Para ello, en un primer momento observaremos si esta segmentación ha sido realizada teniendo el precio de cada casa como variable principal
 
 ```{r  message=FALSE, warning=FALSE, echo=FALSE}
 
 ggplot(tsne_data, aes(cluster, name, colour = cluster)) + 
-  geom_point()
+  geom_point() + geom_hline(yintercept=12.5, linetype="dashed", color = "red")
 
 ```
 
-  Lo que vemos en el anterior gráfico es que los elementos pertenecientes al primer cluster tienen un precio mucho mayor en media que los del segundo y tercero. No se observan diferencias significativas en el precio de los segundos y terceros grupos, por lo que esta clasificación a priori no nos permite dividir las casas en 3 tipos distinguidos por precio.
 
- El siguiente código realiza un cálculo de los estadísticos principales de cada una de las variables agrupadas por valor resultante del cluster.
+  Observamos que las casas de tipo 1 y tipo 2 tienen casi toda la población de casas denominadas "caras" (además de otros tipo de casas con inferior precio pero aun así superior en la mayor parte de los casos a la media del grupo 3) y el grupo 3 tiene únicamente casas baratas.
+
+   Ahora dibujaremos el resultado del proceso de reducción de dimensionalidad del dataset con la variable resultado del proceso de clústering sobr el plano:
+
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+
+ggplot(aes(x = X, y = Y), data = tsne_data) +
+  geom_point(aes(color = cluster))
+
+```
+
+   El proceso de clustering, dejando aparte las pequeñas islas que aparecen, sí que parece habér discriminado bien en las 3 clases distintas. No obstante, se obserba que las casas del tipo "1" aparecen también con profusión en las de tipo "2", y las de tipo "2" en las de tipo "1".  Como veremos, las poblaciones de tipo "1" y "2" encierran todas las casas clasificadadas como caras, y eso no es preocupante. Lo preocupante es que según este gráfico, algunas casas de tipo "1" aparecen junto a las casas de tipo 3. Esas muy posiblemente sean casas de categoría "barata" que han sido mal clasificadas por el algoritmo de clustering. Lo mismo ocurre con las de clase 2 pero en menor medida.
+
+
+  Realizaremos el mismo proceso limitándonos a las variables que hemos considerado más relevantes para distinguir las casas que denominamos "caras" de las baratas. En un primer momento dibujaremos el mismo diagrama que compara la distribución de precios en función del resultado del proceso de clustering:
+  
+  
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+
+ggplot(tsne_data_modelo_clasificador, aes(cluster, name, colour = cluster)) + 
+  geom_point() + geom_hline(yintercept=12.5, linetype="dashed", color = "red")
+```    
+  
+
+ Lo que comprobamos ahora es que en la categoría de "casas baratas" ha aparecido un nuevo grupo que no se ha hecho evidente al utilizar todas las variables del dataset. Como en el anterior caso, las categorías 1 y 2 son las que tienen casas de mayor valor.
+ 
+ Como antes, realizaremos la proyección en el plano de los elementos del dataset con las variables que únicamente consideraremos en nuestro modelo.
+
+
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+
+
+
+ggplot(aes(x = X, y = Y), data = tsne_data_modelo_clasificador) +
+  geom_point(aes(color = cluster))
+
+
+```
+
+ 
+  Al hacer esta división sí que se observa una mayor separación de los elementos que contienen las casas "caras", y se observa que aparecen dos islas en los grupos 3 y 4, que únicamente tienen casas clasificadas como baratas.Sigue habiendo ciertos puntos de los grupos 1 y 2 que se mezclan con los grupos 3 y 4, pero ahora parece que esa mezcla es menos pronunciada.
+  
 
 ```{r  message=FALSE, warning=FALSE, echo=FALSE}
 
@@ -214,19 +328,24 @@ dataSetClustering_withClusterField <- dataSetClustering %>%
 
 dataSetClustering_withClusterField$cluster_result <- as.factor(dataSetClustering_withClusterField$cluster_result)
 
-pam_results <- dataSetClustering_withClusterField %>%
-  group_by(cluster_result) %>%
-  do(the_summary = summary(.))
+#pam_results <- dataSetClustering_withClusterField %>%
+#  group_by(cluster_result) %>%
+#  do(the_summary = summary(.))
 
-#pam_results$the_summary
 
+
+dataSetClusteringModeloClasificador_withClusterField <- dataSetClusteringModeloClasificador %>%
+  mutate(cluster_result = pam_fit_modelo_clasificador$clustering) 
+
+dataSetClusteringModeloClasificador_withClusterField$cluster_result <- as.factor(dataSetClusteringModeloClasificador_withClusterField$cluster_result)
 
 
 
 
 ```
+ 
 
- Para ayudar a la interpretación de los resultados, construiremos un árbol de decision teniendo como objetivo del mismo el resultado del proceso de clústering.
+ Para ayudar a la interpretación de los resultados obtenidos por el proceso de clustering y ver de forma más clara el criterio que ha seguido dicho algoritmo, construiremos un árbol de decision teniendo como objetivo del mismo el resultado del proceso de clústering. En primer lugar lo haremos sobre el dataset completo. El resultado es el siguiente:
 
 
 ```{r  message=FALSE, warning=FALSE, echo=FALSE}
@@ -242,8 +361,9 @@ library(caret)
 #output.tree <- ctree(
 #  cluster_result ~ . , 
 #  data = dataSetClustering_withClusterField)
+# ,control=rpart.control(cp=0,minsplit = 70)
 
-tree.1 <- rpart(cluster_result ~ .,data=dataSetClustering_withClusterField,control=rpart.control(cp=0,minsplit = 70))
+tree.1 <- rpart(cluster_result ~ .,data=dataSetClustering_withClusterField)
 
 prp(tree.1) 										
 fancyRpartPlot(tree.1)
@@ -251,9 +371,25 @@ fancyRpartPlot(tree.1)
 #rpart.rules(tree.1)
 ```
 
+    Como vemos con claridad, las principales variables que han participado en este proceso han sido: el año de construcción, la superficie de la segunda planta, los materiales utilizados en la fachada y por último el vecindario en el que se encuentran dichas casas.  La mayoría de las casas caras (categorías 1 y 2) han sido construidas entre los años 1980 y 1990 y pertenecen a unos vecindarios muy concretos y con unos tipos de materiales en la fachada muy específicos. La diferencia entre los grupos 1 y 2 se encuentra en la superficie de la segunda planta, siendo todas las casas construidos en el grupo 2 también en la década de los 80.
+    
+    Repetiremos este mismo proceso teniendo únicamente las variables seleccinadas para el modelo de clasificación. El resultado es el que se muestra a continuación:
 
-  Ahora intentaremos obtener de una forma más legible las reglas de decisión que son equivalentes al árbol resultante para hacer más legible los resultados.
 
+```{r  message=FALSE, warning=FALSE, echo=FALSE}
+
+tree.2 <- rpart(cluster_result ~ .,data=dataSetClusteringModeloClasificador_withClusterField)
+
+prp(tree.2) 										
+fancyRpartPlot(tree.2)
+
+
+```
+
+    El resultado es similar al obtenido con anterioridad con una diferencia. Al no tener las variables elegidas aquella  que indica el tipo de materiales, el algoritmo en su lugar ha elegido como variable sustitutiva el estilo arquitectónico de la casa. En este caso vemos que las casas de tipo 1 y 2 han sido construidas en la década de los 80 pero pertenecen a estilos arquitectónicos distintos.  Sigue siendo tremendamente discriminante el vecindario. Las clasas de categoría 3 pertenecen en su mayor parte a los vecindarios mostrados en el árbol, y la diferencia entre las casas de categoría 3 y 4 están en la superficie del sótano, en el vecindario y en el estilo arquitectónico de las mismas.  Algunas casas caras del tipo 1 con elevadoas superficies del segundo piso, aparecen mezcladas entre las casas de tipo 3 y 4, pero aun así hay una diferencia entre estos dos grupos: en la superfice de sótano finalizado.
+ 
+ 
+ 
 
 ```{r  message=FALSE, warning=FALSE, echo=FALSE}
 
@@ -287,82 +423,224 @@ rp_pred <- distinct(rp_pred[seq(1,dim(rp_pred)[1]),c(1,3) ])
 
 tablaReglas01 <- rp_pred %>% dplyr::filter(response == 1) %>%  dplyr::select(rule)
 
-tablaReglas01 %>% kable( "html", align = "c") %>%
-  kable_styling(full_width = F) %>%
-  column_spec(1, width = "30em", background = "white")
+
+#tablaReglas01 %>% kable( "html", align = "c") %>%
+#  kable_styling(full_width = F) %>%
+#  column_spec(1, width = "30em", background = "white")
 
 
 ```
-
-
 
 ```{r  message=FALSE, warning=FALSE, echo=FALSE}
 tablaReglas02 <- rp_pred %>% dplyr::filter(response == 2) %>%  dplyr::select(rule)
 
-tablaReglas02 %>% kable( "html", align = "c") %>%
-  kable_styling(full_width = F) %>%
-  column_spec(1, width = "30em", background = "white")
+#tablaReglas02 %>% kable( "html", align = "c") %>%
+#  kable_styling(full_width = F) %>%
+#  column_spec(1, width = "30em", background = "white")
 
 ```
 
-
+  
 ```{r  message=FALSE, warning=FALSE, echo=FALSE}
 tablaReglas02 <- rp_pred %>% dplyr::filter(response == 3) %>%  dplyr::select(rule)
-tablaReglas02 %>% kable( "html", align = "c") %>%
-  kable_styling(full_width = F) %>%
-  column_spec(1, width = "30em", background = "white")
+#tablaReglas02 %>% kable( "html", align = "c") %>%
+#  kable_styling(full_width = F) %>%
+#  column_spec(1, width = "30em", background = "white")
 
 ```
 
 
-   Ahora intentaremos utilizar otro algoritmo de clústering distinto, DBSCAN, basado en agrupamiento espacial basado en densidad. No obstante, debido a la naturaleza de los datos, no hemos sido capaces de dividir este dataset en 3 clústeres distintos por mucho que hemos jugado con los parámetros.
+Como vemos las variables que ha seleccionado principalmente el algoritmo de clústering para ayudar a discriminar las casas baratas de las caras son:
+- El año de construcción: discierne entre construcciones en la década de los 80 de casas más antíguas, que  parecen indicar unos tipos de edificios históricos específico
+- El vecindario: muchas de las casas más caras parecen estar concentradas en unos pocos vecindarios. Y cuando estas casas aparecen en vecindarios más probres, lo hacen con unos estilos arquitectónicos y superficies de la segunda planta máyores.
+ - El estilo arquitectónico.
+ - Los materiales de las fachadas.
+	   
+
+ Realizaremos una serie de gráficas para corroborar estas hipótesis. En primer lugar, las siguientes dos gráficas muestran: la media de precio por vecindario (primera gráfica) y el valor máximo del precio por vecindario:
+  
+ 
+ 
+```{r} 
+library(scales)
+library(gridExtra)
+
+gr1 <-ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(fill=cluster_result, y=exp(SalePrice), x=Neighborhood )) + 
+    geom_bar(position="dodge", stat='summary', fun.y = "mean",width = 0.7) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_y_continuous(breaks= seq(0, 1800000, by=60000), labels = comma)  +
+        geom_hline(yintercept=250000, linetype="dashed", color = "red")
+
+
+gr1_1 <-ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(fill=cluster_result, y=exp(SalePrice), x=Neighborhood )) + 
+    geom_bar(position="dodge", stat='summary', fun.y = "max",width = 0.7) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_y_continuous(breaks= seq(0, 1800000, by=60000), labels = comma)  +
+        geom_hline(yintercept=250000, linetype="dashed", color = "red")
+
+grid.arrange(gr1, gr1_1)
+
+```
+
+    Observamos que hay 3 vecindarios (NoRidge, NrtdgHt y StoneBr) en el cual el precio medio de las casa es sustancialmente más caro , así como el valor máximo de las mismas. En estos vecindarios hay principalmente casas de categoría de clustering "1" y "2", aunque hay algunas de tipo 4 en StoneBR. En el resto de vecindarios la media es significativamente menor, habiendo 3 vecindarios "collgrCr, Crawfor y Gilber" en las que se mezclan categorías 1,2 y 3 pero con precios máximos significativamente menores a los de los barrios comentados con anterioridad.
+
+
+  Realizaremos este mismo análisis para el año de construccion. las siguientes dos gráficas muestran la media de precio por década en la que se contruyó y el valor máximo del precio por cada una de las décadas:
+
+```{r} 
+gr2 <- ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(fill=cluster_result, y=exp(SalePrice), x=YearBuilt)) + 
+    geom_bar(position="dodge", stat='summary', fun.y = "mean" ,width = 0.7) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_y_continuous(breaks= seq(0, 1800000, by=60000), labels = comma)  +
+        geom_hline(yintercept=250000, linetype="dashed", color = "red")  
+
+
+gr2_1 <- ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(fill=cluster_result, y=exp(SalePrice), x=YearBuilt)) + 
+    geom_bar(position="dodge", stat='summary', fun.y = "max" ,width = 0.7) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_y_continuous(breaks= seq(0, 1800000, by=120000), labels = comma)  +
+        geom_hline(yintercept=250000, linetype="dashed", color = "red")  
+
+grid.arrange(gr2, gr2_1)
+
+```
+  La gráfica de la media no nos da mucha información, pero vemos claramente en la otra gráfica que, efectivamente, en las décadas de los 80 y 90 aparecen una gran cantidad de casas clasificada en los grupos 1 y 2, que contienen casas con precio máximo más significativo. En la década de 1900-1910 aparece alguna casa de categoría 3 (clasificada como "barata") que desmiente que todas las casas de esta categoría son necesariamente baratas. Durante el resto de los años sí que se construyeron algunas casas consideradas como "caras" pero con un valor mucho menor en el precio máximo. Y generalmente, estas casas, son de categoría 1,2 y 3.
+
+
+  Realizaremos este mismo análisis para la variable "vecindario". las siguientes dos gráficas muestran la media de precio por vecindario en la que se contruyó y el valor máximo del precio por cada uno de estos vecindarios:
+
+```{r} 
+
+
+gr3 <- ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(fill=cluster_result, y=exp(SalePrice), x=MSSubClass)) + 
+    geom_bar(position="dodge", stat='summary', fun.y = "mean",width = 0.7) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_y_continuous(breaks= seq(0, 1800000, by=60000), labels = comma)  +
+        geom_hline(yintercept=250000, linetype="dashed", color = "red")  
+
+
+
+gr3_1 <- ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(fill=cluster_result, y=exp(SalePrice), x=MSSubClass)) + 
+    geom_bar(position="dodge", stat='summary', fun.y = "max",width = 0.7) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_y_continuous(breaks= seq(0, 1800000, by=120000), labels = comma)  +
+        geom_hline(yintercept=250000, linetype="dashed", color = "red")  
+
+grid.arrange(gr3, gr3_1)
+
+```
+
+  La gráfica anterior (sobre todo la del valor máximo) parece indicar que hay 4 vecindarios en los se concentran las casas con mayor valor másimo, y que estan son principalmente de categorías 1 y 2, habiendo alguna excepción dentro las categorías 3 y 4, pero de menor valor que las de 1 y 2.
+  
+  A continuación mostraremos una gráfica con el valor máximo de la casa según los materiales utilizados en la fachada, para ver si esta varible, tal y como nos dice unos de los procesos de clusterización, es relevanta para distinguir las casas baratas de las caras.
+
+```{r} 
+
+gr4 <- ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(fill=cluster_result, y=exp(SalePrice), x=Exterior1st)) + 
+    geom_bar(position="dodge", stat='summary', fun.y = "max",width = 0.7) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_y_continuous(breaks= seq(0, 1800000, by=60000), labels = comma)  +
+        geom_hline(yintercept=250000, linetype="dashed", color = "red")  
+
+gr4
+
+```  
+
+  Se muestra en la anterior gráfica que, efectivamente, hay 6 materiales utilizados en casas de categoría 1 y 2 que podrían ser relevantes para ayudar a discriminar estas casas.
+  
+  Y por último, realizaremos una gráfica con la variable "Calidad de la casa evaluada en una escala de 0 a 10".
+
+```{r} 
+
+gr5 <- ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(fill=cluster_result, y=exp(SalePrice), x=OverallQual)) + 
+    geom_bar(position="dodge", stat='summary', fun.y = "max",width = 0.7) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_y_continuous(breaks= seq(0, 1800000, by=60000), labels = comma)  +
+        geom_hline(yintercept=250000, linetype="dashed", color = "red")  
+
+gr5
+
+```
+
+   Se muestra en esta gráfica que las categorías 1 y 2 tienen casas con valor máximo de precio que están en en rango de 7,5 a 10. Hay alguna casa de categoría 3 que tiene una valoración de 10 puntos y un valor muy elevado en el precio. Se observa también que los valores máximos de 0 a 7,5 son sustancialmente menores y hay casas de todos los tipos del cluster.
+   
+   Ahora dibujaremos un gráfico que muestra diversas variables que muestran superficies numéricas de las casas en función de las categorías realizadas por el algoritmo de clústering con las variables seleccionadas para nuestro modelo:
+
+
+```{r} 
+
+
+p1<-ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(x=LotArea , y=exp(SalePrice) ,group=cluster_result ,fill=cluster_result)) +
+  geom_boxplot( aes(color=cluster_result)) +
+    scale_y_continuous(breaks= seq(0, 1800000, by=60000), labels = comma)  +
+        geom_hline(yintercept=250000, linetype="dashed", color = "red") 
+
+p2<-ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(x=GrLivArea , y=exp(SalePrice) ,group=cluster_result ,fill=cluster_result)) +
+  geom_boxplot( aes(color=cluster_result)) +
+    scale_y_continuous(breaks= seq(0, 1800000, by=60000), labels = comma)  +
+        geom_hline(yintercept=250000, linetype="dashed", color = "red") 
+
+
+p3<-ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(x=`2ndFlrSF` , y=exp(SalePrice) ,group=cluster_result ,fill=cluster_result)) +
+  geom_boxplot( aes(color=cluster_result)) +
+    scale_y_continuous(breaks= seq(0, 1800000, by=60000), labels = comma)  +
+        geom_hline(yintercept=250000, linetype="dashed", color = "red") 
+
+p4<-ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(x=BsmtFinSF1 , y=exp(SalePrice) ,group=cluster_result ,fill=cluster_result)) +
+  geom_boxplot( aes(color=cluster_result)) +
+    scale_y_continuous(breaks= seq(0, 1800000, by=60000), labels = comma)  +
+        geom_hline(yintercept=250000, linetype="dashed", color = "red") 
+
+
+p5<-ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(x=MasVnrArea , y=exp(SalePrice) ,group=cluster_result ,fill=cluster_result)) +
+  geom_boxplot( aes(color=cluster_result)) +
+    scale_y_continuous(breaks= seq(0, 1800000, by=60000), labels = comma)  +
+        geom_hline(yintercept=250000, linetype="dashed", color = "red") 
+
+p6<-ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(x=GarageArea , y=exp(SalePrice) ,group=cluster_result ,fill=cluster_result)) +
+  geom_boxplot( aes(color=cluster_result)) +
+    scale_y_continuous(breaks= seq(0, 1800000, by=60000), labels = comma)  +
+        geom_hline(yintercept=250000, linetype="dashed", color = "red") 
+
+
+
+grid.arrange(p1, p2,p3,p4,p5,p6, ncol = 2)
+
+``` 
+
+    En estas gráficas se observa clarament que:
+      * en cuanto al área del segundo piso, las categorías 1 y 2 tienen una superficie superior a 1000 (pies al cuadrado?) y hay un conjuto de casas con estas superficios con precios mucho más elevados que la media.
+      * Curiosamente, el área del garage todal es mucho menor para las casas de categoría 2 que las de 1, pese a que algunas tienen precios bastante elevados.
+      * Lo mismo ocurre con la variable "MasVnrArea", existen un grupo de casas de la categoría 2 con precios elevados y relativamente bajo valor de esta variable
+      * Las casas de categoría 1 y 2 en general tienen más area habitable, de segundo piso y de sótano "finalizado" o útil.
+
+
+
+
+   Ahora intentaremos utilizar otro algoritmo de clústering distinto, DBSCAN, basado en agrupamiento espacial basado en densidad. No obstante, debido a la naturaleza de los datos, no hemos sido capaces de dividir este dataset en más de 1 cluster distinto, por mucho que hemos jugado como parámetros.
   
 
 ```{r  message=FALSE, warning=FALSE, echo=FALSE}
 library(fpc)
 library(dbscan)
 
-dbscan::kNNdistplot(gower_mat, k =  3)
+dbscan::kNNdistplot(gower_mat_modelo_clasificador, k =  4)
 abline(h = 0.15, lty = 2)
 
 #db <- fpc::dbscan(dataSetClusteringContinuous , eps = 1000, MinPts = 5, scale = TRUE)
 
 #plot(db, dataSetClusteringContinuous , main = "DBSCAN", frame = FALSE)
 
-db <- fpc::dbscan(gower_mat , eps = 2.1, MinPts = 5, scale = TRUE, 
+db <- fpc::dbscan(gower_mat_modelo_clasificador , eps = 1, MinPts = 5, scale = TRUE, 
        method = "dist")
 
-plot(db, gower_mat , main = "DBSCAN", frame = FALSE)
+plot(db, gower_mat_modelo_clasificador , main = "DBSCAN", frame = FALSE)
 
-hullplot(gower_mat, db$cluster)
-
-```
-
-  Y por último, pasaremos un algoritmo de clústering jerárquico para ver si tenemos resultados distintos a los obtenidos por KNN o por PAM. El resultado obtenido parece ser similar a los anteriores (y la gráfica obtenida más confusa):
-
-
-```{r train_test, message=FALSE, warning=FALSE}
-
-hclust_avg <- hclust(gower_dist,  method = 'complete')
-plot(hclust_avg)
-
-y_hc = cutree(hclust_avg, 3)
-
-clusplot(dataSetClustering,
-         y_hc,
-         lines = 0,
-         shade = TRUE,
-         color = TRUE,
-         labels= 2,
-         plotchar = FALSE,
-         span = TRUE,
-         main = paste('Clusters of customers'),
-         xlab = 'dimx',
-         ylab = 'dimy')
+hullplot(gower_mat_modelo_clasificador, db$cluster)
 
 ```
 
-
+ 
 
 
 
