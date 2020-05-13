@@ -16,26 +16,28 @@ svm_pca <- readRDS("svm_pca.rds")
 glm <- readRDS("glm.rds")
 rf <- readRDS("randomforest_nopca.rds")
 dt <- readRDS("house_tree_nopca.rds")
+gam <- readRDS("modeloGAMLogisticRegressionCarosCaret.rds")
+
 ```
 
 
 ```{r ,echo=FALSE,message=FALSE, warning=FALSE, fig.height=18, fig.width=18}
-res <- evalm(list(svm, svm_pca, knn, knn_pca, glm, rf, dt), gnames = c('svm','svm_pca','knn', 'knn_pca', 'glm','rf', 'dt'),rlinethick=0.8,fsize=30, showplots = TRUE , bins=20, plots = c("prg"))
+res <- evalm(list(svm, svm_pca, knn, knn_pca, glm, rf, dt,gam), gnames = c('svm','svm_pca','knn', 'knn_pca', 'glm','rf', 'dt','gam'),rlinethick=0.8,fsize=30, showplots = TRUE , bins=20, plots = c("prg"))
 
 ```
 
 ```{r ,echo=FALSE,message=FALSE, warning=FALSE, fig.height=18, fig.width=18}
-res <- evalm(list(svm, svm_pca, knn, knn_pca, glm, rf, dt), gnames = c('svm','svm_pca','knn', 'knn_pca', 'glm','rf', 'dt'),rlinethick=0.8,fsize=30, optimise="MCC", showplots = TRUE , bins=20, plots = c("pr"))
+res <- evalm(list(svm, svm_pca, knn, knn_pca, glm, rf, dt,gam), gnames = c('svm','svm_pca','knn', 'knn_pca', 'glm','rf', 'dt','gam'),rlinethick=0.8,fsize=30, optimise="MCC", showplots = TRUE , bins=20, plots = c("pr"))
 
 ```
 
 ```{r ,echo=FALSE,message=FALSE, warning=FALSE, fig.height=18, fig.width=18}
-res <- evalm(list(svm, svm_pca, knn, knn_pca, glm, rf, dt), gnames = c('svm','svm_pca','knn', 'knn_pca', 'glm','rf', 'dt'),rlinethick=0.8,fsize=30, optimise="MCC", showplots = TRUE , bins=20, plots = c("r"))
+res <- evalm(list(svm, svm_pca, knn, knn_pca, glm, rf, dt,gam), gnames = c('svm','svm_pca','knn', 'knn_pca', 'glm','rf', 'dt','gam'),rlinethick=0.8,fsize=30, optimise="MCC", showplots = TRUE , bins=20, plots = c("r"))
 
 ```
 
 ```{r ,echo=FALSE,message=FALSE, warning=FALSE, fig.height=18, fig.width=18}
-res <- evalm(list(svm, svm_pca, knn, knn_pca, glm, rf, dt), gnames = c('svm','svm_pca','knn', 'knn_pca', 'glm','rf', 'dt'),rlinethick=0.8,fsize=30, optimise="MCC", showplots = TRUE , bins=20, plots = c("cc"))
+res <- evalm(list(svm, svm_pca, knn, knn_pca, glm, rf, dt,gam), gnames = c('svm','svm_pca','knn', 'knn_pca', 'glm','rf', 'dt','gam'),rlinethick=0.8,fsize=30, optimise="MCC", showplots = TRUE , bins=20, plots = c("cc"))
 
 ```
 
