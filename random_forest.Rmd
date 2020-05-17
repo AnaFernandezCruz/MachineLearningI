@@ -225,7 +225,7 @@ set.seed(123)
 
 model_tunegrid <- expand.grid(.mtry= 51)
 rf_model_train <- train(GrupoPrecio ~ .,
-                       data = PCATrain,
+                       data = dataTrain,
                        method = "rf",
                        metric = "MCC",
                        tuneGrid = model_tunegrid,
@@ -242,7 +242,7 @@ model_nopca <- rf_model_train
 Evaluamos los resultados:
 ```{r message = FALSE, warning=FALSE}
 ##MATRIZ CONFUSION
-house.predmodel_nopca <- predict(model_nopca, newdata = XPCATest)
+house.predmodel_nopca <- predict(model_nopca, newdata = dataTest)
 table_rf <- table(house.predmodel_nopca, dataTest$GrupoPrecio)
 table_rf
 
@@ -272,8 +272,8 @@ error.rate_rf_nopca
 En este caso vemos que si usamos el dataset en el que NO hemos aplicado PCA el modelo sale considerablemente mejor si nos fijamos en la matriz de confusión, aunque podemos ver que tiene un error un poco más alto. 
 
 ```{r , message=FALSE, warning=FALSE, echo=TRUE}
-model_nopca_predict <- predict(model_nopca, newdata = XPCATest, type = "prob")
-model_nopca_predict$obs <- YPCATest
+model_nopca_predict <- predict(model_nopca, newdata = dataTest, type = "prob")
+model_nopca_predict$obs <- dataTest$GrupoPrecio
 model_nopca_predict$Group <- 'random_forest_no_pca'
 
 
