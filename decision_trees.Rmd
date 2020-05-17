@@ -9,7 +9,7 @@ En este punto vamos a aplicar los árboles de decisión a nuestro modelo. Los á
 
 Para empezar, cargamos nuestros datos. Los datos que vamos a utilizar es el dataframe antes de pasarlo por PCA. Esto es debido a que el fuerte del árbol de decisión es la explicatividad del mismo y el poder ver gráficamente las elecciones que va haciendo, como si fuera el quién es quién. Si lo hacemos con las dimensiones nuevas que nos proporciona el PCA perderíamos esta utilidad de los árboles de decisión ya que las dimensiones que nos proporciona el PCA no tienen sentido a nuestros ojos.
 
-```{r message = FALSE}
+```{r message = FALSE, warning=FALSE}
 library(class)
 library(dplyr)
 library(caret)
@@ -39,6 +39,7 @@ house.tree1 <- train(
                     x = dataTrain[, names(dataTrain) != "GrupoPrecio"],
                     y = dataTrain$GrupoPrecio,
                     method = "rpart",
+                    metric = "MCC",
                     parms = list(split = "information"),
                     trControl = trainControl(search = "random",
                                              method = "cv",
@@ -55,7 +56,7 @@ Si nos fijamos en el resultado que obtenemos cuando hacemos un print del árbol,
 El árbol estará más podado conforme el parámetro de complejidad sea más pequeño, por lo que en nuestro la biblioteca ha decidido quedarse con un árbol menos podado pero que nos da mayor porcentaje de accuracy (o acierto) en nuestro modelo.
 
 
-```{r message = FALSE, warning=FALSE}
+```{r message = FALSE, warning=FALSE, fig.width = 20, fig.height= 30}
 library(rattle)
 fancyRpartPlot(house.tree1$finalModel)
 ```
@@ -101,6 +102,7 @@ house.tree_pca <- train(
                     x = XPCATrain,
                     y = YPCATrain,
                     method = "rpart",
+                    metric = "MCC",
                     parms = list(split = "information"),
                     trControl = trainControl(search = "random",
                                              method = "cv",
@@ -154,8 +156,21 @@ Lo que vemos es que sale mejor modelo cuando no utilizamos pca y dejamos las var
 Además la matriz de confusión nos indica que predecimos mejor usando el modelo sin pca, aunque el valor de f1 sea mejor para el segundo modelo.
 
 ```{r , message=FALSE, warning=FALSE, echo=TRUE}
-res <- evalm(list(house.tree1,house.tree_pca),gnames = c('house.tree_nopca','house.tree_pca'))
+house.pred_p1 <- predict(house.tree1, newdata = dataTest, type = "prob")
+house.pred_p1$obs <- dataTest$GrupoPrecio
+house.pred_p1$Group <- 'decision_tree_no_pca'
+
+house.pred_pca_p1 <- predict(house.tree_pca, newdata = XPCATest, type = "prob")
+house.pred_pca_p1$obs <- YPCATest
+house.pred_pca_p1$Group <- 'decision_tree_pca'
+
+merged_results_rp <- rbind(house.pred_p1, house.pred_pca_p1)
+merged_results_rp$Group <- as.factor(merged_results_rp$Group)
+
+library(MLeval)
+res_rp <- evalm(merged_results_rp,plots='r',rlinethick=0.8,fsize=8,bins=8)
 ```
+
 Aunque con la curva ROC vemos que, efectivamente, son bastante similares. Así que preferiremos usar el modelo sin PCA porque así podemos seguir usando la característica de explicatividad que tienen este tipo de modelos.
 
 ```{r}
