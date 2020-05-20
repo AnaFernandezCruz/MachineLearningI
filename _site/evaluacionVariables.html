@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Ana Fernández Cruz, Jesús Gallego Olivas y Miguel Ángel Sánchez Alcázar" />
+
+
+<title>evaluacion variables</title>
+
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+</style>
+
+
+<style type="text/css">
+/* padding for bootstrap navbar */
+body {
+  padding-top: 51px;
+  padding-bottom: 40px;
+}
+/* offset scroll position for anchor links (for fixed navbar)  */
+.section h1 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h2 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h3 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h4 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h5 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h6 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #ffffff;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script>
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.parent().addClass('active');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "&#xe258;";
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">ML</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="Cluster.html">Clustering</a>
+</li>
+<li>
+  <a href="PCA.html">PCA</a>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+    Clasificadores
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="GAMLogit.html">GAM</a>
+    </li>
+    <li>
+      <a href="glm.html">GLM</a>
+    </li>
+    <li>
+      <a href="knn.html">KNN</a>
+    </li>
+    <li>
+      <a href="decision_trees.html">Decision Trees</a>
+    </li>
+    <li>
+      <a href="random_forest.html">Random Forest</a>
+    </li>
+    <li>
+      <a href="svm.html">SVM</a>
+    </li>
+  </ul>
+</li>
+<li>
+  <a href="GAM.html">GAM - regresión</a>
+</li>
+<li>
+  <a href="evaluacion.html">Evaluación</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div class="fluid-row" id="header">
+
+<div class="btn-group pull-right">
+<button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">evaluacion variables</h1>
+<h4 class="author">Ana Fernández Cruz, Jesús Gallego Olivas y Miguel Ángel Sánchez Alcázar</h4>
+
+</div>
+
+
+<p>En primer lugar cargaremos los datasets obtenidos en las fases anteriores del modelado de datos.</p>
+<pre class="r"><code>library(car)
+library(mgcv)
+library(parallel)
+library(dplyr)
+library(ggplot2)
+
+datasetTrainEvaluacion &lt;-  readRDS(&quot;datasetTrain.rds&quot;)
+datasetTestEvaluacion&lt;-  readRDS(&quot;datasetTest.rds&quot;)
+validation_sin_na_evaluacion&lt;-  readRDS(&quot;datasetValidation.rds&quot;)
+datasetTrainTransformedEvaluacion &lt;-  readRDS(&quot;datasetTrainTransformed.rds&quot;)
+datasetTestTransformedEvaluacion &lt;-  readRDS(&quot;datasetTestTransformed.rds&quot;)
+validationTransformedEvaluacion &lt;-  readRDS(&quot;validationTransformed.rds&quot;)
+
+names(datasetTrainEvaluacion) &lt;- make.names(names(datasetTrainEvaluacion))
+names(datasetTestEvaluacion) &lt;- make.names(names(datasetTrainEvaluacion))
+names(validation_sin_na_evaluacion) &lt;- make.names(names(validation_sin_na_evaluacion))
+names(datasetTrainTransformedEvaluacion) &lt;- make.names(names(datasetTrainTransformedEvaluacion))
+names(datasetTestTransformedEvaluacion) &lt;- make.names(names(datasetTestTransformedEvaluacion))
+names(validationTransformedEvaluacion) &lt;- make.names(names(validation_sin_na_evaluacion))
+
+
+datasetTrainEvaluacionCaros &lt;-  datasetTrainEvaluacion %&gt;% filter(GrupoPrecio == &#39;Caros&#39;)
+datasetTrainEvaluacionBaratos &lt;- datasetTrainEvaluacion %&gt;% filter(GrupoPrecio == &#39;Baratos&#39;)
+datasetTestEvaluacionCaros &lt;-  datasetTestEvaluacion %&gt;% filter(GrupoPrecio == &#39;Caros&#39;)
+datasetTestEvaluacionBaratos &lt;- datasetTestEvaluacion %&gt;% filter(GrupoPrecio == &#39;Baratos&#39;)</code></pre>
+<p>En esta parte de la práctica, intentaremos evaluar cuáles son las variables que más influyen en el precio de una casa. Además, como nuestro objetivo es obtener las variables que son más significativas para distinguir las casas que consideramos “baratas” de las consideradas como “caras”, intentaremos realizar el alterior análisis restringidos a las poblaciones de cada una de las familias de casas. Como se verá en el posterior análisis de los clusters que forman estas casas, pondremos el umbral de decisión para distinguir casas baratas de caras en un precio de unos 250000 dólares.</p>
+<p>Al hacer esta división nos encontramos con un dataset muy desbalanceado. El número de casas que superan en su precio de venta este valor no llegan al 5%.</p>
+<p>Para hacer una primera estimación de las variables a utilizar en nuestros modelos, generaremos varios ramdon-forest intentando predecir la variable “SalePrice” con los dataset obtenidos en el paso anterior (casas baratas, casas caras y todas las casas). Comenzaremos por realizar este proceso sobre el conjunto de todas las casas y dibujaremos un gráfico resultado de generar el random-forest que nuestra una idea de lo importante que es una variable en el resultado final. Esta importancia muestra de forma aproximada (en valor medio para todos los árboles generados en el random-forest) el efecto en la precisión de la regresión (a través de su RMS) al eliminar la varible del conjunto de variables del modelo. El resultado es el siguiente:</p>
+<pre class="r"><code>library(randomForest)
+library(ggplot2)
+
+
+datasetTrainTestEvaluacionBaratos &lt;- dplyr::union(datasetTrainEvaluacionBaratos,datasetTestEvaluacionBaratos) 
+datasetTrainTestEvaluacionCaros   &lt;- dplyr::union(datasetTrainEvaluacionCaros,datasetTestEvaluacionCaros) 
+datasetTrainTestEvaluacion &lt;- dplyr::union(datasetTrainEvaluacion,datasetTestEvaluacion) 
+
+excludedVarsEvaluacion &lt;- c(&#39;SalePrice&#39;,&#39;GrupoPrecio&#39;,&#39;TotalSF&#39;,&#39;MoSold&#39;,&#39;YrSold&#39;)
+
+dataframeTestImportantesBaratos &lt;- readRDS(&quot;dataframeTestImportantesBaratos.rds&quot;)
+arbol_visualizacion_baratos &lt;-  readRDS(&quot;arbol_visualizacion_baratos.rds&quot;)
+dataframeTestImportantesCaros &lt;- readRDS(&quot;dataframeTestImportantesCaros.rds&quot;)
+arbol_visualizacion_caros &lt;- readRDS(&quot;arbol_visualizacion_caros.rds&quot;)
+
+
+
+set.seed(2018)
+arbol_visualizacion_caroBarato &lt;- randomForest(x= datasetTrainTestEvaluacion %&gt;% dplyr::select(-excludedVarsEvaluacion) , y=datasetTrainTestEvaluacion$SalePrice, ntree=100,importance=TRUE)
+varImportantes &lt;- importance(arbol_visualizacion_caroBarato)
+dataframeTestImportantes &lt;- data.frame(Variables = row.names(varImportantes), MSE = varImportantes[,1])
+dataframeTestImportantes &lt;- dataframeTestImportantes[order(dataframeTestImportantes$MSE, decreasing = TRUE),]
+
+
+
+ggplot(dataframeTestImportantes[1:30,], aes(x=reorder(Variables, MSE), y=MSE, fill=MSE)) + geom_bar(stat = &#39;identity&#39;) + labs(x = &#39;Variables&#39;, y= &#39;% incremento en MSE si que quita aleatoriamente del dataframe la Variable para todas las casas&#39;) + coord_flip() + theme(legend.position=&quot;none&quot;)</code></pre>
+<p><img src="evaluacionVariables_files/figure-html/unnamed-chunk-2-1.png" width="672" /></p>
+<p>Si lo que intentamos es precedir el valor final de la casa (no si es barata y cara), lo que nos encontramos es que claramente son más importantes las variables que tienen que ver con el área de la casa habitable, el área del solar donde se encuentra la casa, el área habitable de las habitaciones de dicha casa y el tipo de garage. En este caso, el vecindario, el tipo de casa, la calificación del tasador en cuanto a el estado en que se encuentra dicha casa, la superficie del primer piso, etc. tienen un menor peso a la hora de evaluar el precio final mediante un proceso de regresión.</p>
+<p>Ahora realizaremos el mismo proceso pero haciendo que el random forest intente clasificar la división entre precios caros y baratos que hemos hecho de momento artificialmente:</p>
+<pre class="r"><code>set.seed(2018)
+arbol_visualizacion_caroBarato &lt;- randomForest(x= datasetTrainTestEvaluacion %&gt;% dplyr::select(-excludedVarsEvaluacion), y=datasetTrainTestEvaluacion$GrupoPrecio, ntree=100,importance=TRUE)
+varImportantes &lt;- importance(arbol_visualizacion_caroBarato)
+dataframeTestImportantes &lt;- data.frame(Variables = row.names(varImportantes), MSE = varImportantes[,1])
+dataframeTestImportantes &lt;- dataframeTestImportantes[order(dataframeTestImportantes$MSE, decreasing = TRUE),]
+
+
+
+ggplot(dataframeTestImportantes[1:30,], aes(x=reorder(Variables, MSE), y=MSE, fill=MSE)) + geom_bar(stat = &#39;identity&#39;) + labs(x = &#39;Variables&#39;, y= &#39;% incremento en MSE si que quita aleatoriamente del dataframe la Variable para todas las casas&#39;) + coord_flip() + theme(legend.position=&quot;none&quot;)</code></pre>
+<p><img src="evaluacionVariables_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
+<p>En el se muestran que las variables que tienen más impacto a la hora de decidir el precio de una casa AL ESTABLECER LA CATEGORIZACION EN CAROS Y BARATOS son las que tienen que ver con el vecindario, las diversas superficies de las zonas en las que se descompone una casas, los materiales utilizados en la fachada, el tipo de casa, la valoración realizada por la inmobilaria del estado de la casa, y el area del sotano y de las distintas plantas en la que se descompone la casa. Variables que tienen que ver con las calidades y superficie de las áreas no habitables excepto el sótano (porche, garaje, etc.) parecen tener una importancia menor.</p>
+<p>Realizaremos ahora el mismo procedimiento pero sobre únicamente la población de casas baratas. El resultado es el siguiente:</p>
+<pre class="r"><code>ggplot(dataframeTestImportantesBaratos[1:30,], aes(x=reorder(Variables, MSE), y=MSE, fill=MSE)) + geom_bar(stat = &#39;identity&#39;) + labs(x = &#39;Variables&#39;, y= &#39;incremento en MSE si que quita aleatoriamente del dataframe la Variable para las casas baratas&#39;) + coord_flip() + theme(legend.position=&quot;none&quot;)</code></pre>
+<p><img src="evaluacionVariables_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<p>En este modelo, a diferencia del anterior, cobran menos importancia las variables que modelan el vecindario, características del entorno urbano en el que se encuentran, características como el numero de baños, etc. Cobra aquí mucha más importancia la variable ‘LotArea’ frente a la superficie habitable de la casa, así como el número medio de habitaciones.</p>
+<p>Ahora realizaremos el procedimiento anterior sobre las casas clasificadas como “caras”:</p>
+<pre class="r"><code>ggplot(dataframeTestImportantesCaros[1:30,], aes(x=reorder(Variables, MSE), y=MSE, fill=MSE)) + geom_bar(stat = &#39;identity&#39;) + labs(x = &#39;Variables&#39;, y= &#39;incremento en MSE si que quita aleatoriamente del dataframe la Variable para las casas baratas&#39;) + coord_flip() + theme(legend.position=&quot;none&quot;)</code></pre>
+<p><img src="evaluacionVariables_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+<p>En este tipo de casas cobra más importancia el area habitable de la misma, el área y calidades del sótano y la variable ‘OverallQual’, que es una medida de la calidad de los materiales utilizados en la construccion. Otras variables importantes son el número de baños y el número de coches que caben en el garaje (correlacionado con la superficie el mismo). Las calidades de los distintos tipos de habitáculos dentro de una casa cobran más importancia que las superficies de las mismas. Las variables que tienen que ver con los vecindarios en los que están, el estilo arquitectónico, etc. tienen mucha menos imporancia en este tipo de casas, lo que indican claramente que están situadas en unos pocos vecindarios dentro del dataset. El año de construcción y el tamaño del “Lot” tampoco parecen tener mucha importancia, lo que indica que todas estas casas tienen estas características muy similares.</p>
+<p>Una vez realizado este análisis, las variables que consideramos más relevantes para distinguir las casas consideradas “caras” de las “baratas” son las siguientes:</p>
+<pre class="r"><code>var_modelo_clasificador &lt;- readRDS(&quot;var_modelo_clasificador.rds&quot;)
+
+var_modelo_clasificador</code></pre>
+<pre><code>##  [1] &quot;GrLivArea&quot;       &quot;LotArea&quot;         &quot;Neighborhood&quot;    &quot;BedroomAbvGr&quot;   
+##  [5] &quot;FullBath&quot;        &quot;MSSubClass&quot;      &quot;YearBuilt&quot;       &quot;2ndFlrSF&quot;       
+##  [9] &quot;1stFlrSF&quot;        &quot;MasVnrArea&quot;      &quot;OverallCond&quot;     &quot;BldgType&quot;       
+## [13] &quot;BsmtUnfSF&quot;       &quot;TotalBsmtSF&quot;     &quot;GarageType&quot;      &quot;Heating&quot;        
+## [17] &quot;HouseStyle&quot;      &quot;GarageArea&quot;      &quot;Total_porch_SF&quot;  &quot;OverallQual&quot;    
+## [21] &quot;BsmtQual&quot;        &quot;BsmtFinSF1&quot;      &quot;Total_Bathrooms&quot; &quot;LandContour&quot;    
+## [25] &quot;SaleCondition&quot;   &quot;KitchenQual&quot;</code></pre>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open')
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("hide" === "show");
+});
+</script>
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
