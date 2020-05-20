@@ -1,6 +1,8 @@
 ---
 title: "GAMLogit"
-output: html_document
+output: 
+   html_document:
+      code_folding: hide
 ---
 
 ```{r setup, include=FALSE}
@@ -9,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
   En primer lugar cargaremos los datasets necesarios para realizar el modelo.
 
-```{r  message=FALSE, warning=FALSE, echo=FALSE}
+```{r  message=FALSE, warning=FALSE}
 
 library(car)
 library(mgcv)
@@ -39,22 +41,25 @@ var_modelo_clasificador <- readRDS("var_modelo_clasificador.rds")
 Haremos un breve preprocesamiento para quitar outliers que se hayan podido colar, así como cambiar el nombre de algunas columnas para hacerlas compatibles con Caret.
 
 
-```{r  message=FALSE, warning=FALSE, echo=FALSE}
+```{r  message=FALSE, warning=FALSE}
 
 dataSetTrainGAMLogistic <-  readRDS('datasetTrainModeloClasificador.rds')   %>% filter( ! (exp(SalePrice) < 200000 &&exp(GrLivArea) > 4000  ))  %>% dplyr::select(-c('SalePrice'))  %>% na.omit()
 
 dataSetTestGAMLogistic <- readRDS('datasetTestModeloClasificador.rds')   %>% filter(! (exp(SalePrice) < 200000 &&exp(GrLivArea) > 4000  ))  %>% dplyr::select(-c('SalePrice'))  %>% na.omit()
 
+dataSetValidationGAMLogistic <- readRDS('datasetValidationModeloClasificador.rds')   
+
 names(dataSetTrainGAMLogistic) <- make.names(names(dataSetTrainGAMLogistic))
 names(dataSetTestGAMLogistic) <- make.names(names(dataSetTestGAMLogistic))
+names(dataSetValidationGAMLogistic) <- make.names(names(dataSetValidationGAMLogistic))
 
 variablesEliminarCorr <- c()
 
 ```
 
 
-```{r  message=FALSE, warning=FALSE, echo=FALSE}
-obtenFormulaGAM<-function(dataset,varPrincipal,modelo_continuas,variableNames,variablesEliminar=variablesEliminarCorr)
+```{r  message=FALSE, warning=FALSE}
+obtenFormulaGAM<-function(dataset,varPrincipal,modelo_continuas,variableNames,variablesEliminar=variablesEliminarCorr,normalizarNombresVariables = TRUE)
 {
   variablesFinal <- c()
   factores <- names(sapply(dataset,is.factor)[sapply(dataset,is.factor) == TRUE])
@@ -72,13 +77,13 @@ obtenFormulaGAM<-function(dataset,varPrincipal,modelo_continuas,variableNames,va
               }
               
               if(!variable  %in%  factores) {
-                if(grepl('^[0-9]', variable)) {
+                if(grepl('^[0-9]', variable) && normalizarNombresVariables) {
                    nuevoValor2 <- paste('s(X',variable,', k= ',numeroK,')',collapse='',sep = "")
                 } else {
                     nuevoValor2 <- paste('s(',variable,', k= ',numeroK,')')
                 }
               } else {
-                if(grepl('^[0-9]', variable)) {
+                if(grepl('^[0-9]', variable) && normalizarNombresVariables) {
                    nuevoValor2 <- paste('X',variable,collapse='',sep = "")
                 } else {
                     nuevoValor2 <- paste(variable)
@@ -98,7 +103,7 @@ obtenFormulaGAM<-function(dataset,varPrincipal,modelo_continuas,variableNames,va
 }
 
 
-obtenFormulaGAMCaret <-function(dataset,varPrincipal,modelo_continuas,variableNames,variablesEliminar=variablesEliminarCorr)
+obtenFormulaGAMCaret <-function(dataset,varPrincipal,modelo_continuas,variableNames,variablesEliminar=variablesEliminarCorr,normalizarNombresVariables = TRUE)
 {
   variablesFinal <- c()
   factores <- names(sapply(dataset,is.factor)[sapply(dataset,is.factor) == TRUE])
@@ -121,13 +126,13 @@ obtenFormulaGAMCaret <-function(dataset,varPrincipal,modelo_continuas,variableNa
               
               if(!variable  %in%  factores) {
                 #nuevoValor <- paste('s(',variable,',by = MSSubClass)')
-                if(grepl('^[0-9]', variable)) {
+                if(grepl('^[0-9]', variable) && normalizarNombresVariables) {
                     nuevoValor2 <- paste('X',variable,collapse='',sep = "")
                 } else {
                     nuevoValor2 <- paste(variable)
                 }
               } else {
-                 if(grepl('^[0-9]', variable)) {
+                 if(grepl('^[0-9]', variable) && normalizarNombresVariables) {
                       nuevoValor2 <- paste('X',variable,collapse='',sep = "")
                  } else {
                       nuevoValor2 <- paste(variable)
@@ -150,14 +155,14 @@ obtenFormulaGAMCaret <-function(dataset,varPrincipal,modelo_continuas,variableNa
 
 Una vez realizados los procesos anteriores, obtendremos con la siguiente función la fórmula del modelo con la que estamos trabajando en todos los algoritmos de clasificación para discriminar casas baratas y caras:
 
-```{r  message=FALSE, warning=FALSE, echo=FALSE}
+```{r  message=FALSE, warning=FALSE}
 
 #formulaClasificador  =  obtenFormulaGAM(dataSetTrainGAMLogistic,c('GrupoPrecio'),var_modelo_clasificador,variablesEliminarCorr) 
 formulaClasificadorCaret  =  obtenFormulaGAMCaret(dataSetTrainGAMLogistic,c('GrupoPrecio'),var_modelo_clasificador,variablesEliminarCorr)
 
 ```
 
-```{r  message=FALSE, warning=FALSE, echo=FALSE}
+```{r  message=FALSE, warning=FALSE}
 
 predictLogistic <- function(modelo,dataset,caret = FALSE )  {
 
@@ -209,7 +214,7 @@ modeloGAMLogisticRegressionCarosCaret <- train(formulaClasificadorCaret ,
                   data = dataSetTrainGAMLogistic,
                   method="gamSpline", 
                   family=binomial(link="logit"),
-                  metric = "ROC",
+                  metric = "MCC",
                   trControl=myControl)
 
 
@@ -220,7 +225,7 @@ modeloGAMLogisticRegressionCarosCaret <- train(formulaClasificadorCaret ,
 
  
 
-```{r message=FALSE, warning=FALSE, echo=FALSE}
+```{r message=FALSE, warning=FALSE}
 
 prediccionModeloTestCaret  <-   predict(modeloGAMLogisticRegressionCarosCaret,dataSetTestGAMLogistic,type="prob")
 
@@ -251,7 +256,7 @@ modeloGAMLogisticRegressionCarosCaret_pesos <- train(formulaClasificadorCaret,
                       family=binomial(link="logit"),
                       verbose = FALSE,
                       weights = pesos_modelo,
-                      metric = "ROC",
+                      metric = "MCC",
                       trControl = myControl)
 
 #prediccionModeloTestCaret_pesos  <-   #predict(modeloGAMLogisticRegressionCarosCaret_pesos,dataSetTestGAMLogistic,type="prob")
@@ -286,7 +291,7 @@ modeloGAMLogisticRegressionCarosCaret_smote <- train(formulaClasificadorCaret,
                       method = "gamSpline",
                       family=binomial(link="logit"),
                       verbose = FALSE,
-                      metric = "ROC",
+                      metric = "MCC",
                       trControl = myControlSmote)
 
 #prediccionModeloTestCaret_smote  <-   #predict(modeloGAMLogisticRegressionCarosCaret_smote,dataSetTestGAMLogistic,type="prob")
@@ -321,8 +326,9 @@ modeloGAMLogisticRegressionCarosCaret_rose <- train(formulaClasificadorCaret,
                       method = "gamSpline",
                       family=binomial(link="logit"),
                       verbose = FALSE,
-                      metric = "ROC",
-                      trControl = myControlSmote)
+                      metric = "MCC",
+                      trControl = myControlSmote
+                      )
 
 #prediccionModeloTestCaret_smote  <-   #predict(modeloGAMLogisticRegressionCarosCaret_smote,dataSetTestGAMLogistic,type="prob")
 
@@ -330,10 +336,14 @@ modeloGAMLogisticRegressionCarosCaret_rose <- train(formulaClasificadorCaret,
 ```
 
 
- Una vez obtenidos los modelos, los compararemos con las típicas curvas ROC (no son las mejores para la evaluación de datasets desbalanceados) y las curvas que enfrentran los parámetros precission/recall. El resultado es el que se muestra a continuación:
+ Una vez obtenidos los modelos, los compararemos con las típicas curvas ROC (no son las mejores para la evaluación de datasets desbalanceados) y las curvas que enfrentran los parámetros precission/recall. Todas estas evaluaciones se realizarón con el dataset de TEST. El resultado es el que se muestra a continuación:
 
 
-```{r message=FALSE, warning=FALSE, echo=FALSE}
+```{r message=FALSE, warning=FALSE}
+
+library(pROC) 
+library(ROCR) 
+
 calculate_roc <- function(modelo, test,umbralDecision){
   p <- predict(modelo,test, type = 'prob')
   tabela <- table(factor(ifelse(p[,2]>umbralDecision,'Caro','Barato'),
@@ -351,6 +361,7 @@ model_list <- list(original = modeloGAMLogisticRegressionCarosCaret,
 
 results_list_roc <- list(NA)
 results_list_f1 <- list(NA)
+results_list_mmc <- list(NA)
 num_mod <- 1
 for(model_gam in model_list){
   
@@ -365,12 +376,24 @@ for(model_gam in model_list){
   
   #roc2 <- roc  %>%  select(precision, recall)
   
-  resultParcial <- t(coords(the_roc, "all", ret = c("recall", "precision")))
+  resultParcial <- t(pROC::coords(the_roc, "all", ret = c("recall", "precision")))
   
   results_list_f1[[num_mod]] <- 
   data_frame(trec = resultParcial[,1],
                tprec = resultParcial[,2],
                model = names(model_list)[num_mod])
+  
+  
+  
+  p <- predict(model_gam,dataSetTestGAMLogistic, type = 'prob')
+  rf_test_pred <- prediction(p[ , 1], dataSetTestGAMLogistic$GrupoPrecio,
+           c('Barato', 'Caro'))
+  rf_test_mcc <- performance(rf_test_pred, 'mat')
+  results_list_mmc[[num_mod]] <- 
+  data_frame(xcutoff = rf_test_mcc@x.values[[1]],
+               ymathews = (-1)* rf_test_mcc@y.values[[1]],
+               model = names(model_list)[num_mod])
+  
   
   num_mod <- num_mod + 1
   
@@ -378,6 +401,7 @@ for(model_gam in model_list){
 
 results_df_roc <- bind_rows(results_list_roc)
 results_df_f1  <- bind_rows(results_list_f1)
+results_df_mcc  <- bind_rows(results_list_mmc)
 
 custom_col <- c("#000000", "#009E73", "#0072B2","#006262")
 
@@ -394,11 +418,46 @@ ggplot(aes(x = trec,  y = tprec, group = model), data =  results_df_f1) +
   #geom_abline(intercept = 0, slope = 1, color = "gray", size = 1) +
   theme_bw(base_size = 18)
 
+```
 
-saveRDS(modeloGAMLogisticRegressionCarosCaret_smote, "modeloGAMLogisticRegressionCarosCaret.rds")
+  Como vemos en las gráficas anteriores, el modelo que parece que da mejores resultados es el realizado con el proceso "ROSE" de generación sintética de datos para pasar a la fase de comparación de modelos.
+
+  Una vez elegido el modelo, queda corroborar esta decisión mediante la métrica de Mathews y comprobar si el valor elegido para el umbral de decisión de 0.5 para separar las clases es razonable. La siguiente gráfica corrobora estas dos afirmaciones.
+
+```{r message=FALSE, warning=FALSE}
+ggplot(aes(x = xcutoff,  y = ymathews, group = model), data =  results_df_mcc) +
+  geom_line(aes(color = model), size = 1) +
+  scale_color_manual(values = custom_col) +
+  #geom_abline(intercept = 0, slope = 1, color = "gray", size = 1) +
+  theme_bw(base_size = 18)
+
+
+saveRDS(modeloGAMLogisticRegressionCarosCaret_rose, "modeloGAMLogisticRegressionCarosCaret.rds")
 
 ```
 
-   Por lo tanto, de los 4 modelos generados y atendiendo a la curva precission/recall, elegiremos el modelo  "weighted" para pasar a la fase de comparación de modelos.
+
+ A continuación realizamos la evaluación final del modelo elegido con los datos de evaluación y dibujaremos la matriz de confusión para evaluar la calidad del clasificador obtenido.
+
+
+```{r message=FALSE, warning=FALSE}
+
+source("funcs.R")
+
+predictEvaluation <- predict(modeloGAMLogisticRegressionCarosCaret_rose,dataSetValidationGAMLogistic)
+cm <- caret::confusionMatrix(predictEvaluation, as.factor(dataSetValidationGAMLogistic$GrupoPrecio), mode = "prec_recall" )
+tab_test <- table(predictEvaluation, dataSetValidationGAMLogistic$GrupoPrecio, dnn = c("Actual", "Predichos"))
+draw_confusion_matrix(tab_test, "Actual", "Predichos")
+
+
+predictGAM <- predict(modeloGAMLogisticRegressionCarosCaret_rose,dataSetValidationGAMLogistic,type="prob") %>% na.omit()
+predictGAM$obs <- dataSetValidationGAMLogistic$GrupoPrecio 
+predictGAM$Group <- rep("gam",nrow(predictGAM))
+
+
+saveRDS(predictGAM, "preditGAM.rds")
+
+
+```
 
 
