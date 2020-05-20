@@ -1,8 +1,11 @@
 ---
 title: "Cluster"
+output: 
+   html_document:
+      code_folding: hide
 ---
 
-```{r  message=FALSE, warning=FALSE, echo=FALSE}
+```{r  message=FALSE, warning=FALSE}
 library(knitr)
 library(kableExtra)
 library(mgcv)
@@ -24,7 +27,7 @@ var_modelo_clasificador <- readRDS("var_modelo_clasificador.rds")
 ```
 
 
-```{r  message=FALSE, warning=FALSE, echo=FALSE}
+```{r  message=FALSE, warning=FALSE}
 library(cluster)
 library(factoextra)
 library(clustertend)
@@ -69,7 +72,7 @@ dataSetValidationClustering  <-  validation_sin_na  %>%  dplyr::select(c(var_mod
 Comenzaremos esta parte de a práctica explorando la capacidad que tiene nuestro dataset de ser segmentado calculando sobre el dataset un estadístico denominado "Estadístico de Hopkins" en el que, si tiene un valor cercano a uno y mayor de 0.5, indica que muy posiblemente el dataset pueda ser dividido en clusters de manera significativa.
 
 
-```{r  message=FALSE, warning=FALSE, echo=FALSE}
+```{r  message=FALSE, warning=FALSE}
 
 set.seed(123)
 res <- get_clust_tendency(scale(dataSetClusteringContinuous), n = nrow(dataSetClustering)-1)
@@ -77,7 +80,7 @@ res <- get_clust_tendency(scale(dataSetClusteringContinuous), n = nrow(dataSetCl
 
 Como vemos por el valor que tiene esta métrica, sí que parece que nuestro dataset pueda ser dividido en grupos.
 
-```{r  message=FALSE, warning=FALSE, echo=FALSE}
+```{r  message=FALSE, warning=FALSE}
 
 res$hopkins_stat
 
@@ -85,13 +88,13 @@ res$hopkins_stat
 
 En primer lugar, intentaremos realizar el clustering sólo sobre las variables contínuas o numéricas, ignormando las variables factoriales, debido a que se puede aplicar directamente sobre ellas la métrica euclidea y, por tanto, el algoritmo k-means.  En primer lugar intentaremos obtener el número óptimo de grupos que podemos formar mediante un gráfico de silueta:
 
-```{r  message=FALSE, warning=FALSE, echo=FALSE}
+```{r  message=FALSE, warning=FALSE}
 fviz_nbclust(dataSetClusteringContinuous, FUNcluster = kmeans, method = c("silhouette"), k.max = 20, nboot = 100,)
 ```
 
   Este gráfico nos muestra que el valor óptimo se encuentra en 2. No obstante, elegiremos 3 grupos por tener la anchura de la silueta un valor similar. El gráfico con el resultado del proceso de clustering una vez realizado una descomposición PCA sobre el dataset y cogido las dos dimensiones más significativas es el siguiente:
 
-```{r  message=FALSE, warning=FALSE, echo=FALSE}
+```{r  message=FALSE, warning=FALSE}
 
 kmeansContinuousVariable <- eclust(dataSetClusteringContinuous, "kmeans", hc_metric="euclidean", k=3 ,stand = TRUE)
 #res$plot + 
@@ -101,7 +104,7 @@ kmeansContinuousVariable <- eclust(dataSetClusteringContinuous, "kmeans", hc_met
 
 Ahora intentaremos realizar el proceso de clustering teniendo en cuenta también las variables cualitativas (tanto factoriales como ordinales). Para ello calcularemos una matriz de disimilaridad denominada "matriz de disimilaridad de Gower". Lo haremos sobre el conjunto de todas las variables y el conjunto de variables candidatas obtenido en el paso anterior para nuestro modelo de discriminación de "casas caras" y "casas baratas".
 
-```{r  message=FALSE, warning=FALSE, echo=FALSE}
+```{r  message=FALSE, warning=FALSE}
 
 
 var_ordinales_modelo <- intersect(var_ordinales,var_modelo)
@@ -115,7 +118,7 @@ gower_dist <- daisy(dataSetClustering,
 ```
 
 
-```{r  message=FALSE, warning=FALSE, echo=FALSE}
+```{r  message=FALSE, warning=FALSE}
 
 
 var_ordinales_modelo_clasificador <- intersect(var_ordinales,var_modelo_clasificador)
@@ -132,7 +135,7 @@ gower_dist_modelo_clasificador <- daisy(dataSetClusteringModeloClasificador,
 
  Una vez calculada estas matrices, obtendremos los elementos más parecidos para ver que los resultados son coherentes. En primer lugar realizaremos esta comprobación sobre el dataset completo sin filtrar, mostrando los elementos más similares:
 
-```{r  message=FALSE, warning=FALSE, echo=FALSE}
+```{r  message=FALSE, warning=FALSE}
 gower_mat <- as.matrix(gower_dist)
 gower_mat_modelo_clasificador <- as.matrix(gower_dist_modelo_clasificador)
 
@@ -148,7 +151,7 @@ kable(dataSetClustering[
 
  Mostraremos también los elementos más similares para el dataset limitado a las variables que mejor parecen discriminar entre precios baratos y caros:
 
-```{r  message=FALSE, warning=FALSE, echo=FALSE}
+```{r  message=FALSE, warning=FALSE}
 kable(dataSetClusteringModeloClasificador[
   which(gower_mat_modelo_clasificador == min(gower_mat_modelo_clasificador[gower_mat_modelo_clasificador != min(gower_mat_modelo_clasificador)]),
         arr.ind = TRUE)[1, ], ])  %>% kable_styling() %>%
@@ -158,7 +161,7 @@ kable(dataSetClusteringModeloClasificador[
 
   Ahora realizaremos el mismo proceso mostrando los elementos más disimilares dentro del dataset teniendo en cuenta todas las variables:
 
-```{r  message=FALSE, warning=FALSE, echo=FALSE}
+```{r  message=FALSE, warning=FALSE}
 
 kable(dataSetClustering[
   which(gower_mat == max(gower_mat[gower_mat != max(gower_mat)]),
@@ -168,7 +171,7 @@ kable(dataSetClustering[
 
   Y teniendo en cuenta ahora las variables seleccionadas como más relevantes para distinguir casas baratas de casas caras:
 
-```{r  message=FALSE, warning=FALSE, echo=FALSE}
+```{r  message=FALSE, warning=FALSE}
 
 kable(dataSetClusteringModeloClasificador[
   which(gower_mat_modelo_clasificador == max(gower_mat_modelo_clasificador[gower_mat_modelo_clasificador != max(gower_mat_modelo_clasificador)]),
@@ -179,7 +182,7 @@ kable(dataSetClusteringModeloClasificador[
 
   Por último, obtendremos el gráfico número de clústeres/"Silouette with" para intentar ver cuál es el número óptimo de divisiones, en primer lugar para todo el dataset:
 
-```{r  message=FALSE, warning=FALSE, echo=FALSE}
+```{r  message=FALSE, warning=FALSE}
 sil_width <- c(NA)
 
 for(i in 2:10){
@@ -203,7 +206,7 @@ lines(1:10, sil_width)
 
   Y ahora realizaremos el mismo gráfico para las variables más discriminatorias:
 
-```{r  message=FALSE, warning=FALSE, echo=FALSE}
+```{r  message=FALSE, warning=FALSE}
 sil_width <- c(NA)
 
 for(i in 2:10){
@@ -230,7 +233,7 @@ lines(1:10, sil_width)
 Como vemos el número óptimo se encuentra en 2 elementos para el dataset completo, y de 2 para el dataset con las variables a las que restringuremos el modelo de clasificación. No obstante, para analizar este último caso, elegiremos 4 variables. A continuación utilizando esta matriz de disimilaridades y el proceso de clustering PAM, calcularemos a qué elemento dentro del cluster pertenece cada uno de los registros de nuestro dataset. 
 
 
-```{r  message=FALSE, warning=FALSE, echo=FALSE}
+```{r  message=FALSE, warning=FALSE}
 
 pam_fit <- pam(gower_dist, diss = TRUE, k = 3)
 pam_fit_modelo_clasificador <- pam(gower_dist_modelo_clasificador, diss = TRUE, k = 4)
@@ -241,7 +244,7 @@ pam_fit_modelo_clasificador <- pam(gower_dist_modelo_clasificador, diss = TRUE, 
 
 A continuación realizaremos un proceso de reducción de dimensionalidad a 2 dimensiones utilizando el algoritmo TSNE para hacernos una idea más clara de la forma que tienen estas agrupaciones. En primer lugar realizaremos el proceso en sobre todas las variables del dataset, obteniendo el siguiente resultado:
 
-```{r  message=FALSE, warning=FALSE, echo=FALSE}
+```{r  message=FALSE, warning=FALSE}
 
 library(Rtsne)
 
@@ -272,10 +275,10 @@ tsne_data_modelo_clasificador <- tsne_obj_modelo_clasificador$Y %>%
 
  Ahora intentaremos interpretar el resultado de este proceso de clustering. Para ello, en un primer momento observaremos si esta segmentación ha sido realizada teniendo el precio de cada casa como variable principal
 
-```{r  message=FALSE, warning=FALSE, echo=FALSE}
+```{r  message=FALSE, warning=FALSE}
 
 ggplot(tsne_data, aes(cluster, name, colour = cluster)) + 
-  geom_point() + geom_hline(yintercept=12.5, linetype="dashed", color = "red")
+   geom_boxplot() + geom_hline(yintercept=12.5, linetype="dashed", color = "red")
 
 ```
 
@@ -285,7 +288,7 @@ ggplot(tsne_data, aes(cluster, name, colour = cluster)) +
    Ahora dibujaremos el resultado del proceso de reducción de dimensionalidad del dataset con la variable resultado del proceso de clústering sobr el plano:
 
 
-```{r  message=FALSE, warning=FALSE, echo=FALSE}
+```{r  message=FALSE, warning=FALSE}
 
 ggplot(aes(x = X, y = Y), data = tsne_data) +
   geom_point(aes(color = cluster))
@@ -298,10 +301,10 @@ ggplot(aes(x = X, y = Y), data = tsne_data) +
   Realizaremos el mismo proceso limitándonos a las variables que hemos considerado más relevantes para distinguir las casas que denominamos "caras" de las baratas. En un primer momento dibujaremos el mismo diagrama que compara la distribución de precios en función del resultado del proceso de clustering:
   
   
-```{r  message=FALSE, warning=FALSE, echo=FALSE}
+```{r  message=FALSE, warning=FALSE}
 
 ggplot(tsne_data_modelo_clasificador, aes(cluster, name, colour = cluster)) + 
-  geom_point() + geom_hline(yintercept=12.5, linetype="dashed", color = "red")
+  geom_boxplot() + geom_hline(yintercept=12.5, linetype="dashed", color = "red")
 ```    
   
 
@@ -310,7 +313,7 @@ ggplot(tsne_data_modelo_clasificador, aes(cluster, name, colour = cluster)) +
  Como antes, realizaremos la proyección en el plano de los elementos del dataset con las variables que únicamente consideraremos en nuestro modelo.
 
 
-```{r  message=FALSE, warning=FALSE, echo=FALSE}
+```{r  message=FALSE, warning=FALSE}
 
 
 
@@ -324,7 +327,7 @@ ggplot(aes(x = X, y = Y), data = tsne_data_modelo_clasificador) +
   Al hacer esta división sí que se observa una mayor separación de los elementos que contienen las casas "caras", y se observa que aparecen dos islas en los grupos 3 y 4, que únicamente tienen casas clasificadas como baratas.Sigue habiendo ciertos puntos de los grupos 1 y 2 que se mezclan con los grupos 3 y 4, pero ahora parece que esa mezcla es menos pronunciada.
   
 
-```{r  message=FALSE, warning=FALSE, echo=FALSE}
+```{r  message=FALSE, warning=FALSE}
 
 
 
@@ -353,7 +356,7 @@ dataSetClusteringModeloClasificador_withClusterField$cluster_result <- as.factor
  Para ayudar a la interpretación de los resultados obtenidos por el proceso de clustering y ver de forma más clara el criterio que ha seguido dicho algoritmo, construiremos un árbol de decision teniendo como objetivo del mismo el resultado del proceso de clústering. En primer lugar lo haremos sobre el dataset completo. El resultado es el siguiente:
 
 
-```{r  message=FALSE, warning=FALSE, echo=FALSE}
+```{r  message=FALSE, warning=FALSE}
 
 library(party)
 library(rattle)					# Fancy tree plot
@@ -381,7 +384,7 @@ fancyRpartPlot(tree.1)
   Repetiremos este mismo proceso teniendo únicamente las variables seleccinadas para el modelo de clasificación. El resultado es el que se muestra a continuación:
 
 
-```{r  message=FALSE, warning=FALSE, echo=FALSE}
+```{r  message=FALSE, warning=FALSE}
 
 tree.2 <- rpart(cluster_result ~ .,data=dataSetClusteringModeloClasificador_withClusterField)
 
@@ -396,7 +399,7 @@ fancyRpartPlot(tree.2)
  
  
 
-```{r  message=FALSE, warning=FALSE, echo=FALSE}
+```{r  message=FALSE, warning=FALSE}
 
 party_obj <- as.party.rpart(tree.1, data = TRUE)
 decisions <- partykit:::.list.rules.party(party_obj)
@@ -436,7 +439,7 @@ tablaReglas01 <- rp_pred %>% dplyr::filter(response == 1) %>%  dplyr::select(rul
 
 ```
 
-```{r  message=FALSE, warning=FALSE, echo=FALSE}
+```{r  message=FALSE, warning=FALSE}
 tablaReglas02 <- rp_pred %>% dplyr::filter(response == 2) %>%  dplyr::select(rule)
 
 #tablaReglas02 %>% kable( "html", align = "c") %>%
@@ -446,7 +449,7 @@ tablaReglas02 <- rp_pred %>% dplyr::filter(response == 2) %>%  dplyr::select(rul
 ```
 
   
-```{r  message=FALSE, warning=FALSE, echo=FALSE}
+```{r  message=FALSE, warning=FALSE}
 tablaReglas02 <- rp_pred %>% dplyr::filter(response == 3) %>%  dplyr::select(rule)
 #tablaReglas02 %>% kable( "html", align = "c") %>%
 #  kable_styling(full_width = F) %>%
@@ -466,7 +469,7 @@ Como vemos las variables que ha seleccionado principalmente el algoritmo de clú
   
  
  
-```{r message=FALSE, warning=FALSE, echo=FALSE} 
+```{r message=FALSE, warning=FALSE} 
 library(scales)
 library(gridExtra)
 
@@ -492,7 +495,7 @@ grid.arrange(gr1, gr1_1)
 
   Realizaremos este mismo análisis para el año de construccion. las siguientes dos gráficas muestran la media de precio por década en la que se contruyó y el valor máximo del precio por cada una de las décadas:
 
-```{r message=FALSE, warning=FALSE, echo=FALSE} 
+```{r message=FALSE, warning=FALSE} 
 gr2 <- ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(fill=cluster_result, y=exp(SalePrice), x=YearBuilt)) + 
     geom_bar(position="dodge", stat='summary', fun.y = "mean" ,width = 0.7) +
     theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
@@ -515,7 +518,7 @@ grid.arrange(gr2, gr2_1)
 
   Realizaremos este mismo análisis para la variable "vecindario". las siguientes dos gráficas muestran la media de precio por vecindario en la que se contruyó y el valor máximo del precio por cada uno de estos vecindarios:
 
-```{r message=FALSE, warning=FALSE, echo=FALSE} 
+```{r message=FALSE, warning=FALSE} 
 
 
 gr3 <- ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(fill=cluster_result, y=exp(SalePrice), x=MSSubClass)) + 
@@ -540,7 +543,7 @@ grid.arrange(gr3, gr3_1)
   
   A continuación mostraremos una gráfica con el valor máximo de la casa según los materiales utilizados en la fachada, para ver si esta varible, tal y como nos dice unos de los procesos de clusterización, es relevanta para distinguir las casas baratas de las caras.
 
-```{r message=FALSE, warning=FALSE, echo=FALSE} 
+```{r message=FALSE, warning=FALSE} 
 
 gr4 <- ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(fill=cluster_result, y=exp(SalePrice), x=Exterior1st)) + 
     geom_bar(position="dodge", stat='summary', fun.y = "max",width = 0.7) +
@@ -556,7 +559,7 @@ gr4
   
   Y por último, realizaremos una gráfica con la variable "Calidad de la casa evaluada en una escala de 0 a 10".
 
-```{r message=FALSE, warning=FALSE, echo=FALSE} 
+```{r message=FALSE, warning=FALSE} 
 
 gr5 <- ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(fill=cluster_result, y=exp(SalePrice), x=OverallQual)) + 
     geom_bar(position="dodge", stat='summary', fun.y = "max",width = 0.7) +
@@ -573,7 +576,7 @@ gr5
    Ahora dibujaremos un gráfico que muestra diversas variables que muestran superficies numéricas de las casas en función de las categorías realizadas por el algoritmo de clústering con las variables seleccionadas para nuestro modelo:
 
 
-```{r message=FALSE, warning=FALSE, echo=FALSE} 
+```{r message=FALSE, warning=FALSE} 
 
 
 p1<-ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(x=LotArea , y=exp(SalePrice) ,group=cluster_result ,fill=cluster_result)) +
@@ -623,7 +626,7 @@ grid.arrange(p1, p2,p3,p4,p5,p6, ncol = 2)
    Ahora intentaremos utilizar otro algoritmo de clústering distinto, DBSCAN, basado en agrupamiento espacial basado en densidad. No obstante, debido a la naturaleza de los datos, no hemos sido capaces de dividir este dataset en más de 1 cluster distinto, por mucho que hemos jugado como parámetros.
   
 
-```{r  message=FALSE, warning=FALSE, echo=FALSE}
+```{r  message=FALSE, warning=FALSE}
 library(fpc)
 library(dbscan)
 
