@@ -21,14 +21,14 @@ library(dplyr)
 
 datasetTrain <-  readRDS("datasetTrain.rds")
 datasetTest<-  readRDS("datasetTest.rds")
-validation_sin_na<-  readRDS("datasetValidation.rds")
+validation_sin_na_not_normalized<-  readRDS("datasetValidation.rds")
 datasetTrainTransformed<-  readRDS("datasetTrainTransformed.rds")
 datasetTestTransformed<-  readRDS("datasetTestTransformed.rds")
 validationTransformed<-  readRDS("validationTransformed.rds")
 
 #names(datasetTrain) <- make.names(names(datasetTrain))
 #names(datasetTest) <- make.names(names(datasetTrain))
-#names(validation_sin_na) <- make.names(names(validation_sin_na))
+names(validation_sin_na_not_normalized) <- make.names(names(validation_sin_na_not_normalized))
 #names(datasetTrainTransformed) <- make.names(names(datasetTrainTransformed))
 #names(datasetTestTransformed) <- make.names(names(datasetTestTransformed))
 #names(validationTransformed) <- make.names(names(validation_sin_na))
@@ -444,13 +444,13 @@ saveRDS(modeloGAMLogisticRegressionCarosCaret_rose, "modeloGAMLogisticRegression
 
 source("funcs.R")
 
-predictEvaluation <- predict(modeloGAMLogisticRegressionCarosCaret_rose,dataSetValidationGAMLogistic)
+predictEvaluation <- predict(modeloGAMLogisticRegressionCarosCaret_rose,validation_sin_na_not_normalized)
 cm <- caret::confusionMatrix(predictEvaluation, as.factor(dataSetValidationGAMLogistic$GrupoPrecio), mode = "prec_recall" )
 tab_test <- table(predictEvaluation, dataSetValidationGAMLogistic$GrupoPrecio, dnn = c("Actual", "Predichos"))
 draw_confusion_matrix(tab_test, "Actual", "Predichos")
 
 
-predictGAM <- predict(modeloGAMLogisticRegressionCarosCaret_rose,dataSetValidationGAMLogistic,type="prob") %>% na.omit()
+predictGAM <- predict(modeloGAMLogisticRegressionCarosCaret_rose,validation_sin_na_not_normalized,type="prob") %>% na.omit()
 predictGAM$obs <- dataSetValidationGAMLogistic$GrupoPrecio 
 predictGAM$Group <- rep("gam",nrow(predictGAM))
 
