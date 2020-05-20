@@ -1,12 +1,15 @@
 ---
 title: "GAM"
+output: 
+   html_document:
+      code_folding: hide
 ---
 
 ## R Markdown
 
 En primer lugar cargaremos los datasets obtenidos en las fases anteriores del modelado de datos.
 
-```{r  message=FALSE, warning=FALSE, error = FALSE ,echo=FALSE, results="hide"}
+```{r  message=FALSE, warning=FALSE, error = FALSE , results="hide"}
 
 library(mgcv)
 library(car)
@@ -53,7 +56,7 @@ invisible({capture.output({
 
 Quitaremos de estos datasets posibles outliers que se hayan podido colar en pasos anteriores del procesamiento (casas muy baratos on una superficie exageradamente alta) y dividiremos en dataset en casas "baratas" (menos de 300000 dólares) y casas "caras" (más de 300000 dólares). Estos dataset serviran para extaer las variables más influyentes dentro de las poblaciones y crear a posteriori una regresión logística de tipo GAM para intentar discriminar casas caras de las baratas:
 
-```{r  message=FALSE, warning=FALSE, echo=FALSE}
+```{r  message=FALSE, warning=FALSE}
 
 dataSetTrainGAM = datasetTrain %>%   filter( ! (exp(SalePrice) < 200000 &&exp(GrLivArea) > 4000  ))  %>%  na.omit()
 dataSetTestGAM = datasetTest %>% filter( ! (exp(SalePrice) < 200000 &&exp(GrLivArea) > 4000  ))  %>%  na.omit()
@@ -78,7 +81,7 @@ dataSetTestGAMBaratos <- dataSetTestGAM %>% filter(exp(SalePrice) < 250000)
     
 
 
-```{r  message=FALSE, warning=FALSE, echo=FALSE}
+```{r  message=FALSE, warning=FALSE}
 library(ggplot2)
 
 dataSetTrainTestGAMBaratos <- dplyr::union(dataSetTrainGAMBaratos,dataSetTestGAMBaratos) 
@@ -131,7 +134,7 @@ variablesEliminarCorr = c('TotalSF','X2ndFlrSF','FullBath','BsmtFullBath','X1stF
 
   A continuación se muestran una serie de funciones de apoyo que ayudarán a generar los diferentes modelos de regresión realizados en este punto:
 
-```{r  message=FALSE, warning=FALSE, echo=FALSE}
+```{r  message=FALSE, warning=FALSE}
 obtenFormulaGAM<-function(dataset,varPrincipal,modelo_continuas,variableNames,variablesEliminar=variablesEliminarCorr)
 {
   variablesFinal <- c()
@@ -226,7 +229,7 @@ obtenFormulaGAMCaret <-function(dataset,varPrincipal,modelo_continuas,variableNa
 
  A continuación generaremos los tres modelos de regresión comentados con anterioridad: un primer modelo con las 30 variables más importantes para el modelo que intente estimar el valor de una vivienda. Otro modelo que se concentre en las 20 características más importantes que definen las casas "baratas" y otro con las 13 características más importantes que definen las casas "caras". El siguiente código genera el primero de los modelos:
 
-```{r  message=FALSE, warning=FALSE, echo=FALSE}
+```{r  message=FALSE, warning=FALSE}
 
 formulaCarosBaratos <- obtenFormulaGAM(dataSetTrainGAM,c('SalePrice'),dataframeTestImportantes[1:30,]$Variables)
 formulaBaratos <- obtenFormulaGAM(dataSetTrainGAMBaratos,c('SalePrice'),dataframeTestImportantesBaratos[1:20,]$Variables)
@@ -246,7 +249,7 @@ modeloGAMCarosBaratos <- mgcv::gam( formulaCarosBaratos  , data = dataSetTrainGA
 
   Este es el código que genera el modelo de las casas "baratas":
 
-```{r message=FALSE, warning=FALSE, echo=FALSE}
+```{r message=FALSE, warning=FALSE}
 
 #b1 <- mgcv::gam(formula, data = datasetTrainGam2 , family=gaussian )
 modeloGAMBaratos <- mgcv::gam( formulaBaratos  , data = dataSetTrainGAM , family=gaussian, method="GCV.Cp",  cluster=cl ,control=list(nthreads=4))
@@ -260,7 +263,7 @@ modeloGAMBaratos <- mgcv::gam( formulaBaratos  , data = dataSetTrainGAM , family
 
   Y este es el código que genera el modelo de las casas "caras":
 
-```{r message=FALSE, warning=FALSE, echo=FALSE}
+```{r message=FALSE, warning=FALSE}
 
 modeloGAMCaros <- mgcv::gam( formulaCaros  , data = dataSetTrainGAM , family=gaussian, method="GCV.Cp",  cluster=cl ,control=list(nthreads=4))
 
@@ -271,7 +274,7 @@ modeloGAMCaros <- mgcv::gam( formulaCaros  , data = dataSetTrainGAM , family=gau
 
   A continuación veremos las características y poder de predicción de estos tres modelos generados con los elementos de Train del dataset completo sobre los elementos de Test. para ello, calcularemos las correlaciones de los elementos predecidos y la métrica MAE. El código que realiza este proceso se muestra a continuación:
 
-```{r message=FALSE, warning=FALSE, echo=FALSE}
+```{r message=FALSE, warning=FALSE, error=FALSE}
 
 predictedCarosBaratosArray = matrix(, ncol = 3,nrow=nrow(dataSetTestGAM))
 for (index in seq(1,nrow(dataSetTestGAM))) {
@@ -325,7 +328,7 @@ maeBaratos <- mae(predictedBaratosArray[,2]-predictedBaratosArray[,3])
 
   La siguiente función muestra los valores AIC para los 3 modelos. Como se ve, el modelo denominado "modeloGAMCarosBaratos" es ligeramente mejor que el resto de los modelos. Con lo que es un punto más para seleccionar dicho modelo frente a los otros dos:
 
-```{r message=FALSE, warning=FALSE, echo=FALSE}
+```{r message=FALSE, warning=FALSE}
 AIC(modeloGAMCarosBaratos,modeloGAMBaratos,modeloGAMCaros)
 
 ```
@@ -336,7 +339,7 @@ AIC(modeloGAMCarosBaratos,modeloGAMBaratos,modeloGAMCaros)
   Comprobaremos la validad del modelo en primer lugar mostrando las típicas gráficas que muestran la distribución de los resíduos para comprobar si las hipótesis básicas para las cuales un modelo lineal es válido se cumplen (homocedasticidad de los residuos, incorrelación de los residuos, y normalidad de los residuos).  Comprobamos que la hipótesis de homocedasticida no se cumple en el modelo, existe todavía ciertos cambios en la varianza de los errores en función de la predicción (una ligera parábola hacia arriba). Hay que seguir trabajando en el ajuste de los parámetros de este modelo para conseguir cumplir con este criterio.
 
 
-```{r message=FALSE, warning=FALSE, echo=FALSE}
+```{r message=FALSE, warning=FALSE}
 
 mgcv::gam.check(modeloGAMCarosBaratos)
 
@@ -344,7 +347,7 @@ mgcv::gam.check(modeloGAMCarosBaratos)
 
   Ahora conprobaremos en el modelo si hay correlación elevada entre las variables. El concepto equivalente en los modelos de tipo GAM se denomina "concurvity", y la siguiente función ayuda a mostrar este rasgo en los modelos GAM:
 
-```{r message=FALSE, warning=FALSE, echo=FALSE}
+```{r message=FALSE, warning=FALSE}
 
 concurvity(modeloGAMCarosBaratos)
 
@@ -355,7 +358,7 @@ concurvity(modeloGAMCarosBaratos)
    A continuación cargaremos el modelo de regresión logística obtenido en la parte de modelos de clasificación:
 
 
-```{r message=FALSE, warning=FALSE, echo=FALSE, error=FALSE}
+```{r message=FALSE, warning=FALSE,  error=FALSE}
 
 invisible({capture.output({
 
@@ -365,13 +368,14 @@ invisible({capture.output({
 
 ```
 
+  Y por último generamos el modelo final con el siguiente algoritmo: en primer lugar dado un elemento del dataset y utilizando el modelo de clasificacion en baratos y caros de GAMLogit, decidimos si es un piso barato o caro. Calculamos dos modelos de regresión lineal uno con las población de baratos y otro con la población de caros únicamente.  Con la decisión que nos ha dado el algoritmo de clasificación devolvemos una media ponderada de los precios en la que los pesos de dicha media son las probabilidades de que una casa sea barata o cara. Como vemos por los resultados, esta forma de juntar los dos modelos separados no parece funcionar correctamente y desde luego no funciona mejor que el modelo de regresión realizado sobre toda la población de TRAIN.
 
 
-```{r message=FALSE, warning=FALSE, echo=FALSE, error=FALSE}
+```{r message=FALSE, warning=FALSE,  error=FALSE}
 
 invisible({capture.output({
 
-prediccionModeloFinal <- function(dato,clasificador = modeloGAMLogisticRegressionCaros,modeloCaros = modeloGAMCaros ,modeloBaratos = modeloGAMBaratos,umbralDecision = optCutOff) {
+prediccionModeloFinal <- function(dato,clasificador = modeloGAMLogisticRegressionCaros,modeloCaros = modeloGAMCaros ,modeloBaratos = modeloGAMBaratos,umbralDecision = 0.5,modoDecision = 0) {
   
   prediccionModeloClasificacion = 0.05
   returnValue = 0
@@ -381,7 +385,15 @@ prediccionModeloFinal <- function(dato,clasificador = modeloGAMLogisticRegressio
        prediccionModeloClasificacion <- predict(modeloGAMLogisticRegressionCaros,dato , type="prob")[2]
        prediccionModeloCaros <-  predict(modeloCaros,dato)
        prediccionModeloBaratos <-  predict(modeloBaratos,dato)
-       returnValue <- (1-prediccionModeloClasificacion)*prediccionModeloCaros + (prediccionModeloClasificacion)*prediccionModeloBaratos
+       if(modoDecision == 1) {
+          returnValue <- (1-prediccionModeloClasificacion)*prediccionModeloCaros + (prediccionModeloClasificacion)*prediccionModeloBaratos
+       } else {
+         if (prediccionModeloClasificacion < umbralDecision ) {
+            returnValue <- prediccionModeloBaratos
+         } else {
+            returnValue <- prediccionModeloCaros
+         }
+       }
      
       
     }
@@ -393,7 +405,11 @@ prediccionModeloFinal <- function(dato,clasificador = modeloGAMLogisticRegressio
        
        prediccionModeloCaros <-  predict(modeloCaros,dato)
        prediccionModeloBaratos <-  predict(modeloBaratos,dato)
+       if(modoDecision == 1) {
        returnValue <- (1-prediccionModeloClasificacion)*prediccionModeloCaros + (prediccionModeloClasificacion)*prediccionModeloBaratos
+       } else {
+         returnValue <- prediccionModeloBaratos
+       }
        
      })
   }
