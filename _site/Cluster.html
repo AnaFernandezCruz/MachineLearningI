@@ -20,6 +20,7 @@
 <script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
 <script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
 <script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
 <link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
 <script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
 <script src="site_libs/kePrint-0.0.1/kePrint.js"></script>
@@ -246,6 +247,9 @@ $(document).ready(function () {
 </style>
 
 <!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
 
 
 
@@ -321,6 +325,14 @@ $(document).ready(function () {
 
 <div class="fluid-row" id="header">
 
+<div class="btn-group pull-right">
+<button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
 
 
 <h1 class="title toc-ignore">Cluster</h1>
@@ -328,15 +340,100 @@ $(document).ready(function () {
 </div>
 
 
+<pre class="r"><code>library(knitr)
+library(kableExtra)
+library(mgcv)
+library(car)
+library(parallel)
+library(dplyr)
+
+datasetTrain &lt;-  readRDS(&quot;datasetTrain.rds&quot;)
+datasetTest&lt;-  readRDS(&quot;datasetTest.rds&quot;)
+validation_sin_na&lt;-  readRDS(&quot;datasetValidation.rds&quot;)
+datasetTrainTransformed&lt;-  readRDS(&quot;datasetTrainTransformed.rds&quot;)
+datasetTestTransformed&lt;-  readRDS(&quot;datasetTestTransformed.rds&quot;)
+validationTransformed&lt;-  readRDS(&quot;validationTransformed.rds&quot;)
+
+var_modelo_clasificador &lt;- readRDS(&quot;var_modelo_clasificador.rds&quot;)</code></pre>
+<pre class="r"><code>library(cluster)
+library(factoextra)
+library(clustertend)
+
+var_ordinales &lt;- c(&#39;LotShape&#39;,&#39;Utilities&#39;,&#39;LandSlope&#39;,&#39;OverallQual&#39;,&#39;OverallCond&#39;,&#39;ExterQual&#39;,&#39;ExterCond&#39;,&#39;BsmtQual&#39;,&#39;BsmtCond&#39;,&#39;BsmtExposure&#39;,&#39;BsmtFinType1&#39;,&#39;BsmtFinType2&#39;,&#39;HeatingQC&#39;,&#39;CentralAir&#39;,&#39;Electrical&#39;,&#39;KitchenQual&#39;,&#39;Functional&#39;,&#39;FireplaceQu&#39;,&#39;GarageFinish&#39;,&#39;GarageQual&#39;,&#39;GarageCond&#39;,&#39;PavedDrive&#39;,&#39;PoolQC&#39;,&#39;Fence&#39;)
+
+
+columnas_continuas_clustering = c(&quot;LotArea&quot;,&quot;MasVnrArea&quot;,&quot;BsmtFinSF1&quot;,&quot;BsmtFinSF2&quot;,&quot;BsmtUnfSF&quot; ,&quot;TotalBsmtSF&quot;,&quot;X1stFlrSF&quot;,&quot;X2ndFlrSF&quot;,&quot;LowQualFinSF&quot;,&quot;GrLivArea&quot;, &quot;GarageArea&quot;,&quot;WoodDeckSF&quot;,&quot;OpenPorchSF&quot;,&quot;EnclosedPorch&quot;,&quot;PoolArea&quot;,&quot;MiscVal&quot;,&quot;SalePrice&quot;)
+
+#,&quot;TotRmsAbvGrd&quot;,&quot;GarageYrBlt&quot;,&quot;GarageCars&quot;
+var_eliminar_correlacion = c(&quot;Street&quot;,&quot;Utilities&quot;,&quot;LandSlope&quot;,&quot;Condition2&quot;,&quot;BsmtFinSF2&quot;, 
+&quot;LowQualFinSF&quot;,&quot;MiscFeature&quot;,&quot;MiscVal&quot;)
+
+var_modelo &lt;- readRDS(&quot;var_modelo.rds&quot;)
+
+var_modelo_cluster = setdiff(setdiff(setdiff(setdiff(colnames(datasetTrain),c(&#39;SalePrice&#39;)),var_eliminar_correlacion),c(&#39;PoolArea&#39;)),c(&#39;hasPool&#39;,&#39;hasFirePlaces&#39;,&#39;has2ndFloor&#39;,&#39;GrupoPrecio&#39;))
+
+columnas_continuas_clustering = c(&quot;LotArea&quot;,&quot;MasVnrArea&quot;,&quot;BsmtFinSF1&quot;,&quot;BsmtFinSF2&quot;,&quot;BsmtUnfSF&quot; ,&quot;TotalBsmtSF&quot;,&quot;LowQualFinSF&quot;,&quot;GrLivArea&quot;, &quot;GarageArea&quot;,&quot;WoodDeckSF&quot;,&quot;OpenPorchSF&quot;,&quot;EnclosedPorch&quot;,&quot;PoolArea&quot;,&quot;MiscVal&quot;,&quot;SalePrice&quot;)
+
+var_modelo_with_SalePrice_cluster = c(var_modelo_cluster,&#39;SalePrice&#39;)
+var_modelo_clasificador_with_SalePrice = c(var_modelo_clasificador,&#39;SalePrice&#39;,&#39;Exterior1st&#39;)
+
+
+
+dataSetClusteringContinuous  &lt;-  dplyr::union_all(datasetTrain,datasetTest) %&gt;% na.omit() 
+dataSetClusteringContinuous &lt;-  dataSetClusteringContinuous  %&gt;% dplyr::select(columnas_continuas_clustering)   %&gt;%  na.omit()
+
+dataSetClustering  &lt;-  union_all(datasetTrain,datasetTest)  %&gt;%  dplyr::select(c(var_modelo_cluster,&#39;SalePrice&#39;))    %&gt;%  na.omit()
+
+dataSetClusteringModeloClasificador  &lt;-  dplyr::union_all(datasetTrain,datasetTest)  %&gt;%  dplyr::select(c(var_modelo_clasificador,&#39;SalePrice&#39;,&#39;Exterior1st&#39;))    %&gt;%  na.omit()
+
+dataSetTrainClustering  &lt;-  datasetTrain  %&gt;%  dplyr::select(c(var_modelo,&#39;SalePrice&#39;))  %&gt;%  na.omit()
+dataSetTestClustering  &lt;-  datasetTest  %&gt;%  dplyr::select(c(var_modelo,&#39;SalePrice&#39;))  %&gt;%  na.omit()
+dataSetValidationClustering  &lt;-  validation_sin_na  %&gt;%  dplyr::select(c(var_modelo,&#39;SalePrice&#39;))  %&gt;%  na.omit()
+
+#names(dataSetTrainClustering) &lt;- make.names(names(datasetTrain))
+#names(dataSetTestClustering) &lt;- make.names(names(datasetTrain))</code></pre>
 <p>Comenzaremos esta parte de a práctica explorando la capacidad que tiene nuestro dataset de ser segmentado calculando sobre el dataset un estadístico denominado “Estadístico de Hopkins” en el que, si tiene un valor cercano a uno y mayor de 0.5, indica que muy posiblemente el dataset pueda ser dividido en clusters de manera significativa.</p>
+<pre class="r"><code>set.seed(123)
+res &lt;- get_clust_tendency(scale(dataSetClusteringContinuous), n = nrow(dataSetClustering)-1)</code></pre>
 <p>Como vemos por el valor que tiene esta métrica, sí que parece que nuestro dataset pueda ser dividido en grupos.</p>
+<pre class="r"><code>res$hopkins_stat</code></pre>
 <pre><code>## [1] 0.9368696</code></pre>
 <p>En primer lugar, intentaremos realizar el clustering sólo sobre las variables contínuas o numéricas, ignormando las variables factoriales, debido a que se puede aplicar directamente sobre ellas la métrica euclidea y, por tanto, el algoritmo k-means. En primer lugar intentaremos obtener el número óptimo de grupos que podemos formar mediante un gráfico de silueta:</p>
+<pre class="r"><code>fviz_nbclust(dataSetClusteringContinuous, FUNcluster = kmeans, method = c(&quot;silhouette&quot;), k.max = 20, nboot = 100,)</code></pre>
 <p><img src="Cluster_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
 <p>Este gráfico nos muestra que el valor óptimo se encuentra en 2. No obstante, elegiremos 3 grupos por tener la anchura de la silueta un valor similar. El gráfico con el resultado del proceso de clustering una vez realizado una descomposición PCA sobre el dataset y cogido las dos dimensiones más significativas es el siguiente:</p>
+<pre class="r"><code>kmeansContinuousVariable &lt;- eclust(dataSetClusteringContinuous, &quot;kmeans&quot;, hc_metric=&quot;euclidean&quot;, k=3 ,stand = TRUE)</code></pre>
 <p><img src="Cluster_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<pre class="r"><code>#res$plot + 
+#  scale_fill_gradient(low = &quot;steelblue&quot;, high = &quot;white&quot;)</code></pre>
 <p>Ahora intentaremos realizar el proceso de clustering teniendo en cuenta también las variables cualitativas (tanto factoriales como ordinales). Para ello calcularemos una matriz de disimilaridad denominada “matriz de disimilaridad de Gower”. Lo haremos sobre el conjunto de todas las variables y el conjunto de variables candidatas obtenido en el paso anterior para nuestro modelo de discriminación de “casas caras” y “casas baratas”.</p>
+<pre class="r"><code>var_ordinales_modelo &lt;- intersect(var_ordinales,var_modelo)
+var_asimetricas &lt;- c(&#39;precio&#39;)
+gower_dist &lt;- daisy(dataSetClustering,
+                    metric = &quot;gower&quot;,
+                    stand = TRUE,
+                    type = list(ordratio = var_ordinales_modelo))
+                    
+#summary(gower_dist)</code></pre>
+<pre class="r"><code>var_ordinales_modelo_clasificador &lt;- intersect(var_ordinales,var_modelo_clasificador)
+var_asimetricas &lt;- c(&#39;precio&#39;)
+gower_dist_modelo_clasificador &lt;- daisy(dataSetClusteringModeloClasificador,
+                    metric = &quot;gower&quot;,
+                    stand = TRUE,
+                    type = list(ordratio = var_ordinales_modelo_clasificador))
+                    
+#summary(gower_dist_modelo_clasificador)</code></pre>
 <p>Una vez calculada estas matrices, obtendremos los elementos más parecidos para ver que los resultados son coherentes. En primer lugar realizaremos esta comprobación sobre el dataset completo sin filtrar, mostrando los elementos más similares:</p>
+<pre class="r"><code>gower_mat &lt;- as.matrix(gower_dist)
+gower_mat_modelo_clasificador &lt;- as.matrix(gower_dist_modelo_clasificador)
+
+
+# Output most similar pair
+
+kable(dataSetClustering[
+  which(gower_mat == min(gower_mat[gower_mat != min(gower_mat)]),
+        arr.ind = TRUE)[1, ], ]) %&gt;% kable_styling() %&gt;%
+  scroll_box(width = &quot;100%&quot;, height = &quot;200px&quot;)</code></pre>
 <div style="border: 1px solid #ddd; padding: 0px; overflow-y: scroll; height:200px; overflow-x: scroll; width:100%; ">
 <table class="table" style="margin-left: auto; margin-right: auto;">
 <thead>
@@ -1009,90 +1106,91 @@ Normal
 </table>
 </div>
 <p>Mostraremos también los elementos más similares para el dataset limitado a las variables que mejor parecen discriminar entre precios baratos y caros:</p>
+<pre class="r"><code>kable(dataSetClusteringModeloClasificador[
+  which(gower_mat_modelo_clasificador == min(gower_mat_modelo_clasificador[gower_mat_modelo_clasificador != min(gower_mat_modelo_clasificador)]),
+        arr.ind = TRUE)[1, ], ])  %&gt;% kable_styling() %&gt;%
+  scroll_box(width = &quot;100%&quot;, height = &quot;200px&quot;)</code></pre>
 <div style="border: 1px solid #ddd; padding: 0px; overflow-y: scroll; height:200px; overflow-x: scroll; width:100%; ">
 <table class="table" style="margin-left: auto; margin-right: auto;">
 <thead>
 <tr>
 <th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-LotArea
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
 GrLivArea
 </th>
 <th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-BedroomAbvGr
-</th>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
-MSSubClass
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-1stFlrSF
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-FullBath
+LotArea
 </th>
 <th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
 Neighborhood
 </th>
 <th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-Total_Bathrooms
+BedroomAbvGr
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+FullBath
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+MSSubClass
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+YearBuilt
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+2ndFlrSF
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+1stFlrSF
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+MasVnrArea
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+OverallCond
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+BldgType
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+BsmtUnfSF
 </th>
 <th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
 TotalBsmtSF
 </th>
 <th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
-YearBuilt
-</th>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
-MSZoning
-</th>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
-BldgType
-</th>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
 GarageType
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-OverallCond
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-BsmtUnfSF
 </th>
 <th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
 Heating
 </th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-2ndFlrSF
-</th>
 <th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
-LotShape
+HouseStyle
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+GarageArea
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+Total_porch_SF
 </th>
 <th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
 OverallQual
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-BsmtFinSF1
 </th>
 <th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
 BsmtQual
 </th>
 <th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-MasVnrArea
+BsmtFinSF1
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+Total_Bathrooms
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+LandContour
 </th>
 <th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
 SaleCondition
 </th>
 <th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
 KitchenQual
-</th>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
-SaleType
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-HalfBath
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-GarageArea
 </th>
 <th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
 SalePrice
@@ -1105,10 +1203,16 @@ Exterior1st
 <tbody>
 <tr>
 <td style="text-align:right;">
-9.287394
+7.09091
 </td>
 <td style="text-align:right;">
-7.09091
+9.287394
+</td>
+<td style="text-align:left;">
+Edwards
+</td>
+<td style="text-align:right;">
+3
 </td>
 <td style="text-align:right;">
 3
@@ -1116,74 +1220,65 @@ Exterior1st
 <td style="text-align:left;">
 duplex_all_style_age
 </td>
-<td style="text-align:right;">
-1200
-</td>
-<td style="text-align:right;">
-3
-</td>
-<td style="text-align:left;">
-Edwards
-</td>
-<td style="text-align:right;">
-6
-</td>
-<td style="text-align:right;">
-1200
-</td>
 <td style="text-align:left;">
 1980_1990
 </td>
-<td style="text-align:left;">
-RL
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+1200
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+5
 </td>
 <td style="text-align:left;">
 Duplex
 </td>
-<td style="text-align:left;">
-NA
-</td>
-<td style="text-align:right;">
-5
-</td>
 <td style="text-align:right;">
 0
+</td>
+<td style="text-align:right;">
+1200
+</td>
+<td style="text-align:left;">
+NA
 </td>
 <td style="text-align:left;">
 GasA
 </td>
+<td style="text-align:left;">
+1Story
+</td>
 <td style="text-align:right;">
 0
 </td>
-<td style="text-align:left;">
-Reg
+<td style="text-align:right;">
+120
 </td>
 <td style="text-align:right;">
 5
-</td>
-<td style="text-align:right;">
-7.09091
 </td>
 <td style="text-align:left;">
 Gd
 </td>
 <td style="text-align:right;">
-0
+7.09091
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:left;">
+Lvl
 </td>
 <td style="text-align:left;">
 Alloca
 </td>
 <td style="text-align:left;">
 TA
-</td>
-<td style="text-align:left;">
-WD
-</td>
-<td style="text-align:right;">
-0
-</td>
-<td style="text-align:right;">
-0
 </td>
 <td style="text-align:right;">
 12.09245
@@ -1194,10 +1289,16 @@ Plywood
 </tr>
 <tr>
 <td style="text-align:right;">
-9.287394
+7.09091
 </td>
 <td style="text-align:right;">
-7.09091
+9.287394
+</td>
+<td style="text-align:left;">
+Edwards
+</td>
+<td style="text-align:right;">
+3
 </td>
 <td style="text-align:right;">
 3
@@ -1205,74 +1306,65 @@ Plywood
 <td style="text-align:left;">
 duplex_all_style_age
 </td>
-<td style="text-align:right;">
-1200
-</td>
-<td style="text-align:right;">
-3
-</td>
-<td style="text-align:left;">
-Edwards
-</td>
-<td style="text-align:right;">
-6
-</td>
-<td style="text-align:right;">
-1200
-</td>
 <td style="text-align:left;">
 1980_1990
 </td>
-<td style="text-align:left;">
-RL
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+1200
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+5
 </td>
 <td style="text-align:left;">
 Duplex
 </td>
-<td style="text-align:left;">
-NA
-</td>
-<td style="text-align:right;">
-5
-</td>
 <td style="text-align:right;">
 0
+</td>
+<td style="text-align:right;">
+1200
+</td>
+<td style="text-align:left;">
+NA
 </td>
 <td style="text-align:left;">
 GasA
 </td>
+<td style="text-align:left;">
+1Story
+</td>
 <td style="text-align:right;">
 0
 </td>
-<td style="text-align:left;">
-Reg
+<td style="text-align:right;">
+120
 </td>
 <td style="text-align:right;">
 5
-</td>
-<td style="text-align:right;">
-7.09091
 </td>
 <td style="text-align:left;">
 Gd
 </td>
 <td style="text-align:right;">
-0
+7.09091
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:left;">
+Lvl
 </td>
 <td style="text-align:left;">
 Alloca
 </td>
 <td style="text-align:left;">
 TA
-</td>
-<td style="text-align:left;">
-WD
-</td>
-<td style="text-align:right;">
-0
-</td>
-<td style="text-align:right;">
-0
 </td>
 <td style="text-align:right;">
 12.09514
@@ -1285,6 +1377,10 @@ Plywood
 </table>
 </div>
 <p>Ahora realizaremos el mismo proceso mostrando los elementos más disimilares dentro del dataset teniendo en cuenta todas las variables:</p>
+<pre class="r"><code>kable(dataSetClustering[
+  which(gower_mat == max(gower_mat[gower_mat != max(gower_mat)]),
+        arr.ind = TRUE)[1, ], ])  %&gt;% kable_styling() %&gt;%
+  scroll_box(width = &quot;100%&quot;, height = &quot;200px&quot;)</code></pre>
 <div style="border: 1px solid #ddd; padding: 0px; overflow-y: scroll; height:200px; overflow-x: scroll; width:100%; ">
 <table class="table" style="margin-left: auto; margin-right: auto;">
 <thead>
@@ -1957,90 +2053,91 @@ Partial
 </table>
 </div>
 <p>Y teniendo en cuenta ahora las variables seleccionadas como más relevantes para distinguir casas baratas de casas caras:</p>
+<pre class="r"><code>kable(dataSetClusteringModeloClasificador[
+  which(gower_mat_modelo_clasificador == max(gower_mat_modelo_clasificador[gower_mat_modelo_clasificador != max(gower_mat_modelo_clasificador)]),
+        arr.ind = TRUE)[1, ], ])  %&gt;% kable_styling() %&gt;%
+  scroll_box(width = &quot;100%&quot;, height = &quot;200px&quot;)</code></pre>
 <div style="border: 1px solid #ddd; padding: 0px; overflow-y: scroll; height:200px; overflow-x: scroll; width:100%; ">
 <table class="table" style="margin-left: auto; margin-right: auto;">
 <thead>
 <tr>
 <th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-LotArea
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
 GrLivArea
 </th>
 <th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-BedroomAbvGr
-</th>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
-MSSubClass
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-1stFlrSF
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-FullBath
+LotArea
 </th>
 <th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
 Neighborhood
 </th>
 <th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-Total_Bathrooms
+BedroomAbvGr
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+FullBath
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+MSSubClass
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+YearBuilt
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+2ndFlrSF
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+1stFlrSF
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+MasVnrArea
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+OverallCond
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+BldgType
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+BsmtUnfSF
 </th>
 <th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
 TotalBsmtSF
 </th>
 <th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
-YearBuilt
-</th>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
-MSZoning
-</th>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
-BldgType
-</th>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
 GarageType
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-OverallCond
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-BsmtUnfSF
 </th>
 <th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
 Heating
 </th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-2ndFlrSF
-</th>
 <th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
-LotShape
+HouseStyle
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+GarageArea
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+Total_porch_SF
 </th>
 <th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
 OverallQual
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-BsmtFinSF1
 </th>
 <th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
 BsmtQual
 </th>
 <th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-MasVnrArea
+BsmtFinSF1
+</th>
+<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
+Total_Bathrooms
+</th>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
+LandContour
 </th>
 <th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
 SaleCondition
 </th>
 <th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
 KitchenQual
-</th>
-<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;">
-SaleType
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-HalfBath
-</th>
-<th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
-GarageArea
 </th>
 <th style="text-align:right;position: sticky; top:0; background-color: #FFFFFF;">
 SalePrice
@@ -2053,70 +2150,76 @@ Exterior1st
 <tbody>
 <tr>
 <td style="text-align:right;">
-10.578751
+8.638171
 </td>
 <td style="text-align:right;">
-8.536211
-</td>
-<td style="text-align:right;">
-2
-</td>
-<td style="text-align:left;">
-1_story_1946_
-</td>
-<td style="text-align:right;">
-5095
-</td>
-<td style="text-align:right;">
-2
+11.064887
 </td>
 <td style="text-align:left;">
 Edwards
 </td>
 <td style="text-align:right;">
-4
+3
 </td>
 <td style="text-align:right;">
-5095
+2
+</td>
+<td style="text-align:left;">
+2_story_1946_
 </td>
 <td style="text-align:left;">
 1990_
 </td>
-<td style="text-align:left;">
-RL
+<td style="text-align:right;">
+950
 </td>
-<td style="text-align:left;">
-1Fam
+<td style="text-align:right;">
+4692
 </td>
-<td style="text-align:left;">
-Attchd
+<td style="text-align:right;">
+796
 </td>
 <td style="text-align:right;">
 5
 </td>
+<td style="text-align:left;">
+1Fam
+</td>
 <td style="text-align:right;">
-6.990257
+6.146329
+</td>
+<td style="text-align:right;">
+6110
+</td>
+<td style="text-align:left;">
+Attchd
 </td>
 <td style="text-align:left;">
 GasA
 </td>
-<td style="text-align:right;">
-0
-</td>
 <td style="text-align:left;">
-IR1
+2Story
+</td>
+<td style="text-align:right;">
+1418
+</td>
+<td style="text-align:right;">
+506
 </td>
 <td style="text-align:right;">
 10
-</td>
-<td style="text-align:right;">
-8.296796
 </td>
 <td style="text-align:left;">
 Ex
 </td>
 <td style="text-align:right;">
-1224
+8.638526
+</td>
+<td style="text-align:right;">
+4.5
+</td>
+<td style="text-align:left;">
+Bnk
 </td>
 <td style="text-align:left;">
 Partial
@@ -2124,88 +2227,85 @@ Partial
 <td style="text-align:left;">
 Ex
 </td>
-<td style="text-align:left;">
-New
-</td>
 <td style="text-align:right;">
-1
-</td>
-<td style="text-align:right;">
-1154
-</td>
-<td style="text-align:right;">
-12.34949
+11.98293
 </td>
 <td style="text-align:left;">
-CemntBd
+Stucco
 </td>
 </tr>
 <tr>
 <td style="text-align:right;">
-8.881975
+6.947937
 </td>
 <td style="text-align:right;">
-7.882692
+9.053102
+</td>
+<td style="text-align:left;">
+NAmes
 </td>
 <td style="text-align:right;">
-6
+2
+</td>
+<td style="text-align:right;">
+2
 </td>
 <td style="text-align:left;">
 duplex_all_style_age
 </td>
-<td style="text-align:right;">
-862
-</td>
-<td style="text-align:right;">
-3
-</td>
 <td style="text-align:left;">
-SWISU
-</td>
-<td style="text-align:right;">
-3
+1940_1950
 </td>
 <td style="text-align:right;">
 0
 </td>
-<td style="text-align:left;">
-1960_1970
-</td>
-<td style="text-align:left;">
-RH
-</td>
-<td style="text-align:left;">
-Duplex
-</td>
-<td style="text-align:left;">
-NA
+<td style="text-align:right;">
+1040
 </td>
 <td style="text-align:right;">
-6
-</td>
-<td style="text-align:right;">
-0.000000
-</td>
-<td style="text-align:left;">
-GasA
-</td>
-<td style="text-align:right;">
-1788
-</td>
-<td style="text-align:left;">
-Reg
+0
 </td>
 <td style="text-align:right;">
 4
 </td>
+<td style="text-align:left;">
+Duplex
+</td>
 <td style="text-align:right;">
 0.000000
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+Detchd
+</td>
+<td style="text-align:left;">
+Wall
+</td>
+<td style="text-align:left;">
+1Story
+</td>
+<td style="text-align:right;">
+400
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+3
 </td>
 <td style="text-align:left;">
 NA
 </td>
 <td style="text-align:right;">
-0
+0.000000
+</td>
+<td style="text-align:right;">
+2.0
+</td>
+<td style="text-align:left;">
+Lvl
 </td>
 <td style="text-align:left;">
 Normal
@@ -2213,70 +2313,321 @@ Normal
 <td style="text-align:left;">
 TA
 </td>
-<td style="text-align:left;">
-WD
-</td>
 <td style="text-align:right;">
-0
-</td>
-<td style="text-align:right;">
-0
-</td>
-<td style="text-align:right;">
-12.25132
+11.43928
 </td>
 <td style="text-align:left;">
-Plywood
+BrkFace
 </td>
 </tr>
 </tbody>
 </table>
 </div>
 <p>Por último, obtendremos el gráfico número de clústeres/“Silouette with” para intentar ver cuál es el número óptimo de divisiones, en primer lugar para todo el dataset:</p>
+<pre class="r"><code>sil_width &lt;- c(NA)
+
+for(i in 2:10){
+  
+  pam_fit &lt;- pam(gower_dist,
+                 diss = TRUE,
+                 k = i)
+  
+  sil_width[i] &lt;- pam_fit$silinfo$avg.width
+  
+}
+
+# Plot sihouette width (higher is better)
+
+plot(1:10, sil_width,
+     xlab = &quot;Número de clústeres para todas las variables&quot;,
+     ylab = &quot;Silhouette Width&quot;)
+lines(1:10, sil_width)</code></pre>
 <p><img src="Cluster_files/figure-html/unnamed-chunk-13-1.png" width="672" /></p>
 <p>Y ahora realizaremos el mismo gráfico para las variables más discriminatorias:</p>
+<pre class="r"><code>sil_width &lt;- c(NA)
+
+for(i in 2:10){
+  
+  pam_fit &lt;- pam(gower_dist_modelo_clasificador,
+                 diss = TRUE,
+                 k = i)
+  
+  sil_width[i] &lt;- pam_fit$silinfo$avg.width
+  
+}
+
+# Plot sihouette width (higher is better)
+
+plot(1:10, sil_width,
+     xlab = &quot;Número de clústeres para las variables más discriminatorias&quot;,
+     ylab = &quot;Silhouette Width&quot;)
+lines(1:10, sil_width)</code></pre>
 <p><img src="Cluster_files/figure-html/unnamed-chunk-14-1.png" width="672" /></p>
 <p>Como vemos el número óptimo se encuentra en 2 elementos para el dataset completo, y de 2 para el dataset con las variables a las que restringuremos el modelo de clasificación. No obstante, para analizar este último caso, elegiremos 4 variables. A continuación utilizando esta matriz de disimilaridades y el proceso de clustering PAM, calcularemos a qué elemento dentro del cluster pertenece cada uno de los registros de nuestro dataset.</p>
+<pre class="r"><code>pam_fit &lt;- pam(gower_dist, diss = TRUE, k = 3)
+pam_fit_modelo_clasificador &lt;- pam(gower_dist_modelo_clasificador, diss = TRUE, k = 4)</code></pre>
 <p>A continuación realizaremos un proceso de reducción de dimensionalidad a 2 dimensiones utilizando el algoritmo TSNE para hacernos una idea más clara de la forma que tienen estas agrupaciones. En primer lugar realizaremos el proceso en sobre todas las variables del dataset, obteniendo el siguiente resultado:</p>
+<pre class="r"><code>library(Rtsne)
+
+set.seed(123)
+tsne_obj &lt;- Rtsne(gower_dist, is_distance = TRUE)
+
+
+tsne_data &lt;- tsne_obj$Y %&gt;%
+  data.frame() %&gt;%
+  setNames(c(&quot;X&quot;, &quot;Y&quot;)) %&gt;%
+  mutate(cluster = factor(pam_fit$clustering),
+         name = dataSetClustering$SalePrice)
+
+
+
+tsne_obj_modelo_clasificador &lt;- Rtsne(gower_dist_modelo_clasificador, is_distance = TRUE, perplexity = 60, exaggeration_factor = 100)
+
+tsne_data_modelo_clasificador &lt;- tsne_obj_modelo_clasificador$Y %&gt;%
+  data.frame() %&gt;%
+  setNames(c(&quot;X&quot;, &quot;Y&quot;)) %&gt;%
+  mutate(cluster = factor(pam_fit_modelo_clasificador$clustering),
+         name = dataSetClusteringModeloClasificador$SalePrice)</code></pre>
 <p>Ahora intentaremos interpretar el resultado de este proceso de clustering. Para ello, en un primer momento observaremos si esta segmentación ha sido realizada teniendo el precio de cada casa como variable principal</p>
+<pre class="r"><code>ggplot(tsne_data, aes(cluster, name, colour = cluster)) + 
+   geom_boxplot() + geom_hline(yintercept=12.5, linetype=&quot;dashed&quot;, color = &quot;red&quot;)</code></pre>
 <p><img src="Cluster_files/figure-html/unnamed-chunk-17-1.png" width="672" /></p>
 <p>Observamos que las casas de tipo 1 y tipo 2 tienen casi toda la población de casas denominadas “caras” (además de otros tipo de casas con inferior precio pero aun así superior en la mayor parte de los casos a la media del grupo 3) y el grupo 3 tiene únicamente casas baratas.</p>
 <p>Ahora dibujaremos el resultado del proceso de reducción de dimensionalidad del dataset con la variable resultado del proceso de clústering sobr el plano:</p>
+<pre class="r"><code>ggplot(aes(x = X, y = Y), data = tsne_data) +
+  geom_point(aes(color = cluster))</code></pre>
 <p><img src="Cluster_files/figure-html/unnamed-chunk-18-1.png" width="672" /></p>
 <p>El proceso de clustering, dejando aparte las pequeñas islas que aparecen, sí que parece habér discriminado bien en las 3 clases distintas. No obstante, se obserba que las casas del tipo “1” aparecen también con profusión en las de tipo “2”, y las de tipo “2” en las de tipo “1”. Como veremos, las poblaciones de tipo “1” y “2” encierran todas las casas clasificadadas como caras, y eso no es preocupante. Lo preocupante es que según este gráfico, algunas casas de tipo “1” aparecen junto a las casas de tipo 3. Esas muy posiblemente sean casas de categoría “barata” que han sido mal clasificadas por el algoritmo de clustering. Lo mismo ocurre con las de clase 2 pero en menor medida.</p>
 <p>Realizaremos el mismo proceso limitándonos a las variables que hemos considerado más relevantes para distinguir las casas que denominamos “caras” de las baratas. En un primer momento dibujaremos el mismo diagrama que compara la distribución de precios en función del resultado del proceso de clustering:</p>
+<pre class="r"><code>ggplot(tsne_data_modelo_clasificador, aes(cluster, name, colour = cluster)) + 
+  geom_boxplot() + geom_hline(yintercept=12.5, linetype=&quot;dashed&quot;, color = &quot;red&quot;)</code></pre>
 <p><img src="Cluster_files/figure-html/unnamed-chunk-19-1.png" width="672" /></p>
 <p>Lo que comprobamos ahora es que en la categoría de “casas baratas” ha aparecido un nuevo grupo que no se ha hecho evidente al utilizar todas las variables del dataset. Como en el anterior caso, las categorías 1 y 2 son las que tienen casas de mayor valor.</p>
 <p>Como antes, realizaremos la proyección en el plano de los elementos del dataset con las variables que únicamente consideraremos en nuestro modelo.</p>
+<pre class="r"><code>ggplot(aes(x = X, y = Y), data = tsne_data_modelo_clasificador) +
+  geom_point(aes(color = cluster))</code></pre>
 <p><img src="Cluster_files/figure-html/unnamed-chunk-20-1.png" width="672" /></p>
 <p>Al hacer esta división sí que se observa una mayor separación de los elementos que contienen las casas “caras”, y se observa que aparecen dos islas en los grupos 3 y 4, que únicamente tienen casas clasificadas como baratas.Sigue habiendo ciertos puntos de los grupos 1 y 2 que se mezclan con los grupos 3 y 4, pero ahora parece que esa mezcla es menos pronunciada.</p>
+<pre class="r"><code>dataSetClustering_withClusterField &lt;- dataSetClustering %&gt;%
+  mutate(cluster_result = pam_fit$clustering) 
+
+dataSetClustering_withClusterField$cluster_result &lt;- as.factor(dataSetClustering_withClusterField$cluster_result)
+
+#pam_results &lt;- dataSetClustering_withClusterField %&gt;%
+#  group_by(cluster_result) %&gt;%
+#  do(the_summary = summary(.))
+
+
+
+dataSetClusteringModeloClasificador_withClusterField &lt;- dataSetClusteringModeloClasificador %&gt;%
+  mutate(cluster_result = pam_fit_modelo_clasificador$clustering) 
+
+dataSetClusteringModeloClasificador_withClusterField$cluster_result &lt;- as.factor(dataSetClusteringModeloClasificador_withClusterField$cluster_result)</code></pre>
 <p>Para ayudar a la interpretación de los resultados obtenidos por el proceso de clustering y ver de forma más clara el criterio que ha seguido dicho algoritmo, construiremos un árbol de decision teniendo como objetivo del mismo el resultado del proceso de clústering. En primer lugar lo haremos sobre el dataset completo. El resultado es el siguiente:</p>
-<p><img src="Cluster_files/figure-html/unnamed-chunk-22-1.png" width="672" /><img src="Cluster_files/figure-html/unnamed-chunk-22-2.png" width="672" /></p>
+<pre class="r"><code>library(party)
+library(rattle)                 # Fancy tree plot
+library(rpart.plot)             # Enhanced tree plots
+library(RColorBrewer)               # Color selection for fancy tree plot
+library(party)                  # Alternative decision tree algorithm
+library(partykit)               # Convert rpart object to BinaryTree
+library(caret)      
+
+#output.tree &lt;- ctree(
+#  cluster_result ~ . , 
+#  data = dataSetClustering_withClusterField)
+# ,control=rpart.control(cp=0,minsplit = 70)
+
+tree.1 &lt;- rpart(cluster_result ~ .,data=dataSetClustering_withClusterField)
+
+prp(tree.1)                                         </code></pre>
+<p><img src="Cluster_files/figure-html/unnamed-chunk-22-1.png" width="672" /></p>
+<pre class="r"><code>fancyRpartPlot(tree.1)</code></pre>
+<p><img src="Cluster_files/figure-html/unnamed-chunk-22-2.png" width="672" /></p>
+<pre class="r"><code>#rpart.rules(tree.1)</code></pre>
 <p>Como vemos con claridad, las principales variables que han participado en este proceso han sido: el año de construcción, la superficie de la segunda planta, los materiales utilizados en la fachada y por último el vecindario en el que se encuentran dichas casas. La mayoría de las casas caras (categorías 1 y 2) han sido construidas entre los años 1980 y 1990 y pertenecen a unos vecindarios muy concretos y con unos tipos de materiales en la fachada muy específicos. La diferencia entre los grupos 1 y 2 se encuentra en la superficie de la segunda planta, siendo todas las casas construidos en el grupo 2 también en la década de los 80.</p>
 <p>Repetiremos este mismo proceso teniendo únicamente las variables seleccinadas para el modelo de clasificación. El resultado es el que se muestra a continuación:</p>
-<p><img src="Cluster_files/figure-html/unnamed-chunk-23-1.png" width="672" /><img src="Cluster_files/figure-html/unnamed-chunk-23-2.png" width="672" /></p>
+<pre class="r"><code>tree.2 &lt;- rpart(cluster_result ~ .,data=dataSetClusteringModeloClasificador_withClusterField)
+
+prp(tree.2)                                         </code></pre>
+<p><img src="Cluster_files/figure-html/unnamed-chunk-23-1.png" width="672" /></p>
+<pre class="r"><code>fancyRpartPlot(tree.2)</code></pre>
+<p><img src="Cluster_files/figure-html/unnamed-chunk-23-2.png" width="672" /></p>
 <p>El resultado es similar al obtenido con anterioridad con una diferencia. Al no tener las variables elegidas aquella que indica el tipo de materiales, el algoritmo en su lugar ha elegido como variable sustitutiva el estilo arquitectónico de la casa. En este caso vemos que las casas de tipo 1 y 2 han sido construidas en la década de los 80 pero pertenecen a estilos arquitectónicos distintos. Sigue siendo tremendamente discriminante el vecindario. Las clasas de categoría 3 pertenecen en su mayor parte a los vecindarios mostrados en el árbol, y la diferencia entre las casas de categoría 3 y 4 están en la superficie del sótano, en el vecindario y en el estilo arquitectónico de las mismas. Algunas casas caras del tipo 1 con elevadoas superficies del segundo piso, aparecen mezcladas entre las casas de tipo 3 y 4, pero aun así hay una diferencia entre estos dos grupos: en la superfice de sótano finalizado.</p>
+<pre class="r"><code>party_obj &lt;- as.party.rpart(tree.1, data = TRUE)
+decisions &lt;- partykit:::.list.rules.party(party_obj)
+pathpred &lt;- function(object, ...)
+{
+  ## coerce to &quot;party&quot; object if necessary
+  if(!inherits(object, &quot;party&quot;)) object &lt;- as.party(object)
+
+  ## get standard predictions (response/prob) and collect in data frame
+  rval &lt;- data.frame(response = predict(object, type = &quot;response&quot;, ...))
+  rval$prob &lt;- predict(object, type = &quot;node&quot;, ...)
+
+  ## get rules for each node
+  rls &lt;- partykit:::.list.rules.party(object)
+
+  ## get predicted node and select corresponding rule
+  rval$rule &lt;- rls[as.character(predict(object, type = &quot;node&quot;, ...))]
+
+  return(rval)
+}
+rp_pred &lt;- pathpred(tree.1)
+
+#plot(output.tree)
+
+library(knitr)
+library(kableExtra)
+
+rp_pred &lt;- distinct(rp_pred[seq(1,dim(rp_pred)[1]),c(1,3) ])
+
+tablaReglas01 &lt;- rp_pred %&gt;% dplyr::filter(response == 1) %&gt;%  dplyr::select(rule)
+
+
+#tablaReglas01 %&gt;% kable( &quot;html&quot;, align = &quot;c&quot;) %&gt;%
+#  kable_styling(full_width = F) %&gt;%
+#  column_spec(1, width = &quot;30em&quot;, background = &quot;white&quot;)</code></pre>
+<pre class="r"><code>tablaReglas02 &lt;- rp_pred %&gt;% dplyr::filter(response == 2) %&gt;%  dplyr::select(rule)
+
+#tablaReglas02 %&gt;% kable( &quot;html&quot;, align = &quot;c&quot;) %&gt;%
+#  kable_styling(full_width = F) %&gt;%
+#  column_spec(1, width = &quot;30em&quot;, background = &quot;white&quot;)</code></pre>
+<pre class="r"><code>tablaReglas02 &lt;- rp_pred %&gt;% dplyr::filter(response == 3) %&gt;%  dplyr::select(rule)
+#tablaReglas02 %&gt;% kable( &quot;html&quot;, align = &quot;c&quot;) %&gt;%
+#  kable_styling(full_width = F) %&gt;%
+#  column_spec(1, width = &quot;30em&quot;, background = &quot;white&quot;)</code></pre>
 <p>Como vemos las variables que ha seleccionado principalmente el algoritmo de clústering para ayudar a discriminar las casas baratas de las caras son: - El año de construcción: discierne entre construcciones en la década de los 80 de casas más antíguas, que parecen indicar unos tipos de edificios históricos específico - El vecindario: muchas de las casas más caras parecen estar concentradas en unos pocos vecindarios. Y cuando estas casas aparecen en vecindarios más probres, lo hacen con unos estilos arquitectónicos y superficies de la segunda planta máyores. - El estilo arquitectónico. - Los materiales de las fachadas.</p>
 <p>Realizaremos una serie de gráficas para corroborar estas hipótesis. En primer lugar, las siguientes dos gráficas muestran: la media de precio por vecindario (primera gráfica) y el valor máximo del precio por vecindario:</p>
+<pre class="r"><code>library(scales)
+library(gridExtra)
+
+gr1 &lt;-ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(fill=cluster_result, y=exp(SalePrice), x=Neighborhood )) + 
+    geom_bar(position=&quot;dodge&quot;, stat=&#39;summary&#39;, fun.y = &quot;mean&quot;,width = 0.7) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_y_continuous(breaks= seq(0, 1800000, by=60000), labels = comma)  +
+        geom_hline(yintercept=250000, linetype=&quot;dashed&quot;, color = &quot;red&quot;)
+
+
+gr1_1 &lt;-ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(fill=cluster_result, y=exp(SalePrice), x=Neighborhood )) + 
+    geom_bar(position=&quot;dodge&quot;, stat=&#39;summary&#39;, fun.y = &quot;max&quot;,width = 0.7) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_y_continuous(breaks= seq(0, 1800000, by=60000), labels = comma)  +
+        geom_hline(yintercept=250000, linetype=&quot;dashed&quot;, color = &quot;red&quot;)
+
+grid.arrange(gr1, gr1_1)</code></pre>
 <p><img src="Cluster_files/figure-html/unnamed-chunk-27-1.png" width="672" /></p>
 <p>Observamos que hay 3 vecindarios (NoRidge, NrtdgHt y StoneBr) en el cual el precio medio de las casa es sustancialmente más caro , así como el valor máximo de las mismas. En estos vecindarios hay principalmente casas de categoría de clustering “1” y “2”, aunque hay algunas de tipo 4 en StoneBR. En el resto de vecindarios la media es significativamente menor, habiendo 3 vecindarios “collgrCr, Crawfor y Gilber” en las que se mezclan categorías 1,2 y 3 pero con precios máximos significativamente menores a los de los barrios comentados con anterioridad.</p>
 <p>Realizaremos este mismo análisis para el año de construccion. las siguientes dos gráficas muestran la media de precio por década en la que se contruyó y el valor máximo del precio por cada una de las décadas:</p>
+<pre class="r"><code>gr2 &lt;- ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(fill=cluster_result, y=exp(SalePrice), x=YearBuilt)) + 
+    geom_bar(position=&quot;dodge&quot;, stat=&#39;summary&#39;, fun.y = &quot;mean&quot; ,width = 0.7) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_y_continuous(breaks= seq(0, 1800000, by=60000), labels = comma)  +
+        geom_hline(yintercept=250000, linetype=&quot;dashed&quot;, color = &quot;red&quot;)  
+
+
+gr2_1 &lt;- ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(fill=cluster_result, y=exp(SalePrice), x=YearBuilt)) + 
+    geom_bar(position=&quot;dodge&quot;, stat=&#39;summary&#39;, fun.y = &quot;max&quot; ,width = 0.7) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_y_continuous(breaks= seq(0, 1800000, by=120000), labels = comma)  +
+        geom_hline(yintercept=250000, linetype=&quot;dashed&quot;, color = &quot;red&quot;)  
+
+grid.arrange(gr2, gr2_1)</code></pre>
 <p><img src="Cluster_files/figure-html/unnamed-chunk-28-1.png" width="672" /></p>
 <p>La gráfica de la media no nos da mucha información, pero vemos claramente en la otra gráfica que, efectivamente, en las décadas de los 80 y 90 aparecen una gran cantidad de casas clasificada en los grupos 1 y 2, que contienen casas con precio máximo más significativo. En la década de 1900-1910 aparece alguna casa de categoría 3 (clasificada como “barata”) que desmiente que todas las casas de esta categoría son necesariamente baratas. Durante el resto de los años sí que se construyeron algunas casas consideradas como “caras” pero con un valor mucho menor en el precio máximo. Y generalmente, estas casas, son de categoría 1,2 y 3.</p>
 <p>Realizaremos este mismo análisis para la variable “vecindario”. las siguientes dos gráficas muestran la media de precio por vecindario en la que se contruyó y el valor máximo del precio por cada uno de estos vecindarios:</p>
+<pre class="r"><code>gr3 &lt;- ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(fill=cluster_result, y=exp(SalePrice), x=MSSubClass)) + 
+    geom_bar(position=&quot;dodge&quot;, stat=&#39;summary&#39;, fun.y = &quot;mean&quot;,width = 0.7) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_y_continuous(breaks= seq(0, 1800000, by=60000), labels = comma)  +
+        geom_hline(yintercept=250000, linetype=&quot;dashed&quot;, color = &quot;red&quot;)  
+
+
+
+gr3_1 &lt;- ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(fill=cluster_result, y=exp(SalePrice), x=MSSubClass)) + 
+    geom_bar(position=&quot;dodge&quot;, stat=&#39;summary&#39;, fun.y = &quot;max&quot;,width = 0.7) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_y_continuous(breaks= seq(0, 1800000, by=120000), labels = comma)  +
+        geom_hline(yintercept=250000, linetype=&quot;dashed&quot;, color = &quot;red&quot;)  
+
+grid.arrange(gr3, gr3_1)</code></pre>
 <p><img src="Cluster_files/figure-html/unnamed-chunk-29-1.png" width="672" /></p>
 <p>La gráfica anterior (sobre todo la del valor máximo) parece indicar que hay 4 vecindarios en los se concentran las casas con mayor valor másimo, y que estan son principalmente de categorías 1 y 2, habiendo alguna excepción dentro las categorías 3 y 4, pero de menor valor que las de 1 y 2.</p>
 <p>A continuación mostraremos una gráfica con el valor máximo de la casa según los materiales utilizados en la fachada, para ver si esta varible, tal y como nos dice unos de los procesos de clusterización, es relevanta para distinguir las casas baratas de las caras.</p>
+<pre class="r"><code>gr4 &lt;- ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(fill=cluster_result, y=exp(SalePrice), x=Exterior1st)) + 
+    geom_bar(position=&quot;dodge&quot;, stat=&#39;summary&#39;, fun.y = &quot;max&quot;,width = 0.7) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_y_continuous(breaks= seq(0, 1800000, by=60000), labels = comma)  +
+        geom_hline(yintercept=250000, linetype=&quot;dashed&quot;, color = &quot;red&quot;)  
+
+gr4</code></pre>
 <p><img src="Cluster_files/figure-html/unnamed-chunk-30-1.png" width="672" /></p>
 <p>Se muestra en la anterior gráfica que, efectivamente, hay 6 materiales utilizados en casas de categoría 1 y 2 que podrían ser relevantes para ayudar a discriminar estas casas.</p>
 <p>Y por último, realizaremos una gráfica con la variable “Calidad de la casa evaluada en una escala de 0 a 10”.</p>
+<pre class="r"><code>gr5 &lt;- ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(fill=cluster_result, y=exp(SalePrice), x=OverallQual)) + 
+    geom_bar(position=&quot;dodge&quot;, stat=&#39;summary&#39;, fun.y = &quot;max&quot;,width = 0.7) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_y_continuous(breaks= seq(0, 1800000, by=60000), labels = comma)  +
+        geom_hline(yintercept=250000, linetype=&quot;dashed&quot;, color = &quot;red&quot;)  
+
+gr5</code></pre>
 <p><img src="Cluster_files/figure-html/unnamed-chunk-31-1.png" width="672" /></p>
 <p>Se muestra en esta gráfica que las categorías 1 y 2 tienen casas con valor máximo de precio que están en en rango de 7,5 a 10. Hay alguna casa de categoría 3 que tiene una valoración de 10 puntos y un valor muy elevado en el precio. Se observa también que los valores máximos de 0 a 7,5 son sustancialmente menores y hay casas de todos los tipos del cluster.</p>
 <p>Ahora dibujaremos un gráfico que muestra diversas variables que muestran superficies numéricas de las casas en función de las categorías realizadas por el algoritmo de clústering con las variables seleccionadas para nuestro modelo:</p>
+<pre class="r"><code>p1&lt;-ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(x=LotArea , y=exp(SalePrice) ,group=cluster_result ,fill=cluster_result)) +
+  geom_boxplot( aes(color=cluster_result)) +
+    scale_y_continuous(breaks= seq(0, 1800000, by=60000), labels = comma)  +
+        geom_hline(yintercept=250000, linetype=&quot;dashed&quot;, color = &quot;red&quot;) 
+
+p2&lt;-ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(x=GrLivArea , y=exp(SalePrice) ,group=cluster_result ,fill=cluster_result)) +
+  geom_boxplot( aes(color=cluster_result)) +
+    scale_y_continuous(breaks= seq(0, 1800000, by=60000), labels = comma)  +
+        geom_hline(yintercept=250000, linetype=&quot;dashed&quot;, color = &quot;red&quot;) 
+
+
+p3&lt;-ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(x=`2ndFlrSF` , y=exp(SalePrice) ,group=cluster_result ,fill=cluster_result)) +
+  geom_boxplot( aes(color=cluster_result)) +
+    scale_y_continuous(breaks= seq(0, 1800000, by=60000), labels = comma)  +
+        geom_hline(yintercept=250000, linetype=&quot;dashed&quot;, color = &quot;red&quot;) 
+
+p4&lt;-ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(x=BsmtFinSF1 , y=exp(SalePrice) ,group=cluster_result ,fill=cluster_result)) +
+  geom_boxplot( aes(color=cluster_result)) +
+    scale_y_continuous(breaks= seq(0, 1800000, by=60000), labels = comma)  +
+        geom_hline(yintercept=250000, linetype=&quot;dashed&quot;, color = &quot;red&quot;) 
+
+
+p5&lt;-ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(x=MasVnrArea , y=exp(SalePrice) ,group=cluster_result ,fill=cluster_result)) +
+  geom_boxplot( aes(color=cluster_result)) +
+    scale_y_continuous(breaks= seq(0, 1800000, by=60000), labels = comma)  +
+        geom_hline(yintercept=250000, linetype=&quot;dashed&quot;, color = &quot;red&quot;) 
+
+p6&lt;-ggplot(dataSetClusteringModeloClasificador_withClusterField[!is.na(dataSetClusteringModeloClasificador_withClusterField$SalePrice),], aes(x=GarageArea , y=exp(SalePrice) ,group=cluster_result ,fill=cluster_result)) +
+  geom_boxplot( aes(color=cluster_result)) +
+    scale_y_continuous(breaks= seq(0, 1800000, by=60000), labels = comma)  +
+        geom_hline(yintercept=250000, linetype=&quot;dashed&quot;, color = &quot;red&quot;) 
+
+
+
+grid.arrange(p1, p2,p3,p4,p5,p6, ncol = 2)</code></pre>
 <p><img src="Cluster_files/figure-html/unnamed-chunk-32-1.png" width="672" /></p>
 <p>En estas gráficas se observa claramente que: - En cuanto al área del segundo piso, las categorías 1 y 2 tienen una superficie superior a 1000 (pies al cuadrado?) y hay un conjuto de casas con estas superficios con precios mucho más elevados que la media. - Curiosamente, el área del garage todal es mucho menor para las casas de categoría 2 que las de 1, pese a que algunas tienen precios bastante elevados. - Lo mismo ocurre con la variable “MasVnrArea”, existen un grupo de casas de la categoría 2 con precios elevados y relativamente bajo valor de esta variable - Las casas de categoría 1 y 2 en general tienen más area habitable, de segundo piso y de sótano “finalizado” o útil.</p>
 <p>Ahora intentaremos utilizar otro algoritmo de clústering distinto, DBSCAN, basado en agrupamiento espacial basado en densidad. No obstante, debido a la naturaleza de los datos, no hemos sido capaces de dividir este dataset en más de 1 cluster distinto, por mucho que hemos jugado como parámetros.</p>
-<p><img src="Cluster_files/figure-html/unnamed-chunk-33-1.png" width="672" /><img src="Cluster_files/figure-html/unnamed-chunk-33-2.png" width="672" /><img src="Cluster_files/figure-html/unnamed-chunk-33-3.png" width="672" /></p>
+<pre class="r"><code>library(fpc)
+library(dbscan)
+
+dbscan::kNNdistplot(gower_mat_modelo_clasificador, k =  4)
+abline(h = 0.15, lty = 2)</code></pre>
+<p><img src="Cluster_files/figure-html/unnamed-chunk-33-1.png" width="672" /></p>
+<pre class="r"><code>#db &lt;- fpc::dbscan(dataSetClusteringContinuous , eps = 1000, MinPts = 5, scale = TRUE)
+
+#plot(db, dataSetClusteringContinuous , main = &quot;DBSCAN&quot;, frame = FALSE)
+
+db &lt;- fpc::dbscan(gower_mat_modelo_clasificador , eps = 1, MinPts = 5, scale = TRUE, 
+       method = &quot;dist&quot;)
+
+plot(db, gower_mat_modelo_clasificador , main = &quot;DBSCAN&quot;, frame = FALSE)</code></pre>
+<p><img src="Cluster_files/figure-html/unnamed-chunk-33-2.png" width="672" /></p>
+<pre class="r"><code>hullplot(gower_mat_modelo_clasificador, db$cluster)</code></pre>
+<p><img src="Cluster_files/figure-html/unnamed-chunk-33-3.png" width="672" /></p>
 
 
 
@@ -2311,6 +2662,11 @@ $(document).ready(function () {
 </script>
 
 <!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("hide" === "show");
+});
+</script>
 
 
 <!-- dynamically load mathjax for compatibility with self-contained -->
