@@ -1,8 +1,11 @@
 ---
 title: "PCA"
+output: 
+   html_document:
+      code_folding: hide
 ---
 
-```{r  message=FALSE, warning=FALSE, echo=FALSE}
+```{r  message=FALSE, warning=FALSE}
 
 library(mgcv)
 library(car)
@@ -29,11 +32,6 @@ columnas_continuas_PCA = c("LotArea","MasVnrArea","BsmtFinSF1","BsmtFinSF2","Bsm
 
 dataSetTrainPCA  <-   datasetTrainPCA    %>%    dplyr::select(-c('GrupoPrecio'))   %>% na.omit()
 dataSetTestPCA  <-  datasetTestPCA  %>%   dplyr::select(-c('GrupoPrecio'))  %>%  na.omit()
-
-#dataSetValidationPCA  <-  validation_sin_naPCA  %>%  dplyr::select(c(var_modeloPCA,'SalePrice'))  %>%  na.omit()
-#dataSetContinuousPCA  <-  datasetTrainPCA %>%  dplyr::select(-c('has2ndFloor'))  %>%  na.omit() 
-#dataSetContinuousPCA <-  dataSetContinuousPCA  %>%    dplyr::select(columnas_continuas_PCA)   %>%  na.omit() 
-
 
 
 ```
@@ -97,7 +95,7 @@ rf_model_pca <- train(GrupoPrecio ~.,
                 method="rf",
                 nodesize= 30,
                 ntree =500,
-                do.trace= 10,
+                #do.trace= 10,
                 trControl=ctrl,
                 tuneGrid = tGrid,
                 verbose = FALSE
@@ -110,7 +108,7 @@ rf_model_sin_pca <-train(GrupoPrecio ~.,
                 method="rf",
                 nodesize= 30,
                 ntree =500,
-                do.trace= 10,
+                #do.trace= 10,
                 trControl=ctrl,
                 tuneGrid = tGrid,
                 verbose = FALSE,
@@ -121,6 +119,6 @@ rf_model_sin_pca$results
 
 ```
 
-  Comprobamos que el accuracy en ambos modelos es similar con un 40% de reducción en el número de variables.
+  Comprobamos que el accuracy en ambos modelos es similar con un 40% de reducción en el número de variables. En los comentarios de la práctica se ha comentado que el valor kappa debería no ser tan distinto en los dos modelos, que parece indicar que se han hecho los modelos sobre poblaciones disimilares. No obstante, después de revisar el código, se ha llegado a la conclusión de que ambos se realizan sobre la población de Train, lo único que uno de los modelos utiliza las componentes PCA y el otro no. No logro entender el por qué de estos valores tan disimilares.
 
 
